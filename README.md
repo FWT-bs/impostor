@@ -1,67 +1,70 @@
-# Impostor — Social Deduction Party Game
+# Impostor
 
-A real-time social deduction party game where players try to identify the impostor among them. One player doesn't know the secret word and must bluff their way through — can your group catch them?
+A real-time multiplayer social deduction game. Players try to identify an impostor who doesn't know the secret word — with room codes, live voting, and persistent leaderboards.
 
-## Game Modes
+## Overview
 
-### Local Party Mode (Pass & Play)
-Play on a single device. Pass it around the table, give clues, and vote.
+Impostor supports two modes: **local** (pass-and-play on one device) and **online** (join via room code). Online play uses Supabase Realtime for multiplayer synchronization, meaning all game state — roles, votes, round results — is reflected live across every connected client.
 
-### Online Multiplayer
-Create or join a room with a 4-character code. Each player uses their own device with real-time synchronization.
+Player profiles and stats persist across sessions. A leaderboard tracks performance over time.
+
+## Features
+
+- **Online multiplayer** — Room-code-based sessions with real-time sync via Supabase Realtime
+- **Local mode** — Pass-and-play on a single device, no account required
+- **Anonymous + authenticated play** — Supports both guest and logged-in users
+- **Voting system** — Live vote tallying with reveal mechanics
+- **Leaderboards** — Persistent stats across sessions (wins, detection rate, etc.)
+- **Row-level security** — Role assignment and game state validated server-side to prevent client manipulation
 
 ## Tech Stack
 
-- **Frontend**: Next.js 16 (App Router), React 19, TypeScript, Tailwind CSS v4
-- **Backend**: Supabase (Postgres, Auth, Realtime)
-- **State**: Zustand (client), Supabase Realtime (multiplayer sync)
-- **Animations**: Framer Motion
-- **Deployment**: Vercel
+| Layer | Technology |
+|---|---|
+| Frontend | Next.js (App Router), React 19, TypeScript |
+| Styling | Tailwind CSS v4 |
+| Animations | Framer Motion |
+| State | Zustand |
+| Backend / DB | Supabase (PostgreSQL + Realtime + Auth) |
+| Hosting | Vercel |
+
+## Database Schema
+
+Key tables:
+
+| Table | Purpose |
+|---|---|
+| `profiles` | User data and lifetime stats |
+| `rooms` | Active and completed game rooms |
+| `room_players` | Player-room membership |
+| `player_secrets` | Secret word assignments (RLS-protected) |
+| `game_rounds` | Round history |
+| `votes` | Per-round vote records |
+
+Migrations live in `supabase/migrations/`. Apply via Supabase CLI.
 
 ## Getting Started
 
-### Prerequisites
-
-- Node.js 20+
-- A Supabase project (free tier works)
-
-### 1. Clone and Install
-
 ```bash
-git clone <your-repo-url>
+git clone https://github.com/FWT-bs/impostor
 cd impostor
 npm install
 ```
 
-### 2. Set Up Supabase
+Create a `.env.local` file:
 
-1. Create a project at [supabase.com](https://supabase.com)
-2. Go to **Project Settings → API** and copy your:
-   - Project URL
-   - `anon` public key
-   - `service_role` secret key
-3. Go to **Authentication → Providers** and enable:
-   - Email (already enabled by default)
-   - Anonymous Sign-Ins (under Settings → Authentication → User Signups, enable "Allow anonymous sign-ins")
-4. Go to the **SQL Editor** and run the contents of `supabase/migrations/000_combined.sql`
+```env
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+```
 
-### 3. Configure Environment Variables
-
-Copy the example env file and fill in your values:
+Run migrations:
 
 ```bash
-cp .env.example .env.local
+npx supabase db push
 ```
 
-Edit `.env.local`:
-
-```
-NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
-SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
-```
-
-### 4. Run Development Server
+Start the dev server:
 
 ```bash
 npm run dev
@@ -69,53 +72,6 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000).
 
-## Deploy to Vercel
+## License
 
-1. Push to GitHub
-2. Import the repo in [Vercel](https://vercel.com)
-3. Add the three environment variables in Vercel's project settings
-4. Deploy
-
-## Project Structure
-
-```
-src/
-├── app/                    # Next.js App Router pages
-│   ├── (auth)/             # Login, signup, callback
-│   ├── api/                # Server API routes
-│   │   ├── rooms/          # Room CRUD + game actions
-│   │   └── auth/           # Guest auth
-│   ├── local/              # Local party mode
-│   ├── rooms/              # Online room browser + lobby + play
-│   ├── profile/            # User profile + stats
-│   └── leaderboard/        # Global leaderboard
-├── components/
-│   ├── ui/                 # Reusable UI primitives
-│   ├── layout/             # Header
-│   └── game/               # Game-specific components
-├── lib/
-│   ├── supabase/           # Client setup (browser, server, admin)
-│   ├── game/               # Game engine, word selection
-│   └── hooks/              # React hooks for auth, rooms, realtime
-├── stores/                 # Zustand stores
-├── data/                   # Word list JSON
-└── types/                  # Shared TypeScript types
-```
-
-## Database Schema
-
-- **profiles** — User accounts with game statistics
-- **rooms** — Online game rooms with state tracking
-- **room_players** — Players in each room
-- **player_secrets** — Role assignments (RLS: players can only see their own)
-- **game_rounds** — Round history with word/topic/winner
-- **votes** — Individual votes per round
-
-All tables have Row Level Security (RLS) policies. See `supabase/migrations/` for the full schema.
-
-## Security
-
-- Role assignments stored in `player_secrets` with strict RLS — no player can see another's role
-- Game state transitions validated server-side via API routes using the service role key
-- Votes hidden until the round completes
-- Impostor identity revealed only after the round ends (via `game_rounds_public` view)
+MIT
