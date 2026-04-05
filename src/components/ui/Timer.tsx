@@ -12,9 +12,9 @@ export interface TimerProps {
 }
 
 function ringColor(percentRemaining: number): string {
-  if (percentRemaining > 50) return "var(--teal)";
-  if (percentRemaining > 25) return "var(--amber)";
-  return "var(--danger)";
+  if (percentRemaining > 50) return "var(--purple)";
+  if (percentRemaining > 25) return "var(--orange)";
+  return "var(--rose)";
 }
 
 export function Timer({
@@ -76,14 +76,17 @@ export function Timer({
           strokeDasharray={circumference}
           strokeDashoffset={offset}
           className="transition-[stroke,stroke-dashoffset] duration-500 ease-out"
+          style={{
+            filter: `drop-shadow(0 0 6px ${stroke})`,
+          }}
         />
       </svg>
       <span
         className={cn(
           "absolute font-heading text-lg font-bold tabular-nums tracking-wide sm:text-xl",
-          percentRemaining > 50 && "text-teal",
-          percentRemaining > 25 && percentRemaining <= 50 && "text-amber",
-          percentRemaining <= 25 && "text-danger",
+          percentRemaining > 50 && "text-purple",
+          percentRemaining > 25 && percentRemaining <= 50 && "text-orange",
+          percentRemaining <= 25 && "text-rose",
         )}
       >
         {formatTimerSeconds(Math.ceil(clampedSeconds))}

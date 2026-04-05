@@ -109,50 +109,81 @@ export default function RoomsPage() {
             : null
         }
       />
-      <main className="min-h-screen bg-background pt-20 pb-12 px-4">
-        <div className="mx-auto max-w-2xl">
-          <h1 className="text-center text-4xl text-teal mb-2">Online Rooms</h1>
-          <p className="text-center text-muted mb-8">
-            Create or join a room to play with friends
-          </p>
+      <main className="min-h-screen bg-background pt-20 pb-12 px-4 relative overflow-hidden">
+        {/* Decorative blobs */}
+        <div className="absolute top-20 -left-20 w-[300px] h-[300px] rounded-full bg-purple/5 blur-3xl pointer-events-none" aria-hidden />
+        <div className="absolute bottom-10 -right-20 w-[250px] h-[250px] rounded-full bg-cyan/5 blur-3xl pointer-events-none" aria-hidden />
 
-          <Card padding="md" className="mb-8">
-            <h3 className="font-heading text-lg text-foreground mb-3">Join by Code</h3>
-            <p className="text-sm text-muted mb-3">Have a room code? Enter it to join a public or private room.</p>
-            <div className="flex gap-2">
-              <Input
-                placeholder="ABCD"
-                value={joinCode}
-                onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
-                className="bg-background uppercase tracking-widest font-heading text-lg text-center"
-                maxLength={4}
-              />
-              <Button
-                variant="primary"
-                onClick={() => handleJoin(joinCode)}
-                disabled={joinCode.length !== 4 || joining}
-                isLoading={joining}
-              >
-                Join
-              </Button>
-            </div>
-          </Card>
+        <div className="mx-auto max-w-2xl relative z-10">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ type: "spring", stiffness: 120 }}
+          >
+            <h1 className="text-center font-heading text-4xl bg-gradient-to-r from-purple to-cyan bg-clip-text text-transparent mb-2">
+              🌐 Online Rooms
+            </h1>
+            <p className="text-center text-muted mb-8">
+              Create or join a room to play with friends
+            </p>
+          </motion.div>
 
-          <div className="flex items-center justify-between mb-4">
+          <motion.div
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.15 }}
+          >
+            <Card padding="md" className="mb-8">
+              <h3 className="font-heading text-lg text-foreground mb-3">🔑 Join by Code</h3>
+              <p className="text-sm text-muted mb-3">Have a room code? Enter it to join a public or private room.</p>
+              <div className="flex gap-2">
+                <Input
+                  placeholder="ABCD"
+                  value={joinCode}
+                  onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
+                  className="bg-background uppercase tracking-widest font-heading text-lg text-center"
+                  maxLength={4}
+                />
+                <Button
+                  variant="primary"
+                  onClick={() => handleJoin(joinCode)}
+                  disabled={joinCode.length !== 4 || joining}
+                  isLoading={joining}
+                >
+                  Join
+                </Button>
+              </div>
+            </Card>
+          </motion.div>
+
+          <motion.div
+            className="flex items-center justify-between mb-4"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.25 }}
+          >
             <h2 className="font-heading text-xl text-foreground">
               Public Rooms
             </h2>
             <Button variant="secondary" onClick={() => setShowCreate(true)}>
-              + Create Room
+              ✨ Create Room
             </Button>
-          </div>
+          </motion.div>
 
           {loadingRooms ? (
             <div className="text-center text-muted py-12">
-              Loading rooms...
+              <motion.div
+                animate={{ rotate: 360 }}
+                transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
+                className="inline-block text-3xl mb-3"
+              >
+                🔄
+              </motion.div>
+              <p>Loading rooms...</p>
             </div>
           ) : rooms.length === 0 ? (
             <Card padding="lg" className="text-center">
+              <div className="text-4xl mb-3">🏜️</div>
               <p className="text-muted mb-4">No public rooms available right now</p>
               <Button variant="primary" onClick={() => setShowCreate(true)}>
                 Create One
@@ -165,7 +196,7 @@ export default function RoomsPage() {
                   key={room.id}
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: i * 0.05 }}
+                  transition={{ delay: 0.3 + i * 0.05, type: "spring", stiffness: 200 }}
                 >
                   <Card
                     hover
@@ -173,7 +204,7 @@ export default function RoomsPage() {
                     className="flex items-center justify-between"
                   >
                     <div className="flex items-center gap-4">
-                      <span className="font-heading text-xl text-teal tracking-widest">
+                      <span className="font-heading text-xl text-purple tracking-widest">
                         {room.code}
                       </span>
                       <span className="text-sm text-muted">
@@ -199,7 +230,7 @@ export default function RoomsPage() {
       <Modal
         open={showCreate}
         onClose={() => setShowCreate(false)}
-        title="Create Room"
+        title="✨ Create Room"
       >
         <div className="space-y-4">
           <Input
@@ -210,31 +241,31 @@ export default function RoomsPage() {
           />
 
           <div>
-            <label className="block text-sm font-medium text-foreground mb-2">Room Type</label>
+            <label className="block text-sm font-semibold text-foreground mb-2">Room Type</label>
             <div className="flex gap-3">
               <button
                 onClick={() => setIsPrivate(false)}
                 className={cn(
-                  "flex-1 rounded-lg border px-4 py-3 text-center transition-all",
+                  "flex-1 rounded-2xl border-2 px-4 py-3 text-center transition-all duration-200 cursor-pointer",
                   !isPrivate
-                    ? "border-teal bg-teal/10 ring-1 ring-teal/40"
-                    : "border-border bg-card hover:border-teal/30"
+                    ? "border-purple bg-purple/10 ring-1 ring-purple/30 shadow-[0_0_16px_rgba(168,85,247,0.15)]"
+                    : "border-border bg-card hover:border-purple/30"
                 )}
               >
-                <div className="text-lg mb-1">🌐</div>
+                <div className="text-2xl mb-1">🌐</div>
                 <p className="text-sm font-medium text-foreground">Public</p>
                 <p className="text-xs text-muted">Visible in room browser</p>
               </button>
               <button
                 onClick={() => setIsPrivate(true)}
                 className={cn(
-                  "flex-1 rounded-lg border px-4 py-3 text-center transition-all",
+                  "flex-1 rounded-2xl border-2 px-4 py-3 text-center transition-all duration-200 cursor-pointer",
                   isPrivate
-                    ? "border-amber bg-amber/10 ring-1 ring-amber/40"
-                    : "border-border bg-card hover:border-amber/30"
+                    ? "border-orange bg-orange/10 ring-1 ring-orange/30 shadow-[0_0_16px_rgba(251,146,60,0.15)]"
+                    : "border-border bg-card hover:border-orange/30"
                 )}
               >
-                <div className="text-lg mb-1">🔒</div>
+                <div className="text-2xl mb-1">🔒</div>
                 <p className="text-sm font-medium text-foreground">Private</p>
                 <p className="text-xs text-muted">Join by code only</p>
               </button>

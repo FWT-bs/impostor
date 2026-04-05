@@ -12,8 +12,8 @@ export interface AvatarProps extends HTMLAttributes<HTMLDivElement> {
 }
 
 const sizeClasses: Record<AvatarSize, string> = {
-  sm: "size-8 text-xs",
-  md: "size-10 text-sm",
+  sm: "size-9 text-xs",
+  md: "size-11 text-sm",
   lg: "size-14 text-base",
 };
 
@@ -32,7 +32,9 @@ export function Avatar({
       role="img"
       aria-label={name.trim() || "Player"}
       className={cn(
-        "flex shrink-0 items-center justify-center rounded-full font-heading font-bold uppercase tracking-wide text-white shadow-inner ring-2 ring-black/20",
+        "flex shrink-0 items-center justify-center rounded-full font-heading font-bold uppercase tracking-wide text-white",
+        "shadow-[0_2px_8px_rgba(0,0,0,0.3)] ring-2 ring-white/10",
+        "transition-transform duration-200 hover:scale-105",
         sizeClasses[size],
         className,
       )}

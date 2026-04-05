@@ -99,6 +99,7 @@ export default function LobbyPage({
         <Header />
         <main className="min-h-screen bg-background flex items-center justify-center">
           <Card padding="lg" className="text-center">
+            <div className="text-4xl mb-3">😵</div>
             <p className="text-foreground mb-4">Room not found</p>
             <Button variant="primary" onClick={() => router.push("/rooms")}>
               Back to Rooms
@@ -118,16 +119,22 @@ export default function LobbyPage({
             : null
         }
       />
-      <main className="min-h-screen bg-background pt-20 pb-12 px-4">
-        <div className="mx-auto max-w-lg">
-          <div className="text-center mb-8">
+      <main className="min-h-screen bg-background pt-20 pb-12 px-4 relative overflow-hidden">
+        <div className="absolute top-20 right-10 w-[300px] h-[300px] rounded-full bg-purple/5 blur-3xl pointer-events-none" aria-hidden />
+
+        <div className="mx-auto max-w-lg relative z-10">
+          <motion.div
+            className="text-center mb-8"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+          >
             {room.is_private && (
-              <span className="inline-block text-xs bg-amber/20 text-amber px-3 py-1 rounded-full mb-2">
+              <span className="inline-block text-xs bg-orange/20 text-orange px-3 py-1 rounded-full mb-2 font-bold">
                 🔒 Private Room
               </span>
             )}
             <p className="text-sm text-muted mb-1">Room Code</p>
-            <h1 className="font-heading text-5xl text-teal tracking-[0.3em] mb-2">
+            <h1 className="font-heading text-5xl text-purple tracking-[0.3em] mb-2">
               {room.code}
             </h1>
             <p className="text-sm text-muted">
@@ -141,68 +148,79 @@ export default function LobbyPage({
                 navigator.clipboard.writeText(
                   `${window.location.origin}/rooms/${room.code}`
                 );
-                toast.success("Link copied!");
+                toast.success("Link copied! 🔗");
               }}
             >
-              Copy Invite Link
+              📋 Copy Invite Link
             </Button>
-          </div>
+          </motion.div>
 
-          <Card padding="lg" className="mb-6">
-            <h2 className="font-heading text-lg text-foreground mb-4">
-              Players ({players.length}/{room.max_players})
-            </h2>
-            <div className="space-y-3">
-              {players.map((p, i) => (
-                <motion.div
-                  key={p.id}
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: i * 0.05 }}
-                  className={cn(
-                    "flex items-center gap-3 rounded-lg border px-3 py-2",
-                    p.is_ready || p.is_host
-                      ? "border-success/30 bg-success/5"
-                      : "border-border bg-card"
-                  )}
-                >
-                  <Avatar
-                    name={p.display_name}
-                    color={AVATAR_COLORS[i % AVATAR_COLORS.length]}
-                    size="sm"
-                  />
-                  <span className="text-sm font-medium text-foreground">
-                    {p.display_name}
-                  </span>
-                  {p.is_host && (
-                    <span className="text-xs bg-amber/20 text-amber px-2 py-0.5 rounded">
-                      HOST
-                    </span>
-                  )}
-                  <span
+          <motion.div
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.15 }}
+          >
+            <Card padding="lg" className="mb-6">
+              <h2 className="font-heading text-lg text-foreground mb-4">
+                👥 Players ({players.length}/{room.max_players})
+              </h2>
+              <div className="space-y-3">
+                {players.map((p, i) => (
+                  <motion.div
+                    key={p.id}
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.2 + i * 0.05, type: "spring", stiffness: 200 }}
                     className={cn(
-                      "ml-auto text-xs",
+                      "flex items-center gap-3 rounded-2xl border-2 px-3 py-2 transition-all duration-200",
                       p.is_ready || p.is_host
-                        ? "text-success"
-                        : "text-muted"
+                        ? "border-emerald/30 bg-emerald/5"
+                        : "border-border bg-card"
                     )}
                   >
-                    {p.is_host ? "Ready" : p.is_ready ? "Ready" : "Not Ready"}
-                  </span>
-                  {isHost && !p.is_host && (
-                    <button
-                      onClick={() => handleKick(p.user_id)}
-                      className="text-xs text-danger hover:text-danger/80 ml-2"
+                    <Avatar
+                      name={p.display_name}
+                      color={AVATAR_COLORS[i % AVATAR_COLORS.length]}
+                      size="sm"
+                    />
+                    <span className="text-sm font-medium text-foreground">
+                      {p.display_name}
+                    </span>
+                    {p.is_host && (
+                      <span className="text-xs bg-orange/20 text-orange px-2 py-0.5 rounded-full font-bold">
+                        👑 HOST
+                      </span>
+                    )}
+                    <span
+                      className={cn(
+                        "ml-auto text-xs font-medium",
+                        p.is_ready || p.is_host
+                          ? "text-emerald"
+                          : "text-muted"
+                      )}
                     >
-                      Kick
-                    </button>
-                  )}
-                </motion.div>
-              ))}
-            </div>
-          </Card>
+                      {p.is_host ? "✓ Ready" : p.is_ready ? "✓ Ready" : "⏳ Not Ready"}
+                    </span>
+                    {isHost && !p.is_host && (
+                      <button
+                        onClick={() => handleKick(p.user_id)}
+                        className="text-xs text-rose hover:text-rose/80 ml-2 cursor-pointer"
+                      >
+                        Kick
+                      </button>
+                    )}
+                  </motion.div>
+                ))}
+              </div>
+            </Card>
+          </motion.div>
 
-          <div className="space-y-3">
+          <motion.div
+            className="space-y-3"
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+          >
             {isHost ? (
               <Button
                 variant="primary"
@@ -215,8 +233,8 @@ export default function LobbyPage({
                 {players.length < 3
                   ? `Need ${3 - players.length} more player${3 - players.length > 1 ? "s" : ""}`
                   : !allReady
-                    ? "Waiting for everyone to ready up"
-                    : "Start Game"}
+                    ? "⏳ Waiting for everyone to ready up"
+                    : "🚀 Start Game"}
               </Button>
             ) : (
               <Button
@@ -225,7 +243,7 @@ export default function LobbyPage({
                 className="w-full"
                 onClick={handleToggleReady}
               >
-                {myPlayer?.is_ready ? "Not Ready" : "Ready Up"}
+                {myPlayer?.is_ready ? "Not Ready" : "✋ Ready Up"}
               </Button>
             )}
             <Button
@@ -236,7 +254,7 @@ export default function LobbyPage({
             >
               Leave Room
             </Button>
-          </div>
+          </motion.div>
         </div>
       </main>
     </>

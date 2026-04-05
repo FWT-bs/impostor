@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { motion } from "framer-motion";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 
@@ -47,14 +48,21 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background px-4 py-12">
-      <div
+    <div className="min-h-screen flex items-center justify-center bg-background px-4 py-12 relative overflow-hidden">
+      <div className="absolute top-20 left-1/4 w-[350px] h-[350px] rounded-full bg-purple/5 blur-3xl pointer-events-none" aria-hidden />
+      <div className="absolute bottom-20 right-1/4 w-[300px] h-[300px] rounded-full bg-cyan/5 blur-3xl pointer-events-none" aria-hidden />
+
+      <motion.div
         className={cn(
-          "w-full max-w-md rounded-xl border border-border bg-card p-8 shadow-[0_0_40px_rgba(0,240,255,0.06)]",
-          "animate-glow-pulse"
+          "w-full max-w-md rounded-2xl border-2 border-border bg-card/90 backdrop-blur-sm p-8",
+          "shadow-[0_0_40px_rgba(168,85,247,0.08)]",
         )}
+        initial={{ opacity: 0, y: 30 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ type: "spring", stiffness: 120 }}
       >
-        <h1 className="text-center text-3xl tracking-wide text-foreground">
+        <div className="text-center text-4xl mb-4">🕵️</div>
+        <h1 className="text-center font-heading text-3xl tracking-wide text-foreground">
           Sign in
         </h1>
         <p className="mt-2 text-center text-sm text-muted">
@@ -65,7 +73,7 @@ export default function LoginPage() {
           <div>
             <label
               htmlFor="email"
-              className="block text-xs font-medium uppercase tracking-wider text-muted"
+              className="block text-xs font-semibold uppercase tracking-wider text-muted"
             >
               Email
             </label>
@@ -78,8 +86,8 @@ export default function LoginPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className={cn(
-                "mt-1.5 w-full rounded-lg border border-border bg-background px-3 py-2.5 text-foreground outline-none transition",
-                "placeholder:text-muted/60 focus:border-teal focus:ring-1 focus:ring-teal/40"
+                "mt-1.5 w-full rounded-xl border-2 border-border bg-background px-4 py-2.5 text-foreground outline-none transition-all duration-200",
+                "placeholder:text-muted/60 focus:border-purple focus:ring-2 focus:ring-purple/30"
               )}
               placeholder="you@example.com"
             />
@@ -87,7 +95,7 @@ export default function LoginPage() {
           <div>
             <label
               htmlFor="password"
-              className="block text-xs font-medium uppercase tracking-wider text-muted"
+              className="block text-xs font-semibold uppercase tracking-wider text-muted"
             >
               Password
             </label>
@@ -100,8 +108,8 @@ export default function LoginPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className={cn(
-                "mt-1.5 w-full rounded-lg border border-border bg-background px-3 py-2.5 text-foreground outline-none transition",
-                "placeholder:text-muted/60 focus:border-teal focus:ring-1 focus:ring-teal/40"
+                "mt-1.5 w-full rounded-xl border-2 border-border bg-background px-4 py-2.5 text-foreground outline-none transition-all duration-200",
+                "placeholder:text-muted/60 focus:border-purple focus:ring-2 focus:ring-purple/30"
               )}
               placeholder="••••••••"
             />
@@ -110,11 +118,12 @@ export default function LoginPage() {
             type="submit"
             disabled={loading || guestLoading}
             className={cn(
-              "w-full rounded-lg bg-teal/15 py-3 text-sm font-semibold text-teal ring-1 ring-teal/50 transition",
-              "hover:bg-teal/25 disabled:pointer-events-none disabled:opacity-50"
+              "w-full rounded-full bg-gradient-to-r from-purple to-purple-dim py-3 text-sm font-bold text-white transition-all duration-200 cursor-pointer",
+              "hover:shadow-[0_0_24px_rgba(168,85,247,0.4)] hover:brightness-110",
+              "active:scale-[0.97] disabled:pointer-events-none disabled:opacity-50"
             )}
           >
-            {loading ? "Signing in…" : "Sign in"}
+            {loading ? "Signing in…" : "🔓 Sign in"}
           </button>
         </form>
 
@@ -124,23 +133,24 @@ export default function LoginPage() {
             onClick={handleGuest}
             disabled={loading || guestLoading}
             className={cn(
-              "w-full rounded-lg border border-border bg-card-hover py-3 text-sm text-foreground transition",
-              "hover:border-teal/30 hover:text-teal disabled:pointer-events-none disabled:opacity-50"
+              "w-full rounded-full border-2 border-border bg-card-hover py-3 text-sm font-semibold text-foreground transition-all duration-200 cursor-pointer",
+              "hover:border-purple/30 hover:text-purple hover:shadow-[0_0_16px_rgba(168,85,247,0.1)]",
+              "active:scale-[0.97] disabled:pointer-events-none disabled:opacity-50"
             )}
           >
-            {guestLoading ? "Entering…" : "Continue as Guest"}
+            {guestLoading ? "Entering…" : "👻 Continue as Guest"}
           </button>
           <p className="text-center text-sm text-muted">
             No account?{" "}
             <Link
               href="/signup"
-              className="font-medium text-teal hover:text-teal-dim underline-offset-4 hover:underline"
+              className="font-medium text-purple hover:text-purple-glow underline-offset-4 hover:underline"
             >
               Create one
             </Link>
           </p>
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 }

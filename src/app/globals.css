@@ -1,34 +1,49 @@
 @import "tailwindcss";
 
 :root {
-  --background: #0a0f1e;
-  --foreground: #e2e8f0;
-  --card: #151b2e;
-  --card-hover: #1c2440;
-  --border: #2a3352;
-  --muted: #8892b0;
-  --teal: #00f0ff;
-  --teal-dim: #00b8c5;
-  --amber: #f59e0b;
-  --amber-dim: #d97706;
-  --danger: #ef4444;
-  --success: #22c55e;
+  --background: #0b0d1f;
+  --foreground: #ebedf7;
+  --card: #151730;
+  --card-hover: #1e2145;
+  --border: #2a2e55;
+  --muted: #7c82a8;
+  --purple: #a855f7;
+  --purple-dim: #7c3aed;
+  --purple-glow: #c084fc;
+  --cyan: #22d3ee;
+  --cyan-dim: #0891b2;
+  --orange: #fb923c;
+  --orange-dim: #ea580c;
+  --rose: #f43f5e;
+  --emerald: #34d399;
 }
 
 @theme inline {
   --animate-glow-pulse: glow-pulse 3s ease-in-out infinite;
+  --animate-float: float 6s ease-in-out infinite;
+  --animate-shimmer: shimmer 2s linear infinite;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
   --color-card-hover: var(--card-hover);
   --color-border: var(--border);
   --color-muted: var(--muted);
-  --color-teal: var(--teal);
-  --color-teal-dim: var(--teal-dim);
-  --color-amber: var(--amber);
-  --color-amber-dim: var(--amber-dim);
-  --color-danger: var(--danger);
-  --color-success: var(--success);
+  --color-purple: var(--purple);
+  --color-purple-dim: var(--purple-dim);
+  --color-purple-glow: var(--purple-glow);
+  --color-cyan: var(--cyan);
+  --color-cyan-dim: var(--cyan-dim);
+  --color-orange: var(--orange);
+  --color-orange-dim: var(--orange-dim);
+  --color-rose: var(--rose);
+  --color-emerald: var(--emerald);
+  /* keep old aliases for compat */
+  --color-teal: var(--cyan);
+  --color-teal-dim: var(--cyan-dim);
+  --color-amber: var(--orange);
+  --color-amber-dim: var(--orange-dim);
+  --color-danger: var(--rose);
+  --color-success: var(--emerald);
   --font-heading: var(--font-rajdhani);
   --font-sans: var(--font-inter);
 }
@@ -46,7 +61,7 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 ::selection {
-  background: rgba(0, 240, 255, 0.25);
+  background: rgba(168, 85, 247, 0.3);
   color: #fff;
 }
 
@@ -62,6 +77,21 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 @keyframes glow-pulse {
-  0%, 100% { box-shadow: 0 0 20px rgba(0, 240, 255, 0.15); }
-  50% { box-shadow: 0 0 40px rgba(0, 240, 255, 0.3); }
+  0%, 100% { box-shadow: 0 0 20px rgba(168, 85, 247, 0.2), 0 0 60px rgba(168, 85, 247, 0.05); }
+  50% { box-shadow: 0 0 40px rgba(168, 85, 247, 0.35), 0 0 80px rgba(168, 85, 247, 0.1); }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  33% { transform: translateY(-12px) rotate(1deg); }
+  66% { transform: translateY(6px) rotate(-1deg); }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@layer base {
+  /* Decorative blob utility as a pseudo-element pattern */
 }

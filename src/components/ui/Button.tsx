@@ -23,19 +23,19 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 
 const variantClasses: Record<ButtonVariant, string> = {
   primary:
-    "bg-teal text-background font-semibold shadow-[0_0_0_1px_rgba(0,240,255,0.2)] hover:shadow-[0_0_24px_rgba(0,240,255,0.35)] hover:bg-teal-dim active:scale-[0.98] disabled:shadow-none disabled:hover:shadow-none",
+    "bg-gradient-to-r from-purple to-purple-dim text-white font-bold shadow-[0_0_0_1px_rgba(168,85,247,0.3)] hover:shadow-[0_0_28px_rgba(168,85,247,0.45)] hover:brightness-110 active:scale-[0.95] disabled:shadow-none disabled:hover:shadow-none",
   secondary:
-    "bg-card border border-border text-foreground hover:bg-card-hover hover:border-teal/30 active:scale-[0.98]",
+    "bg-card border-2 border-border text-foreground font-semibold hover:bg-card-hover hover:border-purple/40 hover:shadow-[0_0_16px_rgba(168,85,247,0.15)] active:scale-[0.95]",
   danger:
-    "bg-danger text-white font-semibold hover:bg-red-600 hover:shadow-[0_0_20px_rgba(239,68,68,0.35)] active:scale-[0.98]",
+    "bg-gradient-to-r from-rose to-rose/80 text-white font-bold hover:shadow-[0_0_24px_rgba(244,63,94,0.4)] hover:brightness-110 active:scale-[0.95]",
   ghost:
-    "bg-transparent text-foreground hover:bg-card/80 hover:text-teal active:scale-[0.98]",
+    "bg-transparent text-foreground hover:bg-card/80 hover:text-purple active:scale-[0.95]",
 };
 
 const sizeClasses: Record<ButtonSize, string> = {
-  sm: "h-8 px-3 text-sm rounded-lg gap-1.5",
-  md: "h-10 px-4 text-sm rounded-lg gap-2",
-  lg: "h-12 px-6 text-base rounded-xl gap-2",
+  sm: "h-9 px-5 text-sm rounded-full gap-2",
+  md: "h-11 px-6 text-sm rounded-full gap-2",
+  lg: "h-13 px-8 text-base rounded-full gap-2.5",
 };
 
 function buttonClassName(
@@ -44,14 +44,15 @@ function buttonClassName(
   className?: string,
 ) {
   return cn(
-    "inline-flex items-center justify-center font-medium transition-all duration-200",
-    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+    "inline-flex items-center justify-center font-medium cursor-pointer",
+    "transition-all duration-200 ease-out",
+    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple focus-visible:ring-offset-2 focus-visible:ring-offset-background",
     "disabled:pointer-events-none disabled:opacity-50",
     variantClasses[variant],
-    size === "sm" && variant === "ghost" && "h-8 px-2",
-    size === "md" && variant === "ghost" && "h-10 px-3",
-    size === "lg" && variant === "ghost" && "h-12 px-4",
-    variant !== "ghost" ? sizeClasses[size] : "",
+    size === "sm" && variant === "ghost" && "h-9 px-3 rounded-full",
+    size === "md" && variant === "ghost" && "h-11 px-4 rounded-full",
+    size === "lg" && variant === "ghost" && "h-13 px-6 rounded-full",
+    variant !== "ghost" ? sizeClasses[size] : sizeClasses[size],
     className,
   );
 }
@@ -123,7 +124,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
           <>
             {isLoading && (
               <Spinner
-                className={variant === "primary" ? "text-background" : undefined}
+                className={variant === "primary" ? "text-white" : undefined}
               />
             )}
             {el.props.children}
@@ -142,7 +143,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       >
         {isLoading && (
           <Spinner
-            className={variant === "primary" ? "text-background" : undefined}
+            className={variant === "primary" ? "text-white" : undefined}
           />
         )}
         {children}

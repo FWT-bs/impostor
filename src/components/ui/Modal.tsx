@@ -57,7 +57,7 @@ export function Modal({
           <button
             type="button"
             aria-label="Close dialog"
-            className="absolute inset-0 bg-background/70 backdrop-blur-md"
+            className="absolute inset-0 bg-background/80 backdrop-blur-lg"
             onClick={onClose}
           />
           <motion.div
@@ -65,13 +65,14 @@ export function Modal({
             aria-modal="true"
             aria-labelledby={titleId}
             className={cn(
-              "relative z-10 w-full max-w-lg rounded-xl border border-border bg-card p-6 shadow-[0_0_0_1px_rgba(0,240,255,0.08),0_24px_80px_rgba(0,0,0,0.55)]",
+              "relative z-10 w-full max-w-lg rounded-2xl border-2 border-border bg-card/95 backdrop-blur-md p-6",
+              "shadow-[0_0_0_1px_rgba(168,85,247,0.1),0_24px_80px_rgba(0,0,0,0.6)]",
               className,
             )}
-            initial={{ opacity: 0, scale: 0.94 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.94 }}
-            transition={{ type: "spring", stiffness: 380, damping: 28 }}
+            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.9, y: 20 }}
+            transition={{ type: "spring", stiffness: 350, damping: 25 }}
             onClick={(e) => e.stopPropagation()}
           >
             <div className="mb-4 flex items-start justify-between gap-4">
@@ -85,9 +86,9 @@ export function Modal({
                 type="button"
                 onClick={onClose}
                 className={cn(
-                  "rounded-lg p-1.5 text-muted transition-colors",
-                  "hover:bg-card-hover hover:text-foreground",
-                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2 focus-visible:ring-offset-card",
+                  "rounded-full p-1.5 text-muted transition-all duration-200 cursor-pointer",
+                  "hover:bg-card-hover hover:text-foreground hover:rotate-90",
+                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple focus-visible:ring-offset-2 focus-visible:ring-offset-card",
                 )}
                 aria-label="Close"
               >

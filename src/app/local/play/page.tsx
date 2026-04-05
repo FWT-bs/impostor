@@ -27,8 +27,11 @@ export default function LocalPlayPage() {
   if (store.players.length === 0) return null;
 
   return (
-    <main className="min-h-screen bg-background flex items-center justify-center px-4 py-8">
-      <div className="w-full max-w-lg">
+    <main className="min-h-screen bg-background flex items-center justify-center px-4 py-8 relative overflow-hidden">
+      <div className="absolute top-20 left-10 w-[300px] h-[300px] rounded-full bg-purple/5 blur-3xl pointer-events-none" aria-hidden />
+      <div className="absolute bottom-10 right-10 w-[250px] h-[250px] rounded-full bg-cyan/5 blur-3xl pointer-events-none" aria-hidden />
+
+      <div className="w-full max-w-lg relative z-10">
         <AnimatePresence mode="wait">
           {store.phase === "role_reveal" && (
             <motion.div key="role_reveal" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
@@ -76,10 +79,10 @@ function RoleRevealPhase() {
   return (
     <div className="text-center">
       <h2 className="font-heading text-2xl text-muted mb-2">
-        Pass to <span className="text-teal">{player.name}</span>
+        Pass to <span className="text-purple">{player.name}</span>
       </h2>
       <p className="text-sm text-muted mb-8">
-        Player {currentIdx + 1} of {players.length} — everyone else look away!
+        Player {currentIdx + 1} of {players.length} — everyone else look away! 👀
       </p>
 
       <div className="perspective-[600px]">
@@ -98,7 +101,13 @@ function RoleRevealPhase() {
                 className="cursor-pointer min-h-[240px] flex flex-col items-center justify-center"
                 onClick={() => setRevealed(true)}
               >
-                <div className="text-5xl mb-4">🔒</div>
+                <motion.div
+                  className="text-6xl mb-4"
+                  animate={{ scale: [1, 1.1, 1] }}
+                  transition={{ repeat: Infinity, duration: 2 }}
+                >
+                  🔒
+                </motion.div>
                 <p className="font-heading text-xl text-foreground">Tap to Reveal Your Role</p>
                 <p className="text-sm text-muted mt-2">Make sure only you can see the screen</p>
               </Card>
@@ -114,33 +123,47 @@ function RoleRevealPhase() {
                 padding="lg"
                 className={cn(
                   "min-h-[240px] flex flex-col items-center justify-center",
-                  isImpostor ? "border-danger/50" : "border-teal/50"
+                  isImpostor ? "border-rose/50 shadow-[0_0_30px_rgba(244,63,94,0.15)]" : "border-purple/50 shadow-[0_0_30px_rgba(168,85,247,0.15)]"
                 )}
               >
                 {isImpostor ? (
                   <>
-                    <div className="text-5xl mb-4">🕵️</div>
-                    <p className="font-heading text-2xl text-danger mb-2">
+                    <motion.div
+                      className="text-6xl mb-4"
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      transition={{ type: "spring", stiffness: 300 }}
+                    >
+                      🕵️
+                    </motion.div>
+                    <p className="font-heading text-2xl text-rose mb-2">
                       You are the IMPOSTOR
                     </p>
                     <p className="text-muted">
-                      Topic: <span className="text-amber font-medium">{topic}</span>
+                      Topic: <span className="text-orange font-medium">{topic}</span>
                     </p>
-                    <p className="text-sm text-danger/70 mt-2">
-                      You do NOT know the secret word. Bluff!
+                    <p className="text-sm text-rose/70 mt-2">
+                      You do NOT know the secret word. Bluff! 🤫
                     </p>
                   </>
                 ) : (
                   <>
-                    <div className="text-5xl mb-4">✅</div>
-                    <p className="font-heading text-2xl text-teal mb-2">
+                    <motion.div
+                      className="text-6xl mb-4"
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      transition={{ type: "spring", stiffness: 300 }}
+                    >
+                      ✅
+                    </motion.div>
+                    <p className="font-heading text-2xl text-purple mb-2">
                       You are a Regular Player
                     </p>
                     <p className="text-muted">
-                      Topic: <span className="text-amber font-medium">{topic}</span>
+                      Topic: <span className="text-orange font-medium">{topic}</span>
                     </p>
                     <p className="text-foreground mt-2">
-                      Secret Word: <span className="text-teal font-bold text-xl">{secretWord}</span>
+                      Secret Word: <span className="text-purple font-bold text-xl">{secretWord}</span>
                     </p>
                   </>
                 )}
@@ -153,7 +176,7 @@ function RoleRevealPhase() {
       {revealed && (
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
           <Button variant="primary" size="lg" className="mt-6 w-full" onClick={handleNext}>
-            {currentIdx + 1 >= players.length ? "Everyone Has Seen — Start!" : "Pass to Next Player"}
+            {currentIdx + 1 >= players.length ? "Everyone Has Seen — Start! 🎮" : "Pass to Next Player →"}
           </Button>
         </motion.div>
       )}
@@ -170,10 +193,10 @@ function SpeakingPhase() {
     return (
       <div className="text-center">
         <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}>
-          <div className="text-5xl mb-4">💬</div>
+          <div className="text-6xl mb-4">💬</div>
           <h2 className="font-heading text-2xl text-foreground mb-2">Everyone Has Spoken!</h2>
           <p className="text-muted mb-4">
-            Discuss amongst yourselves — who was being suspicious?
+            Discuss amongst yourselves — who was being suspicious? 🤔
           </p>
           <p className="text-sm text-muted mb-8">
             When you&apos;re ready, start voting.
@@ -181,21 +204,21 @@ function SpeakingPhase() {
         </motion.div>
 
         <div className="mb-6">
-          <h3 className="text-sm font-medium text-muted mb-3">Turn Order</h3>
+          <h3 className="text-sm font-semibold text-muted mb-3">Turn Order</h3>
           <div className="space-y-2">
             {players.map((p, i) => (
-              <div key={p.id} className="flex items-center gap-3 rounded-lg border border-border bg-card px-3 py-2">
+              <div key={p.id} className="flex items-center gap-3 rounded-2xl border-2 border-border bg-card px-3 py-2">
                 <span className="text-xs text-muted w-5">{i + 1}.</span>
                 <Avatar name={p.name} color={AVATAR_COLORS[i % AVATAR_COLORS.length]} size="sm" />
                 <span className="text-sm text-foreground font-medium">{p.name}</span>
-                <span className="text-xs text-success ml-auto">spoke</span>
+                <span className="text-xs text-emerald ml-auto">✓ spoke</span>
               </div>
             ))}
           </div>
         </div>
 
         <Button variant="primary" size="lg" className="w-full" onClick={() => setPhase("voting")}>
-          Start Voting
+          🗳️ Start Voting
         </Button>
       </div>
     );
@@ -203,32 +226,34 @@ function SpeakingPhase() {
 
   return (
     <div className="text-center">
-      <h2 className="font-heading text-2xl text-foreground mb-1">Speaking Round</h2>
+      <h2 className="font-heading text-2xl text-foreground mb-1">🎤 Speaking Round</h2>
       <p className="text-sm text-muted mb-6">
         Player {currentTurnIndex + 1} of {players.length}
       </p>
 
       <div className="flex gap-2 justify-center flex-wrap mb-6">
         {players.map((p, i) => (
-          <div
+          <motion.div
             key={p.id}
             className={cn(
-              "flex flex-col items-center gap-1 transition-all px-2 py-1 rounded-lg",
-              i === currentTurnIndex && "bg-teal/10 ring-1 ring-teal/40",
+              "flex flex-col items-center gap-1 transition-all px-2 py-1 rounded-xl",
+              i === currentTurnIndex && "bg-purple/10 ring-2 ring-purple/40",
               i < currentTurnIndex && "opacity-50"
             )}
+            animate={i === currentTurnIndex ? { scale: [1, 1.05, 1] } : {}}
+            transition={{ repeat: Infinity, duration: 2 }}
           >
             <Avatar name={p.name} color={AVATAR_COLORS[i % AVATAR_COLORS.length]} size="sm" />
             <span className="text-xs text-muted truncate max-w-[60px]">{p.name}</span>
-            {i < currentTurnIndex && <span className="text-xs text-success">✓</span>}
-          </div>
+            {i < currentTurnIndex && <span className="text-xs text-emerald">✓</span>}
+          </motion.div>
         ))}
       </div>
 
       <Card padding="lg" glow>
-        <div className="text-4xl mb-3">🎤</div>
+        <div className="text-5xl mb-3">🎤</div>
         <p className="text-sm text-muted mb-1">It&apos;s your turn to speak</p>
-        <p className="font-heading text-3xl text-teal mb-4">{currentPlayer.name}</p>
+        <p className="font-heading text-3xl text-purple mb-4">{currentPlayer.name}</p>
         <p className="text-muted text-sm leading-relaxed">
           Say <span className="text-foreground font-medium">one word or short phrase</span> out
           loud that proves you know the secret word — without making it too obvious!
@@ -236,7 +261,7 @@ function SpeakingPhase() {
       </Card>
 
       <Button variant="primary" size="lg" className="mt-6 w-full" onClick={advanceTurn}>
-        {currentTurnIndex + 1 >= players.length ? "Done — Everyone Has Spoken" : `Next: ${players[currentTurnIndex + 1]?.name}`}
+        {currentTurnIndex + 1 >= players.length ? "Done — Everyone Has Spoken ✅" : `Next: ${players[currentTurnIndex + 1]?.name} →`}
       </Button>
     </div>
   );
@@ -268,14 +293,21 @@ function VotingPhase() {
   if (showPass) {
     return (
       <div className="text-center">
-        <h2 className="font-heading text-2xl text-foreground mb-2">Voting Phase</h2>
+        <h2 className="font-heading text-2xl text-foreground mb-2">🗳️ Voting Phase</h2>
         <p className="text-muted mb-6">Pass the device to</p>
-        <p className="font-heading text-3xl text-teal mb-6">{voter.name}</p>
+        <motion.p
+          className="font-heading text-3xl text-purple mb-6"
+          initial={{ scale: 0.8 }}
+          animate={{ scale: 1 }}
+          transition={{ type: "spring", stiffness: 300 }}
+        >
+          {voter.name}
+        </motion.p>
         <p className="text-sm text-muted mb-6">
           Voter {currentVoterIdx + 1} of {players.length}
         </p>
         <Button variant="primary" size="lg" className="w-full" onClick={() => setShowPass(false)}>
-          I&apos;m Ready to Vote
+          I&apos;m Ready to Vote 👍
         </Button>
       </div>
     );
@@ -286,26 +318,28 @@ function VotingPhase() {
   return (
     <div className="text-center">
       <h2 className="font-heading text-2xl text-foreground mb-1">Cast Your Vote</h2>
-      <p className="text-muted mb-6">{voter.name}, who is the impostor?</p>
+      <p className="text-muted mb-6">{voter.name}, who is the impostor? 🕵️</p>
 
       <div className="space-y-3 mb-6">
         {otherPlayers.map((p) => {
           const pIdx = players.indexOf(p);
           return (
-            <button
+            <motion.button
               key={p.id}
               onClick={() => setSelectedId(p.id)}
               className={cn(
-                "w-full flex items-center gap-3 rounded-lg border px-4 py-3 transition-all",
+                "w-full flex items-center gap-3 rounded-2xl border-2 px-4 py-3 transition-all duration-200 cursor-pointer",
                 selectedId === p.id
-                  ? "border-teal bg-teal/10 ring-1 ring-teal/40"
-                  : "border-border bg-card hover:border-teal/30"
+                  ? "border-purple bg-purple/10 ring-1 ring-purple/30 shadow-[0_0_16px_rgba(168,85,247,0.15)]"
+                  : "border-border bg-card hover:border-purple/30"
               )}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
             >
               <Avatar name={p.name} color={AVATAR_COLORS[pIdx % AVATAR_COLORS.length]} size="sm" />
               <span className="text-foreground font-medium">{p.name}</span>
-              {selectedId === p.id && <span className="ml-auto text-teal">✓</span>}
-            </button>
+              {selectedId === p.id && <span className="ml-auto text-purple text-lg">✓</span>}
+            </motion.button>
           );
         })}
       </div>
@@ -326,15 +360,19 @@ function ResultsPhase() {
 
   return (
     <div className="text-center">
-      <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: "spring", stiffness: 200 }}>
-        <div className="text-6xl mb-4">{groupWon ? "🎉" : "🕵️"}</div>
-        <h2 className={cn("font-heading text-3xl mb-2", groupWon ? "text-success" : "text-danger")}>
+      <motion.div
+        initial={{ scale: 0.5, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        transition={{ type: "spring", stiffness: 200, damping: 15 }}
+      >
+        <div className="text-7xl mb-4">{groupWon ? "🎉" : "🕵️"}</div>
+        <h2 className={cn("font-heading text-3xl mb-2", groupWon ? "text-emerald" : "text-rose")}>
           {groupWon ? "Impostor Caught!" : "Impostor Wins!"}
         </h2>
         <p className="text-muted mb-6">
           {groupWon
-            ? "The group successfully identified the impostor."
-            : "The impostor fooled everyone!"}
+            ? "The group successfully identified the impostor. 🎊"
+            : "The impostor fooled everyone! 😎"}
         </p>
       </motion.div>
 
@@ -347,28 +385,28 @@ function ResultsPhase() {
           />
           <div className="text-left">
             <p className="text-sm text-muted">The Impostor was</p>
-            <p className="font-heading text-xl text-danger">{impostor?.name}</p>
+            <p className="font-heading text-xl text-rose">{impostor?.name}</p>
           </div>
         </div>
-        <div className="border-t border-border pt-4 mt-4">
+        <div className="border-t-2 border-border pt-4 mt-4">
           <p className="text-sm text-muted">
-            Topic: <span className="text-amber">{topic}</span>
+            Topic: <span className="text-orange">{topic}</span>
           </p>
           <p className="text-sm text-muted mt-1">
-            Secret Word: <span className="text-teal font-bold">{secretWord}</span>
+            Secret Word: <span className="text-purple font-bold">{secretWord}</span>
           </p>
         </div>
       </Card>
 
       <Card padding="md" className="mb-6">
-        <h3 className="font-heading text-lg text-foreground mb-3">Votes</h3>
+        <h3 className="font-heading text-lg text-foreground mb-3">🗳️ Votes</h3>
         <div className="space-y-2">
           {players.map((p, i) => (
             <div
               key={p.id}
               className={cn(
-                "flex items-center gap-3 rounded-lg px-3 py-2",
-                p.id === impostorId && "bg-danger/10 border border-danger/30"
+                "flex items-center gap-3 rounded-2xl px-3 py-2",
+                p.id === impostorId && "bg-rose/10 border-2 border-rose/30"
               )}
             >
               <Avatar name={p.name} color={AVATAR_COLORS[i % AVATAR_COLORS.length]} size="sm" />
@@ -377,7 +415,7 @@ function ResultsPhase() {
                 {p.votesReceived} vote{p.votesReceived !== 1 ? "s" : ""}
               </span>
               {p.id === impostorId && (
-                <span className="text-xs bg-danger/20 text-danger px-2 py-0.5 rounded">IMPOSTOR</span>
+                <span className="text-xs bg-rose/20 text-rose px-2 py-0.5 rounded-full font-bold">IMPOSTOR</span>
               )}
             </div>
           ))}
@@ -385,18 +423,18 @@ function ResultsPhase() {
       </Card>
 
       <Card padding="md" className="mb-6">
-        <h3 className="font-heading text-lg text-foreground mb-2">Session Stats</h3>
+        <h3 className="font-heading text-lg text-foreground mb-2">📊 Session Stats</h3>
         <div className="flex justify-around text-center">
           <div>
-            <p className="font-heading text-2xl text-teal">{sessionStats.rounds}</p>
+            <p className="font-heading text-2xl text-purple">{sessionStats.rounds}</p>
             <p className="text-xs text-muted">Rounds</p>
           </div>
           <div>
-            <p className="font-heading text-2xl text-success">{sessionStats.groupWins}</p>
+            <p className="font-heading text-2xl text-emerald">{sessionStats.groupWins}</p>
             <p className="text-xs text-muted">Group Wins</p>
           </div>
           <div>
-            <p className="font-heading text-2xl text-danger">{sessionStats.impostorWins}</p>
+            <p className="font-heading text-2xl text-rose">{sessionStats.impostorWins}</p>
             <p className="text-xs text-muted">Impostor Wins</p>
           </div>
         </div>
@@ -409,10 +447,10 @@ function ResultsPhase() {
           className="flex-1"
           onClick={() => { resetAll(); router.push("/local/setup"); }}
         >
-          New Game
+          🔄 New Game
         </Button>
         <Button variant="primary" size="lg" className="flex-1" onClick={playAgain}>
-          Play Again
+          🔁 Play Again
         </Button>
       </div>
     </div>

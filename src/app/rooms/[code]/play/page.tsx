@@ -53,8 +53,11 @@ export default function OnlinePlayPage({
   const myPlayer = players.find((p) => p.user_id === user.id);
 
   return (
-    <main className="min-h-screen bg-background flex items-center justify-center px-4 py-8">
-      <div className="w-full max-w-lg">
+    <main className="min-h-screen bg-background flex items-center justify-center px-4 py-8 relative overflow-hidden">
+      <div className="absolute top-20 left-10 w-[300px] h-[300px] rounded-full bg-purple/5 blur-3xl pointer-events-none" aria-hidden />
+      <div className="absolute bottom-10 right-10 w-[250px] h-[250px] rounded-full bg-cyan/5 blur-3xl pointer-events-none" aria-hidden />
+
+      <div className="w-full max-w-lg relative z-10">
         <AnimatePresence mode="wait">
           {room.phase === "role_reveal" && (
             <motion.div key="role_reveal" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
@@ -158,7 +161,7 @@ function OnlineRoleReveal({
 
   return (
     <div className="text-center">
-      <h2 className="font-heading text-2xl text-foreground mb-6">Your Role</h2>
+      <h2 className="font-heading text-2xl text-foreground mb-6">🎭 Your Role</h2>
 
       <div className="perspective-[600px]">
         <AnimatePresence mode="wait">
@@ -176,7 +179,13 @@ function OnlineRoleReveal({
                 className="cursor-pointer min-h-[220px] flex flex-col items-center justify-center"
                 onClick={() => setRevealed(true)}
               >
-                <div className="text-5xl mb-4">🔒</div>
+                <motion.div
+                  className="text-6xl mb-4"
+                  animate={{ scale: [1, 1.1, 1] }}
+                  transition={{ repeat: Infinity, duration: 2 }}
+                >
+                  🔒
+                </motion.div>
                 <p className="font-heading text-xl text-foreground">
                   Tap to Reveal
                 </p>
@@ -193,40 +202,54 @@ function OnlineRoleReveal({
                 padding="lg"
                 className={cn(
                   "min-h-[220px] flex flex-col items-center justify-center",
-                  isImpostor ? "border-danger/50" : "border-teal/50"
+                  isImpostor ? "border-rose/50 shadow-[0_0_30px_rgba(244,63,94,0.15)]" : "border-purple/50 shadow-[0_0_30px_rgba(168,85,247,0.15)]"
                 )}
               >
                 {isImpostor ? (
                   <>
-                    <div className="text-5xl mb-4">🕵️</div>
-                    <p className="font-heading text-2xl text-danger mb-2">
+                    <motion.div
+                      className="text-6xl mb-4"
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      transition={{ type: "spring", stiffness: 300 }}
+                    >
+                      🕵️
+                    </motion.div>
+                    <p className="font-heading text-2xl text-rose mb-2">
                       You are the IMPOSTOR
                     </p>
                     <p className="text-muted">
                       Topic:{" "}
-                      <span className="text-amber font-medium">
+                      <span className="text-orange font-medium">
                         {secret?.topic}
                       </span>
                     </p>
-                    <p className="text-sm text-danger/70 mt-2">
-                      You do NOT know the secret word
+                    <p className="text-sm text-rose/70 mt-2">
+                      You do NOT know the secret word 🤫
                     </p>
                   </>
                 ) : (
                   <>
-                    <div className="text-5xl mb-4">✅</div>
-                    <p className="font-heading text-2xl text-teal mb-2">
+                    <motion.div
+                      className="text-6xl mb-4"
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      transition={{ type: "spring", stiffness: 300 }}
+                    >
+                      ✅
+                    </motion.div>
+                    <p className="font-heading text-2xl text-purple mb-2">
                       Regular Player
                     </p>
                     <p className="text-muted">
                       Topic:{" "}
-                      <span className="text-amber font-medium">
+                      <span className="text-orange font-medium">
                         {secret?.topic}
                       </span>
                     </p>
                     <p className="text-foreground mt-2">
                       Secret Word:{" "}
-                      <span className="text-teal font-bold text-xl">
+                      <span className="text-purple font-bold text-xl">
                         {secret?.secret_word}
                       </span>
                     </p>
@@ -250,13 +273,13 @@ function OnlineRoleReveal({
             className="mt-6 w-full"
             onClick={handleReady}
           >
-            Start Clue Phase
+            🎤 Start Clue Phase
           </Button>
         </motion.div>
       )}
       {revealed && !isHost && (
         <p className="mt-6 text-sm text-muted">
-          Waiting for the host to start the clue phase...
+          ⏳ Waiting for the host to start the clue phase...
         </p>
       )}
     </div>
@@ -297,7 +320,7 @@ function OnlineCluePhase({
 
   return (
     <div className="text-center">
-      <h2 className="font-heading text-2xl text-foreground mb-1">Clue Phase</h2>
+      <h2 className="font-heading text-2xl text-foreground mb-1">🎤 Clue Phase</h2>
       <p className="text-sm text-muted mb-6">
         Turn {Math.min(room.current_turn_index + 1, players.length)} of{" "}
         {players.length}
@@ -305,13 +328,15 @@ function OnlineCluePhase({
 
       <div className="flex gap-2 justify-center flex-wrap mb-6">
         {players.map((p, i) => (
-          <div
+          <motion.div
             key={p.id}
             className={cn(
-              "flex flex-col items-center gap-1 transition-all px-2 py-1 rounded-lg",
-              i === room.current_turn_index && "bg-teal/10 ring-1 ring-teal/40",
+              "flex flex-col items-center gap-1 transition-all px-2 py-1 rounded-xl",
+              i === room.current_turn_index && "bg-purple/10 ring-2 ring-purple/40",
               i < room.current_turn_index && "opacity-50"
             )}
+            animate={i === room.current_turn_index ? { scale: [1, 1.05, 1] } : {}}
+            transition={{ repeat: Infinity, duration: 2 }}
           >
             <Avatar
               name={p.display_name}
@@ -321,15 +346,15 @@ function OnlineCluePhase({
             <span className="text-xs text-muted truncate max-w-[60px]">
               {p.display_name}
             </span>
-            {p.clue_text && <span className="text-xs text-teal">&#10003;</span>}
-          </div>
+            {p.clue_text && <span className="text-xs text-purple">✓</span>}
+          </motion.div>
         ))}
       </div>
 
       <Card padding="lg">
         {isMyTurn ? (
           <>
-            <p className="font-heading text-xl text-teal mb-4">Your Turn!</p>
+            <p className="font-heading text-xl text-purple mb-4">Your Turn! 🎯</p>
             <p className="text-sm text-muted mb-4">
               Give a clue that proves you know the word
             </p>
@@ -339,7 +364,7 @@ function OnlineCluePhase({
               onChange={(e) => setClue(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleSubmitClue()}
               placeholder="Enter your clue..."
-              className="w-full rounded-lg border border-border bg-background px-4 py-3 text-foreground outline-none focus:border-teal focus:ring-1 focus:ring-teal/40 mb-4"
+              className="w-full rounded-xl border-2 border-border bg-background px-4 py-3 text-foreground outline-none focus:border-purple focus:ring-2 focus:ring-purple/30 mb-4 transition-all duration-200"
               autoFocus
             />
             <Button
@@ -356,24 +381,24 @@ function OnlineCluePhase({
         ) : (
           <>
             <p className="text-muted mb-2">Waiting for</p>
-            <p className="font-heading text-xl text-teal">
+            <p className="font-heading text-xl text-purple">
               {currentPlayer?.display_name || "..."}
             </p>
-            <p className="text-sm text-muted mt-2">to give their clue</p>
+            <p className="text-sm text-muted mt-2">to give their clue ⏳</p>
           </>
         )}
       </Card>
 
       {players.some((p) => p.clue_text) && (
         <div className="mt-6">
-          <h3 className="text-sm font-medium text-muted mb-3">Clues Given</h3>
+          <h3 className="text-sm font-semibold text-muted mb-3">💬 Clues Given</h3>
           <div className="space-y-2">
             {players
               .filter((p) => p.clue_text)
               .map((p) => (
                 <div
                   key={p.id}
-                  className="flex items-center gap-3 rounded-lg border border-border bg-card px-3 py-2"
+                  className="flex items-center gap-3 rounded-2xl border-2 border-border bg-card px-3 py-2"
                 >
                   <Avatar
                     name={p.display_name}
@@ -387,7 +412,7 @@ function OnlineCluePhase({
                   <span className="text-sm text-foreground font-medium">
                     {p.display_name}
                   </span>
-                  <span className="text-sm text-teal ml-auto">
+                  <span className="text-sm text-purple ml-auto">
                     &quot;{p.clue_text}&quot;
                   </span>
                 </div>
@@ -460,18 +485,18 @@ function OnlineDiscussionPhase({
     <div>
       <div className="text-center mb-4">
         <h2 className="font-heading text-2xl text-foreground mb-2">
-          Discussion
+          💬 Discussion
         </h2>
         <Timer seconds={seconds} total={timerDuration} size={80} className="mx-auto" />
       </div>
 
       <Card padding="md" className="mb-4">
-        <h3 className="text-sm font-medium text-muted mb-3">Clues</h3>
+        <h3 className="text-sm font-semibold text-muted mb-3">📝 Clues</h3>
         <div className="space-y-2">
           {players.map((p, i) => (
             <div
               key={p.id}
-              className="flex items-center gap-3 rounded-lg px-2 py-1.5"
+              className="flex items-center gap-3 rounded-xl px-2 py-1.5"
             >
               <Avatar
                 name={p.display_name}
@@ -479,7 +504,7 @@ function OnlineDiscussionPhase({
                 size="sm"
               />
               <span className="text-sm text-foreground">{p.display_name}</span>
-              <span className="text-sm text-teal ml-auto">
+              <span className="text-sm text-purple ml-auto">
                 &quot;{p.clue_text || "—"}&quot;
               </span>
             </div>
@@ -488,24 +513,24 @@ function OnlineDiscussionPhase({
       </Card>
 
       <Card padding="md" className="mb-4">
-        <h3 className="text-sm font-medium text-muted mb-3">Chat</h3>
+        <h3 className="text-sm font-semibold text-muted mb-3">💬 Chat</h3>
         <div className="h-40 overflow-y-auto space-y-2 mb-3 pr-1">
           {messages.length === 0 && (
             <p className="text-xs text-muted text-center py-4">
-              No messages yet
+              No messages yet — start discussing! 🤔
             </p>
           )}
           {messages.map((msg) => (
             <div
               key={msg.id}
               className={cn(
-                "text-sm rounded-lg px-3 py-1.5",
+                "text-sm rounded-2xl px-3 py-1.5",
                 msg.userId === userId
-                  ? "bg-teal/10 text-foreground ml-8"
+                  ? "bg-purple/10 text-foreground ml-8"
                   : "bg-card-hover text-foreground mr-8"
               )}
             >
-              <span className="font-medium text-teal text-xs">
+              <span className="font-medium text-purple text-xs">
                 {msg.displayName}
               </span>
               <p>{msg.text}</p>
@@ -520,7 +545,7 @@ function OnlineDiscussionPhase({
             onChange={(e) => setChatInput(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleSend()}
             placeholder="Type a message..."
-            className="flex-1 rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-teal"
+            className="flex-1 rounded-xl border-2 border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-purple transition-all duration-200"
           />
           <Button variant="primary" size="sm" onClick={handleSend}>
             Send
@@ -535,14 +560,14 @@ function OnlineDiscussionPhase({
           className="w-full"
           onClick={handleAdvanceToVoting}
         >
-          {seconds <= 0 ? "Time's Up — Start Voting!" : "Skip to Voting"}
+          {seconds <= 0 ? "⏰ Time's Up — Start Voting!" : "🗳️ Skip to Voting"}
         </Button>
       )}
       {!isHost && (
         <p className="text-center text-sm text-muted">
           {seconds <= 0
-            ? "Waiting for host to start voting..."
-            : "Discuss who the impostor might be"}
+            ? "⏳ Waiting for host to start voting..."
+            : "🤔 Discuss who the impostor might be"}
         </p>
       )}
     </div>
@@ -587,7 +612,7 @@ function OnlineVotingPhase({
       return;
     }
     setHasVoted(true);
-    toast.success("Vote submitted!");
+    toast.success("Vote submitted! 🗳️");
   }
 
   const otherPlayers = players.filter((p) => p.user_id !== userId);
@@ -596,10 +621,16 @@ function OnlineVotingPhase({
     return (
       <div className="text-center">
         <h2 className="font-heading text-2xl text-foreground mb-4">
-          Vote Submitted
+          Vote Submitted ✓
         </h2>
         <Card padding="lg">
-          <div className="text-4xl mb-4">⏳</div>
+          <motion.div
+            className="text-5xl mb-4"
+            animate={{ rotate: [0, 10, -10, 0] }}
+            transition={{ repeat: Infinity, duration: 2 }}
+          >
+            ⏳
+          </motion.div>
           <p className="text-muted">
             Waiting for other players to vote...
           </p>
@@ -611,24 +642,26 @@ function OnlineVotingPhase({
   return (
     <div className="text-center">
       <h2 className="font-heading text-2xl text-foreground mb-2">
-        Cast Your Vote
+        🗳️ Cast Your Vote
       </h2>
       <Timer seconds={seconds} total={30} size={70} className="mx-auto mb-4" />
-      <p className="text-sm text-muted mb-6">Who is the impostor?</p>
+      <p className="text-sm text-muted mb-6">Who is the impostor? 🕵️</p>
 
       <div className="space-y-3 mb-6">
         {otherPlayers.map((p) => {
           const pIdx = players.indexOf(p);
           return (
-            <button
+            <motion.button
               key={p.id}
               onClick={() => setSelectedId(p.user_id)}
               className={cn(
-                "w-full flex items-center gap-3 rounded-lg border px-4 py-3 transition-all",
+                "w-full flex items-center gap-3 rounded-2xl border-2 px-4 py-3 transition-all duration-200 cursor-pointer",
                 selectedId === p.user_id
-                  ? "border-teal bg-teal/10 ring-1 ring-teal/40"
-                  : "border-border bg-card hover:border-teal/30"
+                  ? "border-purple bg-purple/10 ring-1 ring-purple/30 shadow-[0_0_16px_rgba(168,85,247,0.15)]"
+                  : "border-border bg-card hover:border-purple/30"
               )}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
             >
               <Avatar
                 name={p.display_name}
@@ -639,9 +672,9 @@ function OnlineVotingPhase({
                 {p.display_name}
               </span>
               {selectedId === p.user_id && (
-                <span className="ml-auto text-teal">&#10003;</span>
+                <span className="ml-auto text-purple text-lg">✓</span>
               )}
-            </button>
+            </motion.button>
           );
         })}
       </div>
@@ -738,15 +771,15 @@ function OnlineResultsPhase({
   return (
     <div className="text-center">
       <motion.div
-        initial={{ scale: 0.8, opacity: 0 }}
+        initial={{ scale: 0.5, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
-        transition={{ type: "spring", stiffness: 200 }}
+        transition={{ type: "spring", stiffness: 200, damping: 15 }}
       >
-        <div className="text-6xl mb-4">{groupWon ? "🎉" : "🕵️"}</div>
+        <div className="text-7xl mb-4">{groupWon ? "🎉" : "🕵️"}</div>
         <h2
           className={cn(
             "font-heading text-3xl mb-2",
-            groupWon ? "text-success" : "text-danger"
+            groupWon ? "text-emerald" : "text-rose"
           )}
         >
           {groupWon ? "Impostor Caught!" : "Impostor Wins!"}
@@ -766,32 +799,32 @@ function OnlineResultsPhase({
           />
           <div className="text-left">
             <p className="text-sm text-muted">The Impostor was</p>
-            <p className="font-heading text-xl text-danger">
+            <p className="font-heading text-xl text-rose">
               {impostor?.display_name}
             </p>
           </div>
         </div>
-        <div className="border-t border-border pt-4 mt-4">
+        <div className="border-t-2 border-border pt-4 mt-4">
           <p className="text-sm text-muted">
-            Topic: <span className="text-amber">{round.topic}</span>
+            Topic: <span className="text-orange">{round.topic}</span>
           </p>
           <p className="text-sm text-muted mt-1">
             Secret Word:{" "}
-            <span className="text-teal font-bold">{round.secret_word}</span>
+            <span className="text-purple font-bold">{round.secret_word}</span>
           </p>
         </div>
       </Card>
 
       <Card padding="md" className="mb-6">
-        <h3 className="font-heading text-lg text-foreground mb-3">Votes</h3>
+        <h3 className="font-heading text-lg text-foreground mb-3">🗳️ Votes</h3>
         <div className="space-y-2">
           {players.map((p, i) => (
             <div
               key={p.id}
               className={cn(
-                "flex items-center gap-3 rounded-lg px-3 py-2",
+                "flex items-center gap-3 rounded-2xl px-3 py-2",
                 p.user_id === round.impostor_id &&
-                  "bg-danger/10 border border-danger/30"
+                  "bg-rose/10 border-2 border-rose/30"
               )}
             >
               <Avatar
@@ -807,7 +840,7 @@ function OnlineResultsPhase({
                 {(voteCounts[p.user_id] || 0) !== 1 ? "s" : ""}
               </span>
               {p.user_id === round.impostor_id && (
-                <span className="text-xs bg-danger/20 text-danger px-2 py-0.5 rounded">
+                <span className="text-xs bg-rose/20 text-rose px-2 py-0.5 rounded-full font-bold">
                   IMPOSTOR
                 </span>
               )}
@@ -832,13 +865,13 @@ function OnlineResultsPhase({
             className="flex-1"
             onClick={handlePlayAgain}
           >
-            Play Again
+            🔁 Play Again
           </Button>
         </div>
       )}
       {!isHost && (
         <p className="text-sm text-muted">
-          Waiting for the host to continue...
+          ⏳ Waiting for the host to continue...
         </p>
       )}
     </div>
