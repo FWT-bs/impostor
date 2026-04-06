@@ -31,60 +31,105 @@ export function Header({ user, authSlot, className }: HeaderProps) {
   const [menuOpen, setMenuOpen] = useState(false);
 
   return (
-    <header
+    <motion.header
+      initial={{ y: -20, opacity: 0 }}
+      animate={{ y: 0, opacity: 1 }}
+      transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
       className={cn(
-        "fixed top-0 z-40 w-full border-b border-border/40 bg-background/70 backdrop-blur-xl",
+        "fixed top-0 z-40 w-full",
         className,
       )}
+      style={{
+        borderBottom: "1px solid rgba(28,31,58,0.6)",
+        background: "rgba(8,9,26,0.75)",
+        backdropFilter: "blur(20px)",
+        WebkitBackdropFilter: "blur(20px)",
+      }}
     >
       <div className="mx-auto flex h-14 max-w-6xl items-center justify-between gap-4 px-4 sm:h-16 sm:px-6">
-        <Link
-          href="/"
-          className="group flex items-center gap-2"
-        >
-          <span className="text-2xl" aria-hidden>🕵️</span>
-          <span className="font-heading text-lg font-bold tracking-[0.2em] text-purple group-hover:text-purple-glow transition-colors sm:text-xl">
+        {/* Logo */}
+        <Link href="/" className="group flex items-center gap-2.5">
+          {/* Geometric mark */}
+          <div
+            className="relative flex size-7 items-center justify-center rounded-md transition-all duration-300 group-hover:scale-105"
+            style={{
+              background: "linear-gradient(135deg, rgba(128,112,212,0.25), rgba(128,112,212,0.08))",
+              border: "1px solid rgba(128,112,212,0.3)",
+            }}
+          >
+            <span
+              style={{
+                fontFamily: "var(--font-bebas), sans-serif",
+                fontSize: "14px",
+                color: "rgba(160,144,232,0.9)",
+                letterSpacing: "0.02em",
+                lineHeight: 1,
+              }}
+            >
+              I
+            </span>
+          </div>
+          <span
+            className="font-heading text-lg font-bold tracking-[0.18em] transition-colors duration-200 group-hover:text-purple-glow sm:text-xl"
+            style={{ color: "var(--purple)" }}
+          >
             IMPOSTOR
           </span>
         </Link>
 
-        <nav
-          className="hidden items-center gap-1 md:flex"
-          aria-label="Main"
-        >
+        {/* Desktop nav */}
+        <nav className="hidden items-center gap-0.5 md:flex" aria-label="Main">
           {nav.map(({ href, label }) => {
             const active =
-              href === "/"
-                ? pathname === "/"
-                : pathname.startsWith(href);
+              href === "/" ? pathname === "/" : pathname.startsWith(href);
             return (
               <Link
                 key={href}
                 href={href}
                 className={cn(
-                  "rounded-full px-4 py-2 text-sm font-medium transition-all duration-200",
+                  "relative rounded-full px-4 py-2 text-[13px] font-medium transition-all duration-200",
                   active
-                    ? "bg-purple/10 text-purple"
-                    : "text-muted hover:bg-card/80 hover:text-foreground",
+                    ? "text-foreground"
+                    : "text-muted hover:text-foreground",
                 )}
               >
-                {label}
+                {active && (
+                  <motion.span
+                    layoutId="nav-pill"
+                    className="absolute inset-0 rounded-full"
+                    style={{ background: "rgba(128,112,212,0.1)" }}
+                    transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                  />
+                )}
+                <span className="relative">{label}</span>
               </Link>
             );
           })}
         </nav>
 
+        {/* Right side */}
         <div className="flex items-center gap-2 sm:gap-3">
           {authSlot ??
             (user ? (
-              <Link href="/profile" className="flex items-center gap-2 sm:gap-3 group">
+              <Link
+                href="/profile"
+                className="group flex items-center gap-2 sm:gap-2.5 rounded-full py-1.5 pl-1.5 pr-3 transition-all duration-200"
+                style={{ border: "1px solid transparent" }}
+                onMouseEnter={(e) => {
+                  (e.currentTarget as HTMLElement).style.borderColor = "rgba(28,31,58,1)";
+                  (e.currentTarget as HTMLElement).style.background = "rgba(14,16,36,0.6)";
+                }}
+                onMouseLeave={(e) => {
+                  (e.currentTarget as HTMLElement).style.borderColor = "transparent";
+                  (e.currentTarget as HTMLElement).style.background = "transparent";
+                }}
+              >
                 <Avatar
                   name={user.username}
                   color={user.avatarColor}
                   size="sm"
-                  className="ring-border group-hover:ring-purple/40 transition-all"
                 />
-                <span className="hidden max-w-[140px] truncate text-sm font-medium text-foreground group-hover:text-purple transition-colors sm:inline">
+                <span className="hidden max-w-[130px] truncate text-[13px] font-medium text-foreground transition-colors group-hover:text-purple sm:inline">
                   {user.username}
                 </span>
               </Link>
@@ -99,13 +144,18 @@ export function Header({ user, authSlot, className }: HeaderProps) {
               </div>
             ))}
 
+          {/* Mobile menu toggle */}
           <button
             type="button"
             className={cn(
-              "inline-flex size-10 items-center justify-center rounded-full border-2 border-border bg-card text-foreground md:hidden cursor-pointer",
-              "hover:bg-card-hover hover:border-purple/40 transition-all duration-200",
+              "inline-flex size-9 items-center justify-center rounded-lg transition-all duration-200 md:hidden cursor-pointer",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple",
             )}
+            style={{
+              background: menuOpen ? "rgba(128,112,212,0.1)" : "rgba(14,16,36,0.6)",
+              border: `1px solid ${menuOpen ? "rgba(128,112,212,0.25)" : "rgba(28,31,58,1)"}`,
+              color: menuOpen ? "var(--purple)" : "var(--foreground)",
+            }}
             aria-expanded={menuOpen}
             aria-controls="mobile-nav"
             aria-label={menuOpen ? "Close menu" : "Open menu"}
@@ -117,27 +167,25 @@ export function Header({ user, authSlot, className }: HeaderProps) {
             >
               {menuOpen ? (
                 <svg
-                  xmlns="http://www.w3.org/2000/svg"
                   viewBox="0 0 24 24"
                   fill="none"
                   stroke="currentColor"
                   strokeWidth="2"
-                  className="size-5"
+                  className="size-4"
                   aria-hidden
                 >
                   <path d="M18 6 6 18M6 6l12 12" />
                 </svg>
               ) : (
                 <svg
-                  xmlns="http://www.w3.org/2000/svg"
                   viewBox="0 0 24 24"
                   fill="none"
                   stroke="currentColor"
                   strokeWidth="2"
-                  className="size-5"
+                  className="size-4"
                   aria-hidden
                 >
-                  <path d="M4 6h16M4 12h16M4 18h16" />
+                  <path d="M4 6h16M4 12h10M4 18h16" />
                 </svg>
               )}
             </motion.div>
@@ -145,6 +193,7 @@ export function Header({ user, authSlot, className }: HeaderProps) {
         </div>
       </div>
 
+      {/* Mobile nav */}
       <AnimatePresence>
         {menuOpen && (
           <motion.div
@@ -152,33 +201,50 @@ export function Header({ user, authSlot, className }: HeaderProps) {
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            transition={{ type: "spring", stiffness: 300, damping: 30 }}
-            className="overflow-hidden border-t border-border/40 bg-background/95 backdrop-blur-xl md:hidden"
+            transition={{ type: "spring", stiffness: 320, damping: 32 }}
+            className="overflow-hidden md:hidden"
+            style={{
+              borderTop: "1px solid rgba(28,31,58,0.6)",
+              background: "rgba(8,9,26,0.92)",
+              backdropFilter: "blur(20px)",
+            }}
           >
             <nav className="flex flex-col px-4 py-3" aria-label="Mobile">
-              {nav.map(({ href, label }) => {
+              {nav.map(({ href, label }, i) => {
                 const active =
                   href === "/"
                     ? pathname === "/"
                     : pathname.startsWith(href);
                 return (
-                  <Link
+                  <motion.div
                     key={href}
-                    href={href}
-                    onClick={() => setMenuOpen(false)}
-                    className={cn(
-                      "rounded-xl px-4 py-3 text-sm font-medium transition-all duration-200",
-                      active
-                        ? "bg-purple/10 text-purple"
-                        : "text-muted hover:text-foreground hover:bg-card/60",
-                    )}
+                    initial={{ opacity: 0, x: -12 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: i * 0.05, duration: 0.3 }}
                   >
-                    {label}
-                  </Link>
+                    <Link
+                      href={href}
+                      onClick={() => setMenuOpen(false)}
+                      className={cn(
+                        "block rounded-xl px-4 py-3 text-sm font-medium transition-all duration-200",
+                        active
+                          ? "bg-purple/10 text-purple"
+                          : "text-muted hover:text-foreground hover:bg-white/[0.04]",
+                      )}
+                    >
+                      {label}
+                    </Link>
+                  </motion.div>
                 );
               })}
               {!user && !authSlot && (
-                <div className="mt-2 flex flex-col gap-2 border-t border-border pt-3 sm:hidden">
+                <motion.div
+                  className="mt-2 flex flex-col gap-2 border-t pt-3 sm:hidden"
+                  style={{ borderColor: "rgba(28,31,58,0.8)" }}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.2 }}
+                >
                   <Button variant="secondary" size="md" asChild className="w-full">
                     <Link href="/login" onClick={() => setMenuOpen(false)}>
                       Login
@@ -189,12 +255,12 @@ export function Header({ user, authSlot, className }: HeaderProps) {
                       Sign up
                     </Link>
                   </Button>
-                </div>
+                </motion.div>
               )}
             </nav>
           </motion.div>
         )}
       </AnimatePresence>
-    </header>
+    </motion.header>
   );
 }

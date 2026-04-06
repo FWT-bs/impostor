@@ -23,19 +23,26 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 
 const variantClasses: Record<ButtonVariant, string> = {
   primary:
-    "bg-gradient-to-r from-purple to-purple-dim text-white font-semibold shadow-[0_1px_3px_rgba(0,0,0,0.4)] hover:shadow-[0_4px_16px_rgba(124,108,206,0.3)] hover:brightness-110 active:scale-[0.97] disabled:shadow-none disabled:hover:shadow-none",
+    "bg-gradient-to-br from-purple to-purple-dim text-white font-semibold " +
+    "shadow-[0_1px_3px_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.08)] " +
+    "hover:shadow-[0_6px_22px_rgba(128,112,212,0.38)] hover:brightness-110 " +
+    "active:scale-[0.97] disabled:shadow-none",
   secondary:
-    "bg-card border border-border text-foreground font-medium hover:bg-card-hover hover:border-purple/30 hover:shadow-[0_2px_12px_rgba(124,108,206,0.1)] active:scale-[0.97]",
+    "bg-card border border-border text-foreground font-medium " +
+    "hover:bg-card-hover hover:border-purple/25 " +
+    "hover:shadow-[0_2px_14px_rgba(128,112,212,0.1)] active:scale-[0.97]",
   danger:
-    "bg-gradient-to-r from-rose to-rose/80 text-white font-semibold hover:shadow-[0_4px_16px_rgba(192,86,106,0.3)] hover:brightness-110 active:scale-[0.97]",
+    "bg-gradient-to-br from-rose to-rose/75 text-white font-semibold " +
+    "hover:shadow-[0_6px_22px_rgba(192,86,106,0.32)] hover:brightness-110 " +
+    "active:scale-[0.97]",
   ghost:
-    "bg-transparent text-foreground hover:bg-card/80 hover:text-purple active:scale-[0.97]",
+    "bg-transparent text-foreground hover:bg-white/[0.05] hover:text-purple active:scale-[0.97]",
 };
 
 const sizeClasses: Record<ButtonSize, string> = {
-  sm: "h-9 px-5 text-sm rounded-full gap-2",
-  md: "h-11 px-6 text-sm rounded-full gap-2",
-  lg: "h-13 px-8 text-base rounded-full gap-2.5",
+  sm: "h-9 px-5 text-[13px] rounded-full gap-2",
+  md: "h-11 px-6 text-[13px] rounded-full gap-2",
+  lg: "h-12 px-8 text-[14px] rounded-full gap-2.5",
 };
 
 function buttonClassName(
@@ -47,12 +54,9 @@ function buttonClassName(
     "inline-flex items-center justify-center font-medium cursor-pointer",
     "transition-all duration-200 ease-out",
     "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple focus-visible:ring-offset-2 focus-visible:ring-offset-background",
-    "disabled:pointer-events-none disabled:opacity-50",
+    "disabled:pointer-events-none disabled:opacity-45",
     variantClasses[variant],
-    size === "sm" && variant === "ghost" && "h-9 px-3 rounded-full",
-    size === "md" && variant === "ghost" && "h-11 px-4 rounded-full",
-    size === "lg" && variant === "ghost" && "h-13 px-6 rounded-full",
-    variant !== "ghost" ? sizeClasses[size] : sizeClasses[size],
+    sizeClasses[size],
     className,
   );
 }
@@ -115,7 +119,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         className: cn(
           classes,
           el.props.className,
-          isDisabled && "pointer-events-none opacity-50",
+          isDisabled && "pointer-events-none opacity-45",
         ),
         "aria-disabled": isDisabled ? true : undefined,
         tabIndex: isDisabled ? -1 : el.props.tabIndex,

@@ -1,15 +1,15 @@
 @import "tailwindcss";
 
 :root {
-  --background: #0a0c18;
-  --foreground: #e2e4f0;
-  --card: #121425;
-  --card-hover: #181b30;
-  --border: #252840;
-  --muted: #6b7096;
-  --purple: #7c6cce;
+  --background: #08091a;
+  --foreground: #dde0f0;
+  --card: #0e1024;
+  --card-hover: #131528;
+  --border: #1c1f3a;
+  --muted: #58607e;
+  --purple: #8070d4;
   --purple-dim: #5e52a8;
-  --purple-glow: #9888dc;
+  --purple-glow: #a090e8;
   --cyan: #4d94b8;
   --cyan-dim: #3a7a9c;
   --orange: #c9956a;
@@ -21,7 +21,8 @@
 @theme inline {
   --animate-glow-pulse: glow-pulse 3s ease-in-out infinite;
   --animate-float: float 6s ease-in-out infinite;
-  --animate-shimmer: shimmer 2s linear infinite;
+  --animate-shimmer: shimmer 2.4s linear infinite;
+  --animate-draw-line: draw-line 0.9s ease-out forwards;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -46,6 +47,7 @@
   --color-success: var(--emerald);
   --font-heading: var(--font-rajdhani);
   --font-sans: var(--font-inter);
+  --font-display: var(--font-bebas);
 }
 
 body {
@@ -61,12 +63,12 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 ::selection {
-  background: rgba(168, 85, 247, 0.3);
+  background: rgba(128, 112, 212, 0.3);
   color: #fff;
 }
 
 ::-webkit-scrollbar {
-  width: 6px;
+  width: 5px;
 }
 ::-webkit-scrollbar-track {
   background: var(--background);
@@ -75,10 +77,15 @@ h1, h2, h3, h4, h5, h6 {
   background: var(--border);
   border-radius: 3px;
 }
+::-webkit-scrollbar-thumb:hover {
+  background: var(--muted);
+}
+
+/* ── Keyframes ─────────────────────────────────────────────────────────── */
 
 @keyframes glow-pulse {
-  0%, 100% { box-shadow: 0 0 16px rgba(124, 108, 206, 0.12), 0 0 40px rgba(124, 108, 206, 0.04); }
-  50% { box-shadow: 0 0 28px rgba(124, 108, 206, 0.22), 0 0 60px rgba(124, 108, 206, 0.07); }
+  0%, 100% { box-shadow: 0 0 16px rgba(128, 112, 212, 0.12), 0 0 40px rgba(128, 112, 212, 0.04); }
+  50% { box-shadow: 0 0 28px rgba(128, 112, 212, 0.24), 0 0 60px rgba(128, 112, 212, 0.08); }
 }
 
 @keyframes float {
@@ -88,10 +95,21 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 @keyframes shimmer {
-  0% { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
+  0% { background-position: -300% 0; }
+  100% { background-position: 300% 0; }
 }
 
-@layer base {
-  /* Decorative blob utility as a pseudo-element pattern */
+@keyframes draw-line {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(0.85); }
+}
+
+@keyframes scroll-fade {
+  0%, 100% { opacity: 0.2; transform: scaleY(0.3) translateY(-50%); }
+  50% { opacity: 0.6; transform: scaleY(1) translateY(0); }
 }

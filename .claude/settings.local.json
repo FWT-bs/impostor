@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git push:*)",
+      "Bash(git fetch:*)",
+      "Read(//c/Users/69sxn/.claude/projects/C--Users-69sxn-impostor/memory//**)",
+      "Read(//c/Users/69sxn/.claude/projects/C--Users-69sxn-impostor/memory/**)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git pull:*)",
+      "Bash(npx next:*)"
+    ]
+  }
+}
