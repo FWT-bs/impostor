@@ -9,7 +9,9 @@
       "Bash(git commit:*)",
       "Bash(git pull:*)",
       "Bash(npx next:*)",
-      "Bash(xargs wc:*)"
+      "Bash(xargs wc:*)",
+      "Bash(npx tsc:*)",
+      "Bash(npm run:*)"
     ]
   }
 }
