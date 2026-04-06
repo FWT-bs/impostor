@@ -37,18 +37,20 @@ export function useRoom(roomCode: string) {
     fetchRoom();
   }, [fetchRoom]);
 
+  const roomId = room?.id;
+
   useEffect(() => {
-    if (!room) return;
+    if (!roomId) return;
 
     const roomChannel = supabase
-      .channel(`room-${room.id}`)
+      .channel(`room-${roomId}`)
       .on(
         "postgres_changes",
         {
           event: "*",
           schema: "public",
           table: "rooms",
-          filter: `id=eq.${room.id}`,
+          filter: `id=eq.${roomId}`,
         },
         (payload) => {
           if (payload.eventType === "UPDATE") {
@@ -64,7 +66,7 @@ export function useRoom(roomCode: string) {
           event: "*",
           schema: "public",
           table: "room_players",
-          filter: `room_id=eq.${room.id}`,
+          filter: `room_id=eq.${roomId}`,
         },
         (payload) => {
           if (payload.eventType === "INSERT") {
@@ -89,7 +91,7 @@ export function useRoom(roomCode: string) {
     return () => {
       supabase.removeChannel(roomChannel);
     };
-  }, [room, supabase]);
+  }, [roomId, supabase]);
 
   return { room, players, loading, refetch: fetchRoom };
 }

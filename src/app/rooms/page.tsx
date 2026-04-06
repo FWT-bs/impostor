@@ -72,6 +72,7 @@ export default function RoomsPage() {
   }, [supabase]);
 
   async function handleJoin(code: string) {
+    if (authLoading) return;
     if (!user) {
       toast.error("Sign in to play online");
       router.push("/login");
@@ -96,6 +97,7 @@ export default function RoomsPage() {
   }
 
   async function handleCreate() {
+    if (authLoading) return;
     if (!user) {
       toast.error("Sign in to create a room");
       router.push("/login");

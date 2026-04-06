@@ -3,6 +3,7 @@
 import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
 import { ImpostorHead } from "@/components/ui/Characters";
+import { useAuth } from "@/lib/hooks/use-auth";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
@@ -27,9 +28,20 @@ export interface HeaderProps {
   className?: string;
 }
 
-export function Header({ user, authSlot, className }: HeaderProps) {
+export function Header({ user: userProp, authSlot, className }: HeaderProps) {
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
+  const { user: authUser, profile } = useAuth();
+
+  // Use the explicit prop if provided, otherwise derive from auth state
+  const user: HeaderUser | null =
+    userProp !== undefined
+      ? userProp
+      : profile
+        ? { username: profile.username, avatarColor: profile.avatar_color }
+        : authUser
+          ? { username: authUser.email?.split("@")[0] ?? "Player", avatarColor: "#8070d4" }
+          : null;
 
   return (
     <motion.header
