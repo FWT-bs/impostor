@@ -1,0 +1,31 @@
+<svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="64" height="64" rx="14" fill="#08091a"/>
+  <rect width="64" height="64" rx="14" fill="url(#bg-grad)" opacity="0.6"/>
+  <!-- Impostor head -->
+  <!-- Hood back -->
+  <path d="M18 30 Q32 18 46 30 Q43 20 32 15 Q21 20 18 30Z" fill="#0e0720"/>
+  <!-- Head -->
+  <ellipse cx="32" cy="38" rx="16" ry="16" fill="#201548"/>
+  <!-- Hood rim -->
+  <path d="M18 32 Q32 26 46 32 Q44 28 32 26 Q20 28 18 32Z" fill="#12092c" opacity="0.8"/>
+  <!-- Left eye -->
+  <ellipse cx="25" cy="38" rx="4.5" ry="4.5" fill="#8070d4" opacity="0.18"/>
+  <ellipse cx="25" cy="38" rx="3" ry="3" fill="#9080e0"/>
+  <ellipse cx="24" cy="37" rx="1" ry="1" fill="rgba(255,255,255,0.4)"/>
+  <!-- Right eye -->
+  <ellipse cx="39" cy="38" rx="4.5" ry="4.5" fill="#8070d4" opacity="0.18"/>
+  <ellipse cx="39" cy="38" rx="3" ry="3" fill="#9080e0"/>
+  <ellipse cx="38" cy="37" rx="1" ry="1" fill="rgba(255,255,255,0.4)"/>
+  <!-- Smirk -->
+  <path d="M27 46 Q32 49 37 46" stroke="#4d3590" stroke-width="1.5" stroke-linecap="round" opacity="0.55"/>
+  <!-- Finger hint -->
+  <path d="M40 44 Q43 39 41 35" stroke="#2a1e58" stroke-width="2.5" stroke-linecap="round"/>
+  <circle cx="41" cy="33" r="2" fill="#2a1e58"/>
+  <defs>
+    <radialGradient id="bg-grad" cx="50%" cy="0%" r="70%">
+      <stop offset="0%" stop-color="#8070d4"/>
+      <stop offset="100%" stop-color="#08091a" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+</svg>

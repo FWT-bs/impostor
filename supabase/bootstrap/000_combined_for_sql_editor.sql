@@ -108,7 +108,7 @@ FROM public.game_rounds;
 
 -- ===================== TRIGGERS / FUNCTIONS =====================
 
--- Auto-create profile on signup
+-- Auto-create profile on signup (ON CONFLICT protects against retries / race conditions)
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path = ''
 AS $$
@@ -118,9 +118,29 @@ BEGIN
     NEW.id,
     COALESCE(NEW.raw_user_meta_data->>'username', 'Player_' || substr(NEW.id::text, 1, 6)),
     COALESCE(NEW.raw_user_meta_data->>'avatar_color', '#06b6d4')
-  );
+  )
+  ON CONFLICT (id) DO NOTHING;
   RETURN NEW;
 END;
+$$;
+
+-- SECURITY DEFINER helpers — bypass RLS for cross-table lookups inside policies
+-- (prevents infinite recursion when policies reference each other's tables)
+CREATE OR REPLACE FUNCTION public.user_room_ids()
+RETURNS SETOF uuid
+LANGUAGE sql STABLE SECURITY DEFINER SET search_path = ''
+AS $$
+  SELECT room_id FROM public.room_players WHERE user_id = auth.uid()
+$$;
+
+CREATE OR REPLACE FUNCTION public.is_room_member(p_room_id uuid)
+RETURNS boolean
+LANGUAGE sql STABLE SECURITY DEFINER SET search_path = ''
+AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM public.room_players
+    WHERE room_id = p_room_id AND user_id = auth.uid()
+  )
 $$;
 
 CREATE TRIGGER on_auth_user_created
@@ -154,7 +174,7 @@ ALTER TABLE public.rooms ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Anyone can view public waiting rooms or own rooms" ON public.rooms
   FOR SELECT USING (
     (status = 'waiting' AND is_private = false)
-    OR id IN (SELECT room_id FROM public.room_players WHERE user_id = auth.uid())
+    OR id IN (SELECT public.user_room_ids())
   );
 CREATE POLICY "Authenticated users can create rooms" ON public.rooms
   FOR INSERT WITH CHECK (auth.uid() = host_id);
@@ -167,7 +187,7 @@ CREATE POLICY "Host can delete room" ON public.rooms
 ALTER TABLE public.room_players ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Room members can view players" ON public.room_players
   FOR SELECT USING (
-    room_id IN (SELECT room_id FROM public.room_players rp WHERE rp.user_id = auth.uid())
+    public.is_room_member(room_id)
     OR room_id IN (SELECT id FROM public.rooms WHERE status = 'waiting')
   );
 CREATE POLICY "Authenticated users can join rooms" ON public.room_players
@@ -184,7 +204,7 @@ CREATE POLICY "Players can leave rooms" ON public.room_players
 ALTER TABLE public.game_rounds ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Room members can view rounds" ON public.game_rounds
   FOR SELECT USING (
-    room_id IN (SELECT room_id FROM public.room_players WHERE user_id = auth.uid())
+    room_id IN (SELECT public.user_room_ids())
   );
 
 -- PLAYER SECRETS RLS
@@ -199,7 +219,7 @@ CREATE POLICY "Votes visible after round complete" ON public.votes
     round_id IN (
       SELECT id FROM public.game_rounds
       WHERE status = 'completed'
-      AND room_id IN (SELECT room_id FROM public.room_players WHERE user_id = auth.uid())
+      AND room_id IN (SELECT public.user_room_ids())
     )
   );
 CREATE POLICY "Players can cast own vote" ON public.votes

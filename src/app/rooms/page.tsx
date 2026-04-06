@@ -9,6 +9,8 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { Modal } from "@/components/ui/Modal";
+import { FloatingCharacter } from "@/components/ui/FloatingCharacter";
+import { SpectatorFull, GhostMini, DetectiveMini } from "@/components/ui/Characters";
 import { useAuth } from "@/lib/hooks/use-auth";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
@@ -125,12 +127,33 @@ export default function RoomsPage() {
         user={
           profile
             ? { username: profile.username, avatarColor: profile.avatar_color }
-            : null
+            : user
+              ? { username: user.email?.split("@")[0] ?? "Player", avatarColor: "#8070d4" }
+              : null
         }
       />
       <main className="min-h-screen bg-background pt-20 pb-16 px-4 relative overflow-hidden">
         <div className="absolute top-20 -left-20 w-72 h-72 rounded-full bg-purple/5 blur-3xl pointer-events-none" aria-hidden />
         <div className="absolute bottom-10 -right-20 w-64 h-64 rounded-full bg-cyan/5 blur-3xl pointer-events-none" aria-hidden />
+
+        {/* Spectator decoration */}
+        <FloatingCharacter
+          from="left"
+          delay={0.3}
+          floatAmplitude={10}
+          floatDuration={4.8}
+          sway
+          className="absolute left-4 bottom-16 hidden xl:block"
+        >
+          <SpectatorFull className="w-32 opacity-18" />
+        </FloatingCharacter>
+
+        <FloatingCharacter from="right" delay={0.6} floatAmplitude={12} floatDuration={5.5} className="absolute right-8 top-28 hidden lg:block">
+          <DetectiveMini className="w-10 opacity-15" />
+        </FloatingCharacter>
+        <FloatingCharacter from="left" delay={0.9} floatAmplitude={10} floatDuration={4.2} className="absolute left-10 top-40 hidden lg:block">
+          <GhostMini className="w-9 opacity-15" />
+        </FloatingCharacter>
 
         <div className="mx-auto max-w-2xl relative z-10">
           <motion.div

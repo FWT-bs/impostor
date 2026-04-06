@@ -9,6 +9,8 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { Avatar } from "@/components/ui/Avatar";
+import { FloatingCharacter } from "@/components/ui/FloatingCharacter";
+import { ImpostorMini, GhostMini } from "@/components/ui/Characters";
 import { useAuth } from "@/lib/hooks/use-auth";
 import { createClient } from "@/lib/supabase/client";
 
@@ -97,6 +99,12 @@ export default function ProfilePage() {
       <Header user={{ username: profile.username, avatarColor: profile.avatar_color }} />
       <main className="min-h-screen bg-background pt-20 pb-16 px-4 relative overflow-hidden">
         <div className="absolute top-40 left-10 w-72 h-72 rounded-full bg-purple/5 blur-3xl pointer-events-none" aria-hidden />
+        <FloatingCharacter from="left" delay={0.4} floatAmplitude={11} floatDuration={5} className="absolute left-4 bottom-16 hidden xl:block">
+          <ImpostorMini className="w-12 opacity-18" />
+        </FloatingCharacter>
+        <FloatingCharacter from="right" delay={0.7} floatAmplitude={14} floatDuration={6} className="absolute right-8 top-32 hidden xl:block">
+          <GhostMini className="w-11 opacity-18" />
+        </FloatingCharacter>
 
         <div className="mx-auto max-w-lg relative z-10">
           <motion.div

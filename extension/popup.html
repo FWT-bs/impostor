@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Impostor</title>
+  <link rel="stylesheet" href="popup.css" />
+</head>
+<body>
+  <!-- Grain overlay -->
+  <div class="grain" aria-hidden="true"></div>
+
+  <!-- Grid background -->
+  <div class="grid-bg" aria-hidden="true"></div>
+
+  <div class="popup">
+
+    <!-- Header row -->
+    <header class="popup-header">
+      <div class="logo-mark" id="logo-mark">
+        <!-- Impostor head SVG injected by JS -->
+      </div>
+      <span class="logo-text">IMPOSTOR</span>
+      <div class="live-dot" title="Live game rooms available">
+        <span class="ping"></span>
+        <span class="dot"></span>
+      </div>
+    </header>
+
+    <!-- Characters row -->
+    <div class="characters-row" aria-hidden="true">
+      <div class="char char-impostor" id="char-impostor">
+        <!-- SVG injected by JS -->
+      </div>
+      <div class="vs-label">VS</div>
+      <div class="char char-innocent" id="char-innocent">
+        <!-- SVG injected by JS -->
+      </div>
+    </div>
+
+    <!-- Tagline -->
+    <p class="tagline">One player doesn't know the word.<br>Find them.</p>
+
+    <!-- Actions -->
+    <div class="actions">
+      <a class="btn btn-primary" id="btn-play-local" href="#" target="_blank">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M10.5 1.5H8.25A2.25 2.25 0 006 3.75v16.5a2.25 2.25 0 002.25 2.25h7.5A2.25 2.25 0 0018 20.25V3.75a2.25 2.25 0 00-2.25-2.25H13.5m-3 0V3h3V1.5m-3 0h3"/></svg>
+        Play Local
+      </a>
+      <a class="btn btn-secondary" id="btn-play-online" href="#" target="_blank">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.038 4.5-9S14.485 3 12 3"/></svg>
+        Online Rooms
+      </a>
+    </div>
+
+    <!-- Join by code -->
+    <div class="join-row">
+      <input
+        id="code-input"
+        class="code-input"
+        type="text"
+        maxlength="4"
+        placeholder="ROOM"
+        autocomplete="off"
+        spellcheck="false"
+      />
+      <button class="btn btn-join" id="btn-join">Join</button>
+    </div>
+
+    <!-- Footer -->
+    <footer class="popup-footer">
+      <span>Social deduction party game</span>
+    </footer>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

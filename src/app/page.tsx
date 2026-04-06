@@ -2,14 +2,24 @@
 
 import { Header } from "@/components/layout/Header";
 import { Button } from "@/components/ui/Button";
-import { ImpostorFull, InnocentFull } from "@/components/ui/Characters";
+import {
+  ImpostorFull,
+  InnocentFull,
+  DetectiveFull,
+  GhostFull,
+  SpectatorFull,
+  ImpostorMini,
+  InnocentMini,
+  GhostMini,
+  DetectiveMini,
+} from "@/components/ui/Characters";
+import { FloatingCharacter } from "@/components/ui/FloatingCharacter";
 import { useAuth } from "@/lib/hooks/use-auth";
 import Link from "next/link";
 import { motion, useScroll, useTransform } from "framer-motion";
 import { useRef } from "react";
 
 const TITLE = "IMPOSTOR";
-
 
 const steps = [
   {
@@ -30,7 +40,7 @@ const steps = [
 ];
 
 export default function HomePage() {
-  const { user, profile, loading } = useAuth();
+  const { user, profile } = useAuth();
   const heroRef = useRef<HTMLElement>(null);
   const { scrollYProgress } = useScroll({
     target: heroRef,
@@ -38,6 +48,8 @@ export default function HomePage() {
   });
   const heroOpacity = useTransform(scrollYProgress, [0, 0.7], [1, 0]);
   const heroY = useTransform(scrollYProgress, [0, 0.7], [0, -50]);
+  const charLeftX = useTransform(scrollYProgress, [0, 0.6], [0, -60]);
+  const charRightX = useTransform(scrollYProgress, [0, 0.6], [0, 60]);
 
   return (
     <>
@@ -45,7 +57,9 @@ export default function HomePage() {
         user={
           profile
             ? { username: profile.username, avatarColor: profile.avatar_color }
-            : null
+            : user
+              ? { username: user.email?.split("@")[0] ?? "Player", avatarColor: "#8070d4" }
+              : null
         }
       />
 
@@ -63,7 +77,6 @@ export default function HomePage() {
               "radial-gradient(ellipse 75% 55% at 50% -5%, rgba(128,112,212,0.16) 0%, transparent 65%)",
           }}
         />
-
         {/* Subtle grid lines */}
         <div
           className="absolute inset-0 pointer-events-none"
@@ -74,7 +87,6 @@ export default function HomePage() {
             backgroundSize: "88px 88px",
           }}
         />
-
         {/* Vignette over grid */}
         <div
           className="absolute inset-0 pointer-events-none"
@@ -84,6 +96,70 @@ export default function HomePage() {
               "radial-gradient(ellipse 90% 80% at 50% 50%, transparent 40%, rgba(8,9,26,0.85) 100%)",
           }}
         />
+
+        {/* Hero character — Impostor on left */}
+        <motion.div
+          className="absolute left-[2%] sm:left-[5%] lg:left-[10%] bottom-14 hidden sm:block"
+          style={{ x: charLeftX }}
+          initial={{ opacity: 0, x: -120 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: 1.6, duration: 1.0, ease: [0.16, 1, 0.3, 1] }}
+        >
+          <motion.div
+            animate={{ y: [0, -14, 0] }}
+            transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
+            className="opacity-60"
+          >
+            <ImpostorFull className="w-28 sm:w-36 lg:w-44" />
+          </motion.div>
+        </motion.div>
+
+        {/* Hero character — Innocent on right */}
+        <motion.div
+          className="absolute right-[2%] sm:right-[5%] lg:right-[10%] bottom-14 hidden sm:block"
+          style={{ x: charRightX }}
+          initial={{ opacity: 0, x: 120 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: 1.8, duration: 1.0, ease: [0.16, 1, 0.3, 1] }}
+        >
+          <motion.div
+            animate={{ y: [0, -10, 0], rotate: [-1.5, 1.5, -1.5] }}
+            transition={{ duration: 4, repeat: Infinity, ease: "easeInOut", delay: 0.7 }}
+            className="opacity-60"
+          >
+            <InnocentFull className="w-28 sm:w-36 lg:w-44" />
+          </motion.div>
+        </motion.div>
+
+        {/* Ghost mini — decorative top-right */}
+        <motion.div
+          className="absolute top-24 right-8 hidden lg:block"
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 2.2, duration: 0.7 }}
+        >
+          <motion.div
+            animate={{ y: [0, -8, 0] }}
+            transition={{ duration: 3.2, repeat: Infinity, ease: "easeInOut" }}
+          >
+            <GhostMini className="w-10 opacity-30" />
+          </motion.div>
+        </motion.div>
+
+        {/* Detective mini — decorative top-left */}
+        <motion.div
+          className="absolute top-28 left-8 hidden lg:block"
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 2.4, duration: 0.7 }}
+        >
+          <motion.div
+            animate={{ y: [0, -6, 0] }}
+            transition={{ duration: 4.1, repeat: Infinity, ease: "easeInOut", delay: 1 }}
+          >
+            <DetectiveMini className="w-10 opacity-25" />
+          </motion.div>
+        </motion.div>
 
         <motion.div
           className="relative z-10 flex flex-col items-center text-center px-4"
@@ -191,7 +267,8 @@ export default function HomePage() {
             <motion.div
               className="absolute inset-0 w-full"
               style={{
-                background: "linear-gradient(to bottom, transparent, rgba(88,96,126,0.4), transparent)",
+                background:
+                  "linear-gradient(to bottom, transparent, rgba(88,96,126,0.4), transparent)",
               }}
               animate={{ y: ["-100%", "100%"] }}
               transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut" }}
@@ -200,8 +277,8 @@ export default function HomePage() {
         </motion.div>
       </section>
 
-      {/* ── CHARACTERS ───────────────────────────────────────────────────────── */}
-      <section className="relative overflow-hidden px-4 py-20 sm:py-28">
+      {/* ── CHARACTERS SHOWCASE ──────────────────────────────────────────────── */}
+      <section className="relative overflow-hidden px-4 py-16 sm:py-24">
         <div
           className="absolute top-0 left-0 right-0 h-px"
           style={{
@@ -218,102 +295,73 @@ export default function HomePage() {
           }}
         />
 
-        <div className="mx-auto max-w-4xl relative z-10">
+        <div className="mx-auto max-w-5xl relative z-10">
           <motion.div
-            className="mb-12 text-center"
+            className="mb-10 text-center"
             initial={{ opacity: 0, y: 22 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-80px" }}
             transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
           >
-            <p className="mb-3 text-[10px] uppercase tracking-[0.5em] text-muted/60">The tension</p>
+            <p className="mb-3 text-[10px] uppercase tracking-[0.5em] text-muted/60">The cast</p>
             <h2 className="font-heading text-[clamp(26px,4vw,38px)] text-foreground">
-              Can you tell them apart?
+              Who&apos;s in the room?
             </h2>
             <p className="mt-3 text-sm text-muted max-w-xs mx-auto leading-relaxed">
-              One player is hiding in plain sight. Every clue counts.
+              Every game has its characters. Only one is hiding in plain sight.
             </p>
           </motion.div>
 
-          <div className="flex items-end justify-between gap-4 sm:gap-8">
-            {/* Impostor */}
-            <motion.div
-              className="flex flex-1 flex-col items-center"
-              initial={{ x: -70, opacity: 0 }}
-              whileInView={{ x: 0, opacity: 1 }}
-              viewport={{ once: true, margin: "-60px" }}
-              transition={{ duration: 0.85, ease: [0.16, 1, 0.3, 1] }}
-            >
-              <motion.div
-                animate={{ y: [0, -11, 0] }}
-                transition={{ duration: 4.5, repeat: Infinity, ease: "easeInOut" }}
-              >
-                <ImpostorFull />
-              </motion.div>
-              <motion.div
-                className="mt-4 text-center"
-                initial={{ opacity: 0 }}
-                whileInView={{ opacity: 1 }}
-                viewport={{ once: true }}
-                transition={{ delay: 0.4, duration: 0.6 }}
-              >
-                <p className="text-[10px] uppercase tracking-[0.35em] text-purple/60 mb-1">The Impostor</p>
-                <p className="text-[11px] text-muted italic">&ldquo;Shh&hellip; they&apos;ll never know.&rdquo;</p>
-              </motion.div>
-            </motion.div>
-
-            {/* VS */}
-            <motion.div
-              className="shrink-0 pb-14 text-center"
-              initial={{ opacity: 0, scale: 0.8 }}
-              whileInView={{ opacity: 1, scale: 1 }}
-              viewport={{ once: true }}
-              transition={{ delay: 0.3, duration: 0.5 }}
-            >
-              <span
-                style={{
-                  fontFamily: "var(--font-bebas), sans-serif",
-                  fontSize: "clamp(2.5rem, 5vw, 4rem)",
-                  color: "rgba(88,96,126,0.2)",
-                  letterSpacing: "0.08em",
-                }}
-              >
-                VS
-              </span>
-            </motion.div>
+          {/* 5-character lineup */}
+          <div className="flex items-end justify-center gap-3 sm:gap-6 flex-wrap">
+            {/* Detective */}
+            <FloatingCharacter from="left" delay={0} floatAmplitude={10} floatDuration={4.8} sway>
+              <div className="flex flex-col items-center">
+                <DetectiveFull className="w-24 sm:w-32" />
+                <p className="mt-3 text-[9px] uppercase tracking-[0.35em] text-muted/50">The Detective</p>
+              </div>
+            </FloatingCharacter>
 
             {/* Innocent */}
-            <motion.div
-              className="flex flex-1 flex-col items-center"
-              initial={{ x: 70, opacity: 0 }}
-              whileInView={{ x: 0, opacity: 1 }}
-              viewport={{ once: true, margin: "-60px" }}
-              transition={{ duration: 0.85, ease: [0.16, 1, 0.3, 1] }}
-            >
-              <motion.div
-                animate={{ y: [0, -8, 0], rotate: [-1.5, 1.5, -1.5] }}
-                transition={{ duration: 3.5, repeat: Infinity, ease: "easeInOut", delay: 0.6 }}
-              >
-                <InnocentFull />
-              </motion.div>
-              <motion.div
-                className="mt-4 text-center"
-                initial={{ opacity: 0 }}
-                whileInView={{ opacity: 1 }}
-                viewport={{ once: true }}
-                transition={{ delay: 0.4, duration: 0.6 }}
-              >
-                <p className="text-[10px] uppercase tracking-[0.35em] text-cyan/60 mb-1">The Innocent</p>
-                <p className="text-[11px] text-muted italic">&ldquo;I swear I know the word!&rdquo;</p>
-              </motion.div>
-            </motion.div>
+            <FloatingCharacter from="left" delay={0.12} floatAmplitude={9} floatDuration={3.8} sway>
+              <div className="flex flex-col items-center">
+                <InnocentFull className="w-28 sm:w-36" />
+                <p className="mt-3 text-[9px] uppercase tracking-[0.35em] text-cyan/50">The Innocent</p>
+                <p className="text-[10px] text-muted italic mt-0.5">&ldquo;I swear I know!&rdquo;</p>
+              </div>
+            </FloatingCharacter>
+
+            {/* Impostor — center, tallest */}
+            <FloatingCharacter from="bottom" delay={0.05} floatAmplitude={14} floatDuration={5.2}>
+              <div className="flex flex-col items-center">
+                <ImpostorFull className="w-32 sm:w-44" />
+                <p className="mt-3 text-[9px] uppercase tracking-[0.35em] text-purple/60">The Impostor</p>
+                <p className="text-[10px] text-muted italic mt-0.5">&ldquo;Shh&hellip;&rdquo;</p>
+              </div>
+            </FloatingCharacter>
+
+            {/* Spectator */}
+            <FloatingCharacter from="right" delay={0.12} floatAmplitude={8} floatDuration={4.2} sway>
+              <div className="flex flex-col items-center">
+                <SpectatorFull className="w-28 sm:w-36" />
+                <p className="mt-3 text-[9px] uppercase tracking-[0.35em] text-muted/50">The Watcher</p>
+                <p className="text-[10px] text-muted italic mt-0.5">&ldquo;I&apos;m just observing.&rdquo;</p>
+              </div>
+            </FloatingCharacter>
+
+            {/* Ghost */}
+            <FloatingCharacter from="right" delay={0} floatAmplitude={16} floatDuration={6} sway>
+              <div className="flex flex-col items-center">
+                <GhostFull className="w-24 sm:w-32" />
+                <p className="mt-3 text-[9px] uppercase tracking-[0.35em] text-muted/50">The Ghost</p>
+              </div>
+            </FloatingCharacter>
           </div>
         </div>
       </section>
 
       {/* ── MODES ────────────────────────────────────────────────────────────── */}
-      <section className="relative px-4 py-28 sm:py-36">
-        {/* Top separator */}
+      <section className="relative px-4 py-24 sm:py-32">
         <div
           className="absolute top-0 left-0 right-0 h-px"
           style={{
@@ -321,6 +369,17 @@ export default function HomePage() {
               "linear-gradient(to right, transparent, rgba(28,31,58,0.9) 20%, rgba(28,31,58,0.9) 80%, transparent)",
           }}
         />
+
+        {/* Detective decoration — corner */}
+        <FloatingCharacter
+          from="left"
+          delay={0.2}
+          floatAmplitude={10}
+          floatDuration={5}
+          className="absolute left-4 top-16 hidden xl:block"
+        >
+          <DetectiveMini className="w-14 opacity-20" />
+        </FloatingCharacter>
 
         <div className="mx-auto max-w-5xl">
           <motion.div
@@ -333,9 +392,7 @@ export default function HomePage() {
             <p className="mb-3 text-[10px] uppercase tracking-[0.5em] text-muted/60">
               Choose your mode
             </p>
-            <h2
-              className="font-heading text-[clamp(28px,4vw,38px)] text-foreground"
-            >
+            <h2 className="font-heading text-[clamp(28px,4vw,38px)] text-foreground">
               How do you want to play?
             </h2>
           </motion.div>
@@ -367,7 +424,6 @@ export default function HomePage() {
                   (e.currentTarget as HTMLElement).style.boxShadow = "none";
                 }}
               >
-                {/* Background step number */}
                 <span
                   className="absolute -right-3 -top-5 leading-none select-none transition-all duration-500 group-hover:opacity-100"
                   style={{
@@ -379,9 +435,7 @@ export default function HomePage() {
                 >
                   01
                 </span>
-
                 <div className="relative">
-                  {/* Icon */}
                   <div
                     className="mb-7 flex size-12 items-center justify-center rounded-xl transition-all duration-300"
                     style={{
@@ -403,15 +457,10 @@ export default function HomePage() {
                       />
                     </svg>
                   </div>
-
-                  <h3 className="font-heading mb-3 text-2xl text-foreground">
-                    Local Party
-                  </h3>
+                  <h3 className="font-heading mb-3 text-2xl text-foreground">Local Party</h3>
                   <p className="mb-9 text-sm leading-relaxed text-muted">
-                    Pass one device around the table. Perfect for game night.
-                    Supports 3–10 players.
+                    Pass one device around the table. Perfect for game night. Supports 3–10 players.
                   </p>
-
                   <div className="flex items-center gap-2 text-sm font-medium" style={{ color: "var(--purple)" }}>
                     <span>Start playing</span>
                     <motion.svg
@@ -455,7 +504,6 @@ export default function HomePage() {
                   (e.currentTarget as HTMLElement).style.boxShadow = "none";
                 }}
               >
-                {/* Background step number */}
                 <span
                   className="absolute -right-3 -top-5 leading-none select-none"
                   style={{
@@ -466,9 +514,7 @@ export default function HomePage() {
                 >
                   02
                 </span>
-
                 <div className="relative">
-                  {/* Icon */}
                   <div
                     className="mb-7 flex size-12 items-center justify-center rounded-xl transition-all duration-300"
                     style={{
@@ -490,15 +536,10 @@ export default function HomePage() {
                       />
                     </svg>
                   </div>
-
-                  <h3 className="font-heading mb-3 text-2xl text-foreground">
-                    Online Multiplayer
-                  </h3>
+                  <h3 className="font-heading mb-3 text-2xl text-foreground">Online Multiplayer</h3>
                   <p className="mb-9 text-sm leading-relaxed text-muted">
-                    Create or join a room. Everyone uses their own device with
-                    real-time sync.
+                    Create or join a room. Everyone uses their own device with real-time sync.
                   </p>
-
                   <div className="flex items-center gap-2 text-sm font-medium" style={{ color: "var(--cyan)" }}>
                     <span>Browse rooms</span>
                     <svg
@@ -519,7 +560,7 @@ export default function HomePage() {
       </section>
 
       {/* ── HOW IT WORKS ─────────────────────────────────────────────────────── */}
-      <section className="relative px-4 py-28 sm:py-36">
+      <section className="relative px-4 py-24 sm:py-32">
         <div
           className="absolute top-0 left-0 right-0 h-px"
           style={{
@@ -527,6 +568,26 @@ export default function HomePage() {
               "linear-gradient(to right, transparent, rgba(28,31,58,0.9) 20%, rgba(28,31,58,0.9) 80%, transparent)",
           }}
         />
+
+        {/* Ambient character decorations */}
+        <FloatingCharacter
+          from="right"
+          delay={0.3}
+          floatAmplitude={12}
+          floatDuration={5.5}
+          className="absolute right-6 top-20 hidden xl:block"
+        >
+          <ImpostorMini className="w-14 opacity-20" />
+        </FloatingCharacter>
+        <FloatingCharacter
+          from="left"
+          delay={0.5}
+          floatAmplitude={9}
+          floatDuration={4.8}
+          className="absolute left-6 bottom-20 hidden xl:block"
+        >
+          <InnocentMini className="w-12 opacity-20" />
+        </FloatingCharacter>
 
         <div className="mx-auto max-w-5xl">
           <motion.div
@@ -536,9 +597,7 @@ export default function HomePage() {
             viewport={{ once: true, margin: "-80px" }}
             transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
           >
-            <p className="mb-3 text-[10px] uppercase tracking-[0.5em] text-muted/60">
-              The process
-            </p>
+            <p className="mb-3 text-[10px] uppercase tracking-[0.5em] text-muted/60">The process</p>
             <h2 className="font-heading text-[clamp(28px,4vw,38px)] text-foreground">
               How it works
             </h2>
@@ -558,7 +617,6 @@ export default function HomePage() {
                 }}
                 className="relative"
               >
-                {/* Connecting line (desktop, between steps) */}
                 {i < steps.length - 1 && (
                   <div
                     className="absolute hidden sm:block top-7 left-full w-full h-px -translate-x-1/2"
@@ -572,7 +630,6 @@ export default function HomePage() {
                 )}
 
                 <div className="flex items-start gap-5 sm:flex-col sm:gap-0">
-                  {/* Step badge */}
                   <div
                     className="shrink-0 flex size-14 items-center justify-center rounded-xl sm:mb-6"
                     style={{
@@ -591,11 +648,8 @@ export default function HomePage() {
                       {s.step}
                     </span>
                   </div>
-
                   <div>
-                    <h3 className="font-heading mb-2 text-[17px] text-foreground sm:mb-2">
-                      {s.title}
-                    </h3>
+                    <h3 className="font-heading mb-2 text-[17px] text-foreground sm:mb-2">{s.title}</h3>
                     <p className="text-sm leading-relaxed text-muted">{s.desc}</p>
                   </div>
                 </div>
@@ -606,7 +660,7 @@ export default function HomePage() {
       </section>
 
       {/* ── AUTH CTA ─────────────────────────────────────────────────────────── */}
-      {!loading && !user && (
+      {!user && (
         <motion.section
           className="relative px-4 py-24 sm:py-32"
           initial={{ opacity: 0 }}
@@ -621,6 +675,18 @@ export default function HomePage() {
                 "linear-gradient(to right, transparent, rgba(28,31,58,0.9) 20%, rgba(28,31,58,0.9) 80%, transparent)",
             }}
           />
+
+          {/* Ghost decoration */}
+          <FloatingCharacter
+            from="left"
+            delay={0.2}
+            floatAmplitude={14}
+            floatDuration={5.5}
+            sway
+            className="absolute left-8 bottom-10 hidden lg:block"
+          >
+            <GhostMini className="w-16 opacity-25" />
+          </FloatingCharacter>
 
           <div className="mx-auto max-w-sm text-center">
             <h2 className="font-heading mb-3 text-[clamp(22px,3.5vw,30px)] text-foreground">

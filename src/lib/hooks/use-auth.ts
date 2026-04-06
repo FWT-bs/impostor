@@ -32,9 +32,21 @@ export function useAuth() {
       setProfile(error ? null : data);
     }
 
+    // Eagerly load the current session so the UI doesn't flash "signed out"
+    // while waiting for the first onAuthStateChange event.
+    supabase.auth.getUser().then(({ data: { user: initialUser } }) => {
+      if (cancelled) return;
+      setUser(initialUser ?? null);
+      syncProfile(initialUser ?? null).then(() => {
+        if (!cancelled) setLoading(false);
+      });
+    });
+
+    // Keep in sync with tab-focus refreshes, sign-in/out events, etc.
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      if (cancelled) return;
       const nextUser = session?.user ?? null;
       setUser(nextUser);
       await syncProfile(nextUser);
@@ -49,9 +61,7 @@ export function useAuth() {
 
   const signOut = useCallback(async () => {
     const { error } = await supabase.auth.signOut();
-    if (error) {
-      return;
-    }
+    if (error) return;
     setUser(null);
     setProfile(null);
     router.push("/");

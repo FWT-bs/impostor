@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { createClient } from "@/lib/supabase/client";
+import { InnocentFull, GhostMini, ImpostorMini } from "@/components/ui/Characters";
 import { cn, randomAvatarColor } from "@/lib/utils";
 
 export default function SignupPage() {
@@ -25,10 +26,7 @@ export default function SignupPage() {
       email,
       password,
       options: {
-        data: {
-          username: username.trim(),
-          avatar_color,
-        },
+        data: { username: username.trim(), avatar_color },
       },
     });
     setLoading(false);
@@ -61,8 +59,55 @@ export default function SignupPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background px-4 py-12 relative overflow-hidden">
+      {/* Glow orbs */}
       <div className="absolute top-20 right-1/4 w-[350px] h-[350px] rounded-full bg-purple/5 blur-3xl pointer-events-none" aria-hidden />
       <div className="absolute bottom-20 left-1/4 w-[300px] h-[300px] rounded-full bg-orange/5 blur-3xl pointer-events-none" aria-hidden />
+
+      {/* Innocent character — decorative right side */}
+      <motion.div
+        className="absolute right-4 sm:right-12 bottom-0 hidden md:block pointer-events-none select-none"
+        initial={{ opacity: 0, x: 60 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ delay: 0.5, duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
+      >
+        <motion.div
+          animate={{ y: [0, -10, 0], rotate: [-1.5, 1.5, -1.5] }}
+          transition={{ duration: 4.5, repeat: Infinity, ease: "easeInOut" }}
+          className="opacity-30"
+        >
+          <InnocentFull className="w-36 sm:w-44" />
+        </motion.div>
+      </motion.div>
+
+      {/* Impostor mini — top left */}
+      <motion.div
+        className="absolute top-16 left-8 hidden sm:block pointer-events-none select-none"
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.8, duration: 0.6 }}
+      >
+        <motion.div
+          animate={{ y: [0, -8, 0] }}
+          transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+        >
+          <ImpostorMini className="w-10 opacity-20" />
+        </motion.div>
+      </motion.div>
+
+      {/* Ghost mini — bottom left */}
+      <motion.div
+        className="absolute bottom-16 left-12 hidden lg:block pointer-events-none select-none"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 1.0, duration: 0.6 }}
+      >
+        <motion.div
+          animate={{ y: [0, -10, 0] }}
+          transition={{ duration: 5, repeat: Infinity, ease: "easeInOut", delay: 0.5 }}
+        >
+          <GhostMini className="w-10 opacity-20" />
+        </motion.div>
+      </motion.div>
 
       <motion.div
         className={cn(
@@ -73,13 +118,18 @@ export default function SignupPage() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ type: "spring", stiffness: 120 }}
       >
-        <div className="text-center text-4xl mb-4">🎭</div>
+        <div className="flex justify-center mb-4">
+          <motion.div
+            animate={{ y: [0, -8, 0], rotate: [-2, 2, -2] }}
+            transition={{ duration: 3.5, repeat: Infinity, ease: "easeInOut" }}
+          >
+            <ImpostorMini className="w-12 opacity-60" />
+          </motion.div>
+        </div>
         <h1 className="text-center font-heading text-3xl tracking-wide text-foreground">
           Join the game
         </h1>
-        <p className="mt-2 text-center text-sm text-muted">
-          Create your operative profile
-        </p>
+        <p className="mt-2 text-center text-sm text-muted">Create your operative profile</p>
 
         <form onSubmit={handleSubmit} className="mt-8 space-y-5">
           <div>
@@ -100,7 +150,7 @@ export default function SignupPage() {
               onChange={(e) => setUsername(e.target.value)}
               className={cn(
                 "mt-1.5 w-full rounded-xl border-2 border-border bg-background px-4 py-2.5 text-foreground outline-none transition-all duration-200",
-                "placeholder:text-muted/60 focus:border-purple focus:ring-2 focus:ring-purple/30"
+                "placeholder:text-muted/60 focus:border-purple focus:ring-2 focus:ring-purple/30",
               )}
               placeholder="Codename"
             />
@@ -122,7 +172,7 @@ export default function SignupPage() {
               onChange={(e) => setEmail(e.target.value)}
               className={cn(
                 "mt-1.5 w-full rounded-xl border-2 border-border bg-background px-4 py-2.5 text-foreground outline-none transition-all duration-200",
-                "placeholder:text-muted/60 focus:border-purple focus:ring-2 focus:ring-purple/30"
+                "placeholder:text-muted/60 focus:border-purple focus:ring-2 focus:ring-purple/30",
               )}
               placeholder="you@example.com"
             />
@@ -145,7 +195,7 @@ export default function SignupPage() {
               onChange={(e) => setPassword(e.target.value)}
               className={cn(
                 "mt-1.5 w-full rounded-xl border-2 border-border bg-background px-4 py-2.5 text-foreground outline-none transition-all duration-200",
-                "placeholder:text-muted/60 focus:border-purple focus:ring-2 focus:ring-purple/30"
+                "placeholder:text-muted/60 focus:border-purple focus:ring-2 focus:ring-purple/30",
               )}
               placeholder="••••••••"
             />
@@ -156,10 +206,10 @@ export default function SignupPage() {
             className={cn(
               "w-full rounded-full bg-gradient-to-r from-purple to-purple-dim py-3 text-sm font-bold text-white transition-all duration-200 cursor-pointer",
               "hover:shadow-[0_0_24px_rgba(168,85,247,0.4)] hover:brightness-110",
-              "active:scale-[0.97] disabled:pointer-events-none disabled:opacity-50"
+              "active:scale-[0.97] disabled:pointer-events-none disabled:opacity-50",
             )}
           >
-            {loading ? "Creating account…" : "🚀 Sign up"}
+            {loading ? "Creating account…" : "Sign up"}
           </button>
         </form>
 
@@ -171,10 +221,10 @@ export default function SignupPage() {
             className={cn(
               "w-full rounded-full border-2 border-border bg-card-hover py-3 text-sm font-semibold text-foreground transition-all duration-200 cursor-pointer",
               "hover:border-purple/30 hover:text-purple hover:shadow-[0_0_16px_rgba(168,85,247,0.1)]",
-              "active:scale-[0.97] disabled:pointer-events-none disabled:opacity-50"
+              "active:scale-[0.97] disabled:pointer-events-none disabled:opacity-50",
             )}
           >
-            {guestLoading ? "Entering…" : "👻 Continue as Guest"}
+            {guestLoading ? "Entering…" : "Continue as Guest"}
           </button>
           <p className="text-center text-sm text-muted">
             Already registered?{" "}

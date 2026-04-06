@@ -5,6 +5,8 @@ import { motion } from "framer-motion";
 import { Header } from "@/components/layout/Header";
 import { Card } from "@/components/ui/Card";
 import { Avatar } from "@/components/ui/Avatar";
+import { FloatingCharacter } from "@/components/ui/FloatingCharacter";
+import { DetectiveFull, ImpostorMini, GhostMini } from "@/components/ui/Characters";
 import { useAuth } from "@/lib/hooks/use-auth";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
@@ -22,7 +24,7 @@ const tabs = [
 ];
 
 export default function LeaderboardPage() {
-  const { profile } = useAuth();
+  const { user, profile } = useAuth();
   const supabase = useMemo(() => createClient(), []);
   const [leaders, setLeaders] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
@@ -81,12 +83,34 @@ export default function LeaderboardPage() {
         user={
           profile
             ? { username: profile.username, avatarColor: profile.avatar_color }
-            : null
+            : user
+              ? { username: user.email?.split("@")[0] ?? "Player", avatarColor: "#8070d4" }
+              : null
         }
       />
       <main className="min-h-screen bg-background pt-20 pb-16 px-4 relative overflow-hidden">
         <div className="absolute top-32 left-10 w-72 h-72 rounded-full bg-purple/5 blur-3xl pointer-events-none" aria-hidden />
         <div className="absolute bottom-20 right-10 w-64 h-64 rounded-full bg-orange/5 blur-3xl pointer-events-none" aria-hidden />
+
+        {/* Detective character decoration */}
+        <FloatingCharacter
+          from="right"
+          delay={0.3}
+          floatAmplitude={12}
+          floatDuration={5}
+          sway
+          className="absolute right-4 top-24 hidden xl:block"
+        >
+          <DetectiveFull className="w-32 opacity-20" />
+        </FloatingCharacter>
+
+        {/* Ambient minis */}
+        <FloatingCharacter from="left" delay={0.5} floatAmplitude={9} floatDuration={4.5} className="absolute left-6 bottom-24 hidden lg:block">
+          <ImpostorMini className="w-10 opacity-15" />
+        </FloatingCharacter>
+        <FloatingCharacter from="right" delay={0.8} floatAmplitude={14} floatDuration={6} className="absolute right-8 bottom-32 hidden lg:block">
+          <GhostMini className="w-10 opacity-15" />
+        </FloatingCharacter>
 
         <div className="mx-auto max-w-lg relative z-10">
           <motion.div

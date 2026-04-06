@@ -2,6 +2,7 @@
 
 import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
+import { ImpostorHead } from "@/components/ui/Characters";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
@@ -49,26 +50,13 @@ export function Header({ user, authSlot, className }: HeaderProps) {
       <div className="mx-auto flex h-14 max-w-6xl items-center justify-between gap-4 px-4 sm:h-16 sm:px-6">
         {/* Logo */}
         <Link href="/" className="group flex items-center gap-2.5">
-          {/* Geometric mark */}
-          <div
-            className="relative flex size-7 items-center justify-center rounded-md transition-all duration-300 group-hover:scale-105"
-            style={{
-              background: "linear-gradient(135deg, rgba(128,112,212,0.25), rgba(128,112,212,0.08))",
-              border: "1px solid rgba(128,112,212,0.3)",
-            }}
+          <motion.div
+            className="relative transition-all duration-300"
+            whileHover={{ scale: 1.08, rotate: -4 }}
+            transition={{ type: "spring", stiffness: 300, damping: 18 }}
           >
-            <span
-              style={{
-                fontFamily: "var(--font-bebas), sans-serif",
-                fontSize: "14px",
-                color: "rgba(160,144,232,0.9)",
-                letterSpacing: "0.02em",
-                lineHeight: 1,
-              }}
-            >
-              I
-            </span>
-          </div>
+            <ImpostorHead className="w-8 h-auto drop-shadow-[0_0_6px_rgba(128,112,212,0.4)]" />
+          </motion.div>
           <span
             className="font-heading text-lg font-bold tracking-[0.18em] transition-colors duration-200 group-hover:text-purple-glow sm:text-xl"
             style={{ color: "var(--purple)" }}

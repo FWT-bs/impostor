@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { createClient } from "@/lib/supabase/client";
+import { ImpostorFull, GhostMini, DetectiveMini } from "@/components/ui/Characters";
 import { cn } from "@/lib/utils";
 
 export default function LoginPage() {
@@ -19,10 +20,7 @@ export default function LoginPage() {
     e.preventDefault();
     setLoading(true);
     const supabase = createClient();
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
     setLoading(false);
     if (error) {
       toast.error(error.message);
@@ -49,8 +47,55 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background px-4 py-12 relative overflow-hidden">
+      {/* Glow orbs */}
       <div className="absolute top-20 left-1/4 w-[350px] h-[350px] rounded-full bg-purple/5 blur-3xl pointer-events-none" aria-hidden />
       <div className="absolute bottom-20 right-1/4 w-[300px] h-[300px] rounded-full bg-cyan/5 blur-3xl pointer-events-none" aria-hidden />
+
+      {/* Impostor character — decorative left side */}
+      <motion.div
+        className="absolute left-4 sm:left-12 bottom-0 hidden md:block pointer-events-none select-none"
+        initial={{ opacity: 0, x: -60 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ delay: 0.5, duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
+      >
+        <motion.div
+          animate={{ y: [0, -12, 0] }}
+          transition={{ duration: 5.5, repeat: Infinity, ease: "easeInOut" }}
+          className="opacity-30"
+        >
+          <ImpostorFull className="w-36 sm:w-44" />
+        </motion.div>
+      </motion.div>
+
+      {/* Ghost mini — top right corner */}
+      <motion.div
+        className="absolute top-16 right-8 hidden sm:block pointer-events-none select-none"
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.8, duration: 0.6 }}
+      >
+        <motion.div
+          animate={{ y: [0, -9, 0] }}
+          transition={{ duration: 3.5, repeat: Infinity, ease: "easeInOut" }}
+        >
+          <GhostMini className="w-10 opacity-20" />
+        </motion.div>
+      </motion.div>
+
+      {/* Detective mini — bottom right */}
+      <motion.div
+        className="absolute bottom-16 right-12 hidden lg:block pointer-events-none select-none"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 1.0, duration: 0.6 }}
+      >
+        <motion.div
+          animate={{ y: [0, -7, 0] }}
+          transition={{ duration: 4.2, repeat: Infinity, ease: "easeInOut", delay: 1 }}
+        >
+          <DetectiveMini className="w-10 opacity-20" />
+        </motion.div>
+      </motion.div>
 
       <motion.div
         className={cn(
@@ -61,13 +106,18 @@ export default function LoginPage() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ type: "spring", stiffness: 120 }}
       >
-        <div className="text-center text-4xl mb-4">🕵️</div>
+        <div className="flex justify-center mb-4">
+          <motion.div
+            animate={{ y: [0, -6, 0] }}
+            transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+          >
+            <GhostMini className="w-12 opacity-60" />
+          </motion.div>
+        </div>
         <h1 className="text-center font-heading text-3xl tracking-wide text-foreground">
           Sign in
         </h1>
-        <p className="mt-2 text-center text-sm text-muted">
-          Enter the briefing room
-        </p>
+        <p className="mt-2 text-center text-sm text-muted">Enter the briefing room</p>
 
         <form onSubmit={handleSubmit} className="mt-8 space-y-5">
           <div>
@@ -87,7 +137,7 @@ export default function LoginPage() {
               onChange={(e) => setEmail(e.target.value)}
               className={cn(
                 "mt-1.5 w-full rounded-xl border-2 border-border bg-background px-4 py-2.5 text-foreground outline-none transition-all duration-200",
-                "placeholder:text-muted/60 focus:border-purple focus:ring-2 focus:ring-purple/30"
+                "placeholder:text-muted/60 focus:border-purple focus:ring-2 focus:ring-purple/30",
               )}
               placeholder="you@example.com"
             />
@@ -109,7 +159,7 @@ export default function LoginPage() {
               onChange={(e) => setPassword(e.target.value)}
               className={cn(
                 "mt-1.5 w-full rounded-xl border-2 border-border bg-background px-4 py-2.5 text-foreground outline-none transition-all duration-200",
-                "placeholder:text-muted/60 focus:border-purple focus:ring-2 focus:ring-purple/30"
+                "placeholder:text-muted/60 focus:border-purple focus:ring-2 focus:ring-purple/30",
               )}
               placeholder="••••••••"
             />
@@ -120,10 +170,10 @@ export default function LoginPage() {
             className={cn(
               "w-full rounded-full bg-gradient-to-r from-purple to-purple-dim py-3 text-sm font-bold text-white transition-all duration-200 cursor-pointer",
               "hover:shadow-[0_0_24px_rgba(168,85,247,0.4)] hover:brightness-110",
-              "active:scale-[0.97] disabled:pointer-events-none disabled:opacity-50"
+              "active:scale-[0.97] disabled:pointer-events-none disabled:opacity-50",
             )}
           >
-            {loading ? "Signing in…" : "🔓 Sign in"}
+            {loading ? "Signing in…" : "Sign in"}
           </button>
         </form>
 
@@ -135,10 +185,10 @@ export default function LoginPage() {
             className={cn(
               "w-full rounded-full border-2 border-border bg-card-hover py-3 text-sm font-semibold text-foreground transition-all duration-200 cursor-pointer",
               "hover:border-purple/30 hover:text-purple hover:shadow-[0_0_16px_rgba(168,85,247,0.1)]",
-              "active:scale-[0.97] disabled:pointer-events-none disabled:opacity-50"
+              "active:scale-[0.97] disabled:pointer-events-none disabled:opacity-50",
             )}
           >
-            {guestLoading ? "Entering…" : "👻 Continue as Guest"}
+            {guestLoading ? "Entering…" : "Continue as Guest"}
           </button>
           <p className="text-center text-sm text-muted">
             No account?{" "}
