@@ -7,26 +7,8 @@ import { useAuth } from "@/lib/hooks/use-auth";
 import Link from "next/link";
 import { motion } from "framer-motion";
 
-function FloatingBlob({
-  className,
-  delay = 0,
-}: {
-  className?: string;
-  delay?: number;
-}) {
-  return (
-    <motion.div
-      className={className}
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ delay, duration: 1 }}
-      aria-hidden
-    />
-  );
-}
-
 const fadeUp = {
-  initial: { opacity: 0, y: 30 },
+  initial: { opacity: 0, y: 20 },
   animate: { opacity: 1, y: 0 },
 };
 
@@ -42,167 +24,139 @@ export default function HomePage() {
             : null
         }
       />
-      <main className="min-h-screen bg-background pt-24 pb-16 px-4 relative overflow-hidden">
-        {/* Decorative background blobs */}
-        <FloatingBlob
-          className="absolute top-20 left-1/4 w-[400px] h-[400px] rounded-full bg-purple/5 blur-3xl animate-float pointer-events-none"
-          delay={0}
-        />
-        <FloatingBlob
-          className="absolute bottom-20 right-1/4 w-[350px] h-[350px] rounded-full bg-cyan/5 blur-3xl animate-float pointer-events-none"
-          delay={1}
-        />
-        <FloatingBlob
-          className="absolute top-1/2 right-10 w-[250px] h-[250px] rounded-full bg-orange/5 blur-3xl animate-float pointer-events-none"
-          delay={2}
+      <main className="min-h-screen bg-background pt-28 pb-20 px-4 relative overflow-hidden">
+        {/* Subtle background texture */}
+        <div
+          className="absolute inset-0 pointer-events-none opacity-30"
+          aria-hidden
+          style={{
+            background:
+              "radial-gradient(ellipse 80% 60% at 50% 0%, rgba(124,108,206,0.07) 0%, transparent 70%)",
+          }}
         />
 
-        <div className="mx-auto max-w-4xl relative z-10">
+        <div className="mx-auto max-w-3xl relative z-10">
+          {/* Hero */}
           <motion.div
             className="text-center mb-16"
-            initial={{ opacity: 0, y: 30 }}
+            initial={{ opacity: 0, y: 24 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, type: "spring", stiffness: 100 }}
+            transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
           >
-            <motion.div
-              className="text-6xl mb-6"
-              initial={{ scale: 0, rotate: -20 }}
-              animate={{ scale: 1, rotate: 0 }}
-              transition={{ delay: 0.2, type: "spring", stiffness: 200, damping: 15 }}
-            >
-              🕵️
-            </motion.div>
-            <h1 className="font-heading text-6xl sm:text-8xl bg-gradient-to-r from-purple via-purple-glow to-cyan bg-clip-text text-transparent tracking-wider mb-4">
+            <p className="text-xs uppercase tracking-[0.3em] text-muted mb-5 font-medium">
+              Social Deduction
+            </p>
+            <h1 className="font-heading text-5xl sm:text-7xl text-foreground tracking-wider mb-5">
               IMPOSTOR
             </h1>
-            <p className="text-lg sm:text-xl text-muted max-w-xl mx-auto leading-relaxed">
-              A social deduction party game. One player is the impostor who
-              doesn&apos;t know the secret word. Find them before they blend in.
+            <p className="text-base text-muted max-w-md mx-auto leading-relaxed">
+              One player doesn&apos;t know the secret word. Find them before
+              they blend in.
             </p>
           </motion.div>
 
-          <div className="grid sm:grid-cols-2 gap-6 max-w-2xl mx-auto mb-16">
+          {/* Mode cards */}
+          <div className="grid sm:grid-cols-2 gap-4 max-w-2xl mx-auto mb-14">
             <motion.div
               {...fadeUp}
-              transition={{ delay: 0.3, type: "spring", stiffness: 150 }}
+              transition={{ delay: 0.15, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
             >
-              <Card hover padding="lg" className="h-full flex flex-col group">
-                <motion.div
-                  className="text-5xl mb-4"
-                  whileHover={{ scale: 1.2, rotate: 5 }}
-                  transition={{ type: "spring", stiffness: 300 }}
-                >
+              <Card hover padding="lg" className="h-full flex flex-col">
+                <div className="text-2xl mb-4" aria-hidden>
                   📱
-                </motion.div>
-                <h2 className="font-heading text-2xl text-foreground mb-2 group-hover:text-purple transition-colors">
+                </div>
+                <h2 className="font-heading text-xl text-foreground mb-2">
                   Local Party
                 </h2>
                 <p className="text-sm text-muted mb-6 flex-1 leading-relaxed">
-                  Pass one device around. Perfect for game night with friends
-                  in the same room. 3–10 players.
+                  Pass one device around the table. Perfect for game night.
+                  3–10 players.
                 </p>
-                <Button variant="primary" size="lg" className="w-full" asChild>
-                  <Link href="/local/setup">🎮 Play Local</Link>
+                <Button variant="primary" size="md" className="w-full" asChild>
+                  <Link href="/local/setup">Play Local</Link>
                 </Button>
               </Card>
             </motion.div>
 
             <motion.div
               {...fadeUp}
-              transition={{ delay: 0.4, type: "spring", stiffness: 150 }}
+              transition={{ delay: 0.25, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
             >
-              <Card hover padding="lg" className="h-full flex flex-col group">
-                <motion.div
-                  className="text-5xl mb-4"
-                  whileHover={{ scale: 1.2, rotate: -5 }}
-                  transition={{ type: "spring", stiffness: 300 }}
-                >
+              <Card hover padding="lg" className="h-full flex flex-col">
+                <div className="text-2xl mb-4" aria-hidden>
                   🌐
-                </motion.div>
-                <h2 className="font-heading text-2xl text-foreground mb-2 group-hover:text-cyan transition-colors">
+                </div>
+                <h2 className="font-heading text-xl text-foreground mb-2">
                   Online Multiplayer
                 </h2>
                 <p className="text-sm text-muted mb-6 flex-1 leading-relaxed">
-                  Create or join a room. Play with friends remotely. Everyone
-                  uses their own device. Real-time sync.
+                  Create or join a room. Everyone uses their own device with
+                  real-time sync.
                 </p>
-                <Button variant="secondary" size="lg" className="w-full border-cyan/30 hover:border-cyan/50 hover:shadow-[0_0_20px_rgba(34,211,238,0.15)]" asChild>
-                  <Link href="/rooms">🔗 Play Online</Link>
+                <Button variant="secondary" size="md" className="w-full" asChild>
+                  <Link href="/rooms">Play Online</Link>
                 </Button>
               </Card>
             </motion.div>
           </div>
 
+          {/* How to play */}
           <motion.div
             {...fadeUp}
-            transition={{ delay: 0.6, type: "spring", stiffness: 120 }}
+            transition={{ delay: 0.4, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
           >
             <Card padding="lg" className="max-w-2xl mx-auto">
-              <h2 className="font-heading text-2xl text-foreground mb-6 text-center">
-                ✨ How to Play
+              <h2 className="font-heading text-base uppercase tracking-[0.2em] text-muted mb-8 text-center">
+                How it works
               </h2>
               <div className="grid sm:grid-cols-3 gap-6 text-center">
                 {[
                   {
-                    emoji: "🎭",
+                    step: "01",
                     title: "Get Roles",
-                    desc: "Everyone gets the secret word except the impostor, who only knows the topic.",
-                    color: "text-purple",
+                    desc: "Everyone gets the secret word — except the impostor, who only knows the topic.",
                   },
                   {
-                    emoji: "💬",
+                    step: "02",
                     title: "Give Clues",
-                    desc: "Take turns saying a clue that proves you know the word — but don't make it too obvious!",
-                    color: "text-cyan",
+                    desc: "Take turns with a one-word clue. Prove you know the word without giving it away.",
                   },
                   {
-                    emoji: "🗳️",
+                    step: "03",
                     title: "Vote",
-                    desc: "Discuss and vote on who the impostor is. Catch them and the group wins!",
-                    color: "text-orange",
+                    desc: "Discuss and vote. Catch the impostor and the group wins.",
                   },
-                ].map((step, i) => (
-                  <motion.div
-                    key={step.title}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.7 + i * 0.15 }}
-                    className="group"
-                  >
-                    <motion.div
-                      className="text-4xl mb-3"
-                      whileHover={{ scale: 1.3 }}
-                      transition={{ type: "spring", stiffness: 400 }}
-                    >
-                      {step.emoji}
-                    </motion.div>
-                    <h3 className={`font-heading text-lg ${step.color} mb-1`}>
-                      {step.title}
-                    </h3>
-                    <p className="text-sm text-muted leading-relaxed">
-                      {step.desc}
+                ].map((s) => (
+                  <div key={s.step} className="group">
+                    <p className="font-heading text-xs tracking-[0.25em] text-purple/60 mb-2">
+                      {s.step}
                     </p>
-                  </motion.div>
+                    <h3 className="font-heading text-base text-foreground mb-2">
+                      {s.title}
+                    </h3>
+                    <p className="text-sm text-muted leading-relaxed">{s.desc}</p>
+                  </div>
                 ))}
               </div>
             </Card>
           </motion.div>
 
+          {/* Auth CTA */}
           {!loading && !user && (
             <motion.div
               className="text-center mt-12"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              transition={{ delay: 1 }}
+              transition={{ delay: 0.6 }}
             >
-              <p className="text-muted mb-4">
-                Create an account to track your stats and climb the leaderboard 🏆
+              <p className="text-sm text-muted mb-4">
+                Create an account to track stats and climb the leaderboard.
               </p>
               <div className="flex gap-3 justify-center">
-                <Button variant="secondary" asChild>
+                <Button variant="secondary" size="sm" asChild>
                   <Link href="/login">Sign In</Link>
                 </Button>
-                <Button variant="primary" asChild>
+                <Button variant="primary" size="sm" asChild>
                   <Link href="/signup">Create Account</Link>
                 </Button>
               </div>

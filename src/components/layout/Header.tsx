@@ -9,10 +9,10 @@ import { usePathname } from "next/navigation";
 import { useState, type ReactNode } from "react";
 
 const nav = [
-  { href: "/", label: "Home", emoji: "🏠" },
-  { href: "/local/setup", label: "Play Local", emoji: "📱" },
-  { href: "/rooms", label: "Online", emoji: "🌐" },
-  { href: "/leaderboard", label: "Leaderboard", emoji: "🏆" },
+  { href: "/", label: "Home" },
+  { href: "/local/setup", label: "Play Local" },
+  { href: "/rooms", label: "Online" },
+  { href: "/leaderboard", label: "Leaderboard" },
 ] as const;
 
 export interface HeaderUser {
@@ -22,7 +22,6 @@ export interface HeaderUser {
 
 export interface HeaderProps {
   user?: HeaderUser | null;
-  /** Replace default Login / Sign up buttons */
   authSlot?: ReactNode;
   className?: string;
 }
@@ -53,7 +52,7 @@ export function Header({ user, authSlot, className }: HeaderProps) {
           className="hidden items-center gap-1 md:flex"
           aria-label="Main"
         >
-          {nav.map(({ href, label, emoji }) => {
+          {nav.map(({ href, label }) => {
             const active =
               href === "/"
                 ? pathname === "/"
@@ -65,11 +64,10 @@ export function Header({ user, authSlot, className }: HeaderProps) {
                 className={cn(
                   "rounded-full px-4 py-2 text-sm font-medium transition-all duration-200",
                   active
-                    ? "bg-purple/15 text-purple shadow-[0_0_12px_rgba(168,85,247,0.15)]"
+                    ? "bg-purple/10 text-purple"
                     : "text-muted hover:bg-card/80 hover:text-foreground",
                 )}
               >
-                <span className="mr-1.5" aria-hidden>{emoji}</span>
                 {label}
               </Link>
             );
@@ -158,7 +156,7 @@ export function Header({ user, authSlot, className }: HeaderProps) {
             className="overflow-hidden border-t border-border/40 bg-background/95 backdrop-blur-xl md:hidden"
           >
             <nav className="flex flex-col px-4 py-3" aria-label="Mobile">
-              {nav.map(({ href, label, emoji }) => {
+              {nav.map(({ href, label }) => {
                 const active =
                   href === "/"
                     ? pathname === "/"
@@ -171,11 +169,10 @@ export function Header({ user, authSlot, className }: HeaderProps) {
                     className={cn(
                       "rounded-xl px-4 py-3 text-sm font-medium transition-all duration-200",
                       active
-                        ? "bg-purple/15 text-purple"
+                        ? "bg-purple/10 text-purple"
                         : "text-muted hover:text-foreground hover:bg-card/60",
                     )}
                   >
-                    <span className="mr-2" aria-hidden>{emoji}</span>
                     {label}
                   </Link>
                 );

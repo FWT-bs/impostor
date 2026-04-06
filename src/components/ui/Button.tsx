@@ -23,13 +23,13 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 
 const variantClasses: Record<ButtonVariant, string> = {
   primary:
-    "bg-gradient-to-r from-purple to-purple-dim text-white font-bold shadow-[0_0_0_1px_rgba(168,85,247,0.3)] hover:shadow-[0_0_28px_rgba(168,85,247,0.45)] hover:brightness-110 active:scale-[0.95] disabled:shadow-none disabled:hover:shadow-none",
+    "bg-gradient-to-r from-purple to-purple-dim text-white font-semibold shadow-[0_1px_3px_rgba(0,0,0,0.4)] hover:shadow-[0_4px_16px_rgba(124,108,206,0.3)] hover:brightness-110 active:scale-[0.97] disabled:shadow-none disabled:hover:shadow-none",
   secondary:
-    "bg-card border-2 border-border text-foreground font-semibold hover:bg-card-hover hover:border-purple/40 hover:shadow-[0_0_16px_rgba(168,85,247,0.15)] active:scale-[0.95]",
+    "bg-card border border-border text-foreground font-medium hover:bg-card-hover hover:border-purple/30 hover:shadow-[0_2px_12px_rgba(124,108,206,0.1)] active:scale-[0.97]",
   danger:
-    "bg-gradient-to-r from-rose to-rose/80 text-white font-bold hover:shadow-[0_0_24px_rgba(244,63,94,0.4)] hover:brightness-110 active:scale-[0.95]",
+    "bg-gradient-to-r from-rose to-rose/80 text-white font-semibold hover:shadow-[0_4px_16px_rgba(192,86,106,0.3)] hover:brightness-110 active:scale-[0.97]",
   ghost:
-    "bg-transparent text-foreground hover:bg-card/80 hover:text-purple active:scale-[0.95]",
+    "bg-transparent text-foreground hover:bg-card/80 hover:text-purple active:scale-[0.97]",
 };
 
 const sizeClasses: Record<ButtonSize, string> = {
