@@ -29,7 +29,15 @@ export async function POST(request: Request) {
     );
   }
 
-  const admin = createAdminClient();
+  let admin;
+  try {
+    admin = createAdminClient();
+  } catch {
+    return NextResponse.json(
+      { error: "Server configuration error" },
+      { status: 500 }
+    );
+  }
   const { data: room, error: roomError } = await admin
     .from("rooms")
     .select("*, room_players(id)")
