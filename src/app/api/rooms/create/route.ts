@@ -77,5 +77,12 @@ export async function POST(request: Request) {
     );
   }
 
-  return NextResponse.json({ room });
+  return NextResponse.json(
+    { room },
+    {
+      headers: {
+        "Cache-Control": "private, no-store, max-age=0",
+      },
+    }
+  );
 }

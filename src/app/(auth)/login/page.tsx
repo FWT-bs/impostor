@@ -1,16 +1,20 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { createClient } from "@/lib/supabase/client";
 import { ImpostorFull, GhostMini, DetectiveMini } from "@/components/ui/Characters";
 import { cn } from "@/lib/utils";
+import { safeNextPath } from "@/lib/auth-path";
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const nextPath = safeNextPath(searchParams.get("next"));
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -27,7 +31,7 @@ export default function LoginPage() {
       return;
     }
     toast.success("Signed in");
-    router.push("/");
+    router.push(nextPath);
     router.refresh();
   }
 
@@ -41,17 +45,17 @@ export default function LoginPage() {
       return;
     }
     toast.success("Playing as guest");
-    router.push("/");
+    router.push(nextPath);
     router.refresh();
   }
 
+  const signupHref = `/signup?next=${encodeURIComponent(nextPath)}`;
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-background px-4 py-12 relative overflow-hidden">
-      {/* Glow orbs */}
       <div className="absolute top-20 left-1/4 w-[350px] h-[350px] rounded-full bg-purple/5 blur-3xl pointer-events-none" aria-hidden />
       <div className="absolute bottom-20 right-1/4 w-[300px] h-[300px] rounded-full bg-cyan/5 blur-3xl pointer-events-none" aria-hidden />
 
-      {/* Impostor character — decorative left side */}
       <motion.div
         className="absolute left-4 sm:left-12 bottom-0 hidden md:block pointer-events-none select-none"
         initial={{ opacity: 0, x: -60 }}
@@ -67,7 +71,6 @@ export default function LoginPage() {
         </motion.div>
       </motion.div>
 
-      {/* Ghost mini — top right corner */}
       <motion.div
         className="absolute top-16 right-8 hidden sm:block pointer-events-none select-none"
         initial={{ opacity: 0, y: -20 }}
@@ -82,7 +85,6 @@ export default function LoginPage() {
         </motion.div>
       </motion.div>
 
-      {/* Detective mini — bottom right */}
       <motion.div
         className="absolute bottom-16 right-12 hidden lg:block pointer-events-none select-none"
         initial={{ opacity: 0, y: 20 }}
@@ -193,7 +195,7 @@ export default function LoginPage() {
           <p className="text-center text-sm text-muted">
             No account?{" "}
             <Link
-              href="/signup"
+              href={signupHref}
               className="font-medium text-purple hover:text-purple-glow underline-offset-4 hover:underline"
             >
               Create one
@@ -202,5 +204,22 @@ export default function LoginPage() {
         </div>
       </motion.div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center bg-background">
+          <svg className="size-7 animate-spin text-purple/50" fill="none" viewBox="0 0 24 24">
+            <circle className="opacity-20" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" />
+            <path className="opacity-80" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+          </svg>
+        </div>
+      }
+    >
+      <LoginForm />
+    </Suspense>
   );
 }

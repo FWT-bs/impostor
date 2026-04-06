@@ -18,6 +18,8 @@ import { useAuth } from "@/lib/hooks/use-auth";
 import Link from "next/link";
 import { motion, useScroll, useTransform } from "framer-motion";
 import { useRef } from "react";
+import { usePathname } from "next/navigation";
+import { loginWithNext, signupWithNext } from "@/lib/auth-path";
 
 const TITLE = "IMPOSTOR";
 
@@ -40,6 +42,7 @@ const steps = [
 ];
 
 export default function HomePage() {
+  const pathname = usePathname();
   const { user, profile } = useAuth();
   const heroRef = useRef<HTMLElement>(null);
   const { scrollYProgress } = useScroll({
@@ -697,10 +700,10 @@ export default function HomePage() {
             </p>
             <div className="flex items-center justify-center gap-3">
               <Button variant="secondary" size="md" asChild>
-                <Link href="/login">Sign In</Link>
+                <Link href={loginWithNext(pathname)}>Sign In</Link>
               </Button>
               <Button variant="primary" size="md" asChild>
-                <Link href="/signup">Create Account</Link>
+                <Link href={signupWithNext(pathname)}>Create Account</Link>
               </Button>
             </div>
           </div>

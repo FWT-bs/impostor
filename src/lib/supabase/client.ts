@@ -12,5 +12,8 @@ export function createClient() {
     );
   }
 
-  return createBrowserClient<Database>(url, key);
+  return createBrowserClient<Database>(url, key, {
+    cookieOptions:
+      process.env.NODE_ENV === "production" ? { secure: true } : undefined,
+  });
 }

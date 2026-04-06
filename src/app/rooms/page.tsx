@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
-import { useRouter } from "next/navigation";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 import { Header } from "@/components/layout/Header";
@@ -14,6 +14,12 @@ import { SpectatorFull, GhostMini, DetectiveMini } from "@/components/ui/Charact
 import { useAuth } from "@/lib/hooks/use-auth";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
+import { postJson } from "@/lib/api-fetch";
+import { loginWithNext } from "@/lib/auth-path";
+import {
+  getPreferredDisplayName,
+  setPreferredDisplayName,
+} from "@/lib/preferred-display-name";
 
 type RoomRow = {
   id: string;
@@ -27,6 +33,7 @@ type RoomRow = {
 
 export default function RoomsPage() {
   const router = useRouter();
+  const pathname = usePathname();
   const { user, profile, loading: authLoading } = useAuth();
   const supabase = useMemo(() => createClient(), []);
 
@@ -40,87 +47,143 @@ export default function RoomsPage() {
   const [isPrivate, setIsPrivate] = useState(false);
 
   useEffect(() => {
-    if (profile) setDisplayName(profile.username);
-  }, [profile]);
+    const saved = getPreferredDisplayName();
+    if (saved) setDisplayName(saved);
+  }, []);
 
-  async function fetchRooms() {
-    const { data } = await supabase
+  useEffect(() => {
+    if (!profile?.username) return;
+    setDisplayName((d) => {
+      if (d.trim()) return d;
+      const saved = getPreferredDisplayName();
+      return saved || profile.username;
+    });
+  }, [profile?.username]);
+
+  const fetchRooms = useCallback(async () => {
+    const { data, error } = await supabase
       .from("rooms")
       .select("id, code, host_id, max_players, is_private, settings, room_players(id)")
       .eq("status", "waiting")
       .eq("is_private", false)
       .order("created_at", { ascending: false })
       .limit(20);
+    if (error) {
+      console.error("fetchRooms:", error.message);
+    }
     setRooms((data as RoomRow[]) ?? []);
     setLoadingRooms(false);
-  }
+  }, [supabase]);
 
   useEffect(() => {
-    fetchRooms();
+    void fetchRooms();
 
-    // Real-time: re-fetch when rooms or players change
     const channel = supabase
       .channel("public-rooms-watch")
-      .on("postgres_changes", { event: "*", schema: "public", table: "rooms" }, fetchRooms)
-      .on("postgres_changes", { event: "*", schema: "public", table: "room_players" }, fetchRooms)
-      .subscribe();
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "rooms" },
+        () => void fetchRooms()
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "room_players" },
+        () => void fetchRooms()
+      )
+      .subscribe((status, err) => {
+        if (status === "SUBSCRIBED") void fetchRooms();
+        if (status === "CHANNEL_ERROR" || err) {
+          console.warn("rooms realtime:", status, err);
+          void fetchRooms();
+        }
+      });
+
+    const poll = setInterval(() => void fetchRooms(), 4000);
+
+    function onVisible() {
+      if (document.visibilityState === "visible") void fetchRooms();
+    }
+    document.addEventListener("visibilitychange", onVisible);
 
     return () => {
+      clearInterval(poll);
+      document.removeEventListener("visibilitychange", onVisible);
       supabase.removeChannel(channel);
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [supabase]);
+  }, [supabase, fetchRooms]);
+
+  function updateDisplayName(value: string) {
+    setDisplayName(value);
+    setPreferredDisplayName(value);
+  }
 
   async function handleJoin(code: string) {
     if (authLoading) return;
     if (!user) {
       toast.error("Sign in to play online");
-      router.push("/login");
+      router.push(loginWithNext(pathname));
       return;
     }
     setJoining(true);
-    const res = await fetch("/api/rooms/join", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        code,
-        displayName: displayName || profile?.username || "Player",
-      }),
-    });
-    const data = await res.json();
-    setJoining(false);
-    if (!res.ok) {
-      toast.error(data.error || "Failed to join room");
-      return;
+    try {
+      const name =
+        displayName.trim() || profile?.username?.trim() || "Player";
+      const result = await postJson<{ room: { code: string } }>(
+        "/api/rooms/join",
+        { code, displayName: name }
+      );
+      if (!result.ok) {
+        toast.error(result.errorMessage);
+        return;
+      }
+      setPreferredDisplayName(name);
+      void fetchRooms();
+      router.push(`/rooms/${code.toUpperCase()}`);
+      router.refresh();
+    } finally {
+      setJoining(false);
     }
-    router.push(`/rooms/${code.toUpperCase()}`);
   }
 
   async function handleCreate() {
     if (authLoading) return;
     if (!user) {
       toast.error("Sign in to create a room");
-      router.push("/login");
+      router.push(loginWithNext(pathname));
       return;
     }
     setCreating(true);
-    const res = await fetch("/api/rooms/create", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        displayName: displayName || profile?.username || "Host",
-        isPrivate,
-      }),
-    });
-    const data = await res.json();
-    setCreating(false);
-    if (!res.ok) {
-      toast.error(data.error || "Failed to create room");
-      return;
+    try {
+      const name =
+        displayName.trim() || profile?.username?.trim() || "Host";
+      const result = await postJson<{ room: { code: string } }>(
+        "/api/rooms/create",
+        { displayName: name, isPrivate }
+      );
+      if (!result.ok) {
+        toast.error(result.errorMessage);
+        return;
+      }
+      const code = result.data?.room?.code;
+      if (!code) {
+        toast.error("Room was created but the response was incomplete.");
+        void fetchRooms();
+        return;
+      }
+      setPreferredDisplayName(name);
+      setShowCreate(false);
+      setIsPrivate(false);
+      void fetchRooms();
+      router.push(`/rooms/${code}`);
+      router.refresh();
+    } finally {
+      setCreating(false);
     }
+  }
+
+  function closeCreateModal() {
     setShowCreate(false);
-    setIsPrivate(false);
-    router.push(`/rooms/${data.room.code}`);
+    setCreating(false);
   }
 
   return (
@@ -216,9 +279,20 @@ export default function RoomsPage() {
                 Live
               </span>
             </div>
-            <Button variant="secondary" size="sm" onClick={() => setShowCreate(true)}>
-              Create Room
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                type="button"
+                onClick={() => void fetchRooms()}
+                className="text-muted"
+              >
+                Refresh
+              </Button>
+              <Button variant="secondary" size="sm" onClick={() => setShowCreate(true)}>
+                Create Room
+              </Button>
+            </div>
           </motion.div>
 
           {loadingRooms ? (
@@ -278,12 +352,12 @@ export default function RoomsPage() {
         </div>
       </main>
 
-      <Modal open={showCreate} onClose={() => setShowCreate(false)} title="Create Room">
+      <Modal open={showCreate} onClose={closeCreateModal} title="Create Room">
         <div className="space-y-4">
           <Input
             label="Display Name"
             value={displayName}
-            onChange={(e) => setDisplayName(e.target.value)}
+            onChange={(e) => updateDisplayName(e.target.value)}
             placeholder="Your name in the room"
           />
 

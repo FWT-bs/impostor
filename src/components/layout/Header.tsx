@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { loginWithNext, signupWithNext } from "@/lib/auth-path";
 import { useState, type ReactNode } from "react";
 
 const nav = [
@@ -32,6 +33,8 @@ export function Header({ user: userProp, authSlot, className }: HeaderProps) {
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
   const { user: authUser, profile } = useAuth();
+  const loginHref = loginWithNext(pathname);
+  const signupHref = signupWithNext(pathname);
 
   // Use the explicit prop if provided, otherwise derive from auth state
   const user: HeaderUser | null =
@@ -136,10 +139,10 @@ export function Header({ user: userProp, authSlot, className }: HeaderProps) {
             ) : (
               <div className="hidden items-center gap-2 sm:flex">
                 <Button variant="ghost" size="sm" asChild>
-                  <Link href="/login">Login</Link>
+                  <Link href={loginHref}>Login</Link>
                 </Button>
                 <Button variant="primary" size="sm" asChild>
-                  <Link href="/signup">Sign up</Link>
+                  <Link href={signupHref}>Sign up</Link>
                 </Button>
               </div>
             ))}
@@ -246,12 +249,12 @@ export function Header({ user: userProp, authSlot, className }: HeaderProps) {
                   transition={{ delay: 0.2 }}
                 >
                   <Button variant="secondary" size="md" asChild className="w-full">
-                    <Link href="/login" onClick={() => setMenuOpen(false)}>
+                    <Link href={loginHref} onClick={() => setMenuOpen(false)}>
                       Login
                     </Link>
                   </Button>
                   <Button variant="primary" size="md" asChild className="w-full">
-                    <Link href="/signup" onClick={() => setMenuOpen(false)}>
+                    <Link href={signupHref} onClick={() => setMenuOpen(false)}>
                       Sign up
                     </Link>
                   </Button>

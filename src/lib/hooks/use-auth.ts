@@ -32,15 +32,23 @@ export function useAuth() {
       setProfile(error ? null : data);
     }
 
-    // Eagerly load the current session so the UI doesn't flash "signed out"
-    // while waiting for the first onAuthStateChange event.
-    supabase.auth.getUser().then(({ data: { user: initialUser } }) => {
+    // Eagerly validate session. Retry once after a tick so cookies updated by
+    // the proxy on navigation are visible (reduces false "signed out" on Vercel).
+    async function resolveInitialUser() {
+      let {
+        data: { user: initialUser },
+      } = await supabase.auth.getUser();
+      if (!initialUser) {
+        await new Promise((r) => setTimeout(r, 150));
+        ({ data: { user: initialUser } } = await supabase.auth.getUser());
+      }
       if (cancelled) return;
       setUser(initialUser ?? null);
-      syncProfile(initialUser ?? null).then(() => {
-        if (!cancelled) setLoading(false);
-      });
-    });
+      await syncProfile(initialUser ?? null);
+      if (!cancelled) setLoading(false);
+    }
+
+    void resolveInitialUser();
 
     // Keep in sync with tab-focus refreshes, sign-in/out events, etc.
     const {

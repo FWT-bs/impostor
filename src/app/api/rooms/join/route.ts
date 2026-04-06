@@ -7,6 +7,8 @@ type Room = Database["public"]["Tables"]["rooms"]["Row"];
 type RoomPlayer = Database["public"]["Tables"]["room_players"]["Row"];
 type RoomWithPlayers = Room & { room_players: Pick<RoomPlayer, "id">[] };
 
+const noStore = { "Cache-Control": "private, no-store, max-age=0" as const };
+
 export async function POST(request: Request) {
   const supabase = await createClient();
   const {
@@ -14,7 +16,10 @@ export async function POST(request: Request) {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return NextResponse.json(
+      { error: "Unauthorized" },
+      { status: 401, headers: noStore }
+    );
   }
 
   const body = await request.json().catch(() => ({}));
@@ -25,7 +30,7 @@ export async function POST(request: Request) {
   if (!code || code.length !== 4) {
     return NextResponse.json(
       { error: "Invalid room code" },
-      { status: 400 }
+      { status: 400, headers: noStore }
     );
   }
 
@@ -35,7 +40,7 @@ export async function POST(request: Request) {
   } catch {
     return NextResponse.json(
       { error: "Server configuration error" },
-      { status: 500 }
+      { status: 500, headers: noStore }
     );
   }
   const { data: room, error: roomError } = await admin
@@ -49,13 +54,16 @@ export async function POST(request: Request) {
   if (roomError || !room) {
     return NextResponse.json(
       { error: "Room not found or game already started" },
-      { status: 404 }
+      { status: 404, headers: noStore }
     );
   }
 
   const playerCount = room.room_players?.length ?? 0;
   if (playerCount >= room.max_players) {
-    return NextResponse.json({ error: "Room is full" }, { status: 400 });
+    return NextResponse.json(
+      { error: "Room is full" },
+      { status: 400, headers: noStore }
+    );
   }
 
   const { data: existingPlayer } = await supabase
@@ -67,7 +75,7 @@ export async function POST(request: Request) {
     .maybeSingle();
 
   if (existingPlayer) {
-    return NextResponse.json({ room });
+    return NextResponse.json({ room }, { headers: noStore });
   }
 
   const { error: joinError } = await supabase.from("room_players").insert({
@@ -80,8 +88,11 @@ export async function POST(request: Request) {
   });
 
   if (joinError) {
-    return NextResponse.json({ error: joinError.message }, { status: 500 });
+    return NextResponse.json(
+      { error: joinError.message },
+      { status: 500, headers: noStore }
+    );
   }
 
-  return NextResponse.json({ room });
+  return NextResponse.json({ room }, { headers: noStore });
 }

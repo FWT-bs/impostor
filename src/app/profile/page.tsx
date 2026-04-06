@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { Header } from "@/components/layout/Header";
@@ -13,6 +13,8 @@ import { FloatingCharacter } from "@/components/ui/FloatingCharacter";
 import { ImpostorMini, GhostMini } from "@/components/ui/Characters";
 import { useAuth } from "@/lib/hooks/use-auth";
 import { createClient } from "@/lib/supabase/client";
+import { loginWithNext } from "@/lib/auth-path";
+import { setPreferredDisplayName } from "@/lib/preferred-display-name";
 
 const AVATAR_COLORS = [
   "#ef4444", "#f97316", "#f59e0b", "#22c55e", "#14b8a6",
@@ -30,11 +32,19 @@ const statConfig = [
 
 export default function ProfilePage() {
   const router = useRouter();
+  const pathname = usePathname();
   const { user, profile, loading, signOut } = useAuth();
   const [editing, setEditing] = useState(false);
   const [username, setUsername] = useState("");
   const [selectedColor, setSelectedColor] = useState("");
   const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (loading) return;
+    if (!user || !profile) {
+      router.replace(loginWithNext(pathname));
+    }
+  }, [loading, user, profile, pathname, router]);
 
   if (loading) {
     return (
@@ -51,13 +61,25 @@ export default function ProfilePage() {
   }
 
   if (!user || !profile) {
-    router.push("/login");
-    return null;
+    return (
+      <>
+        <Header />
+        <main className="min-h-screen bg-background flex items-center justify-center">
+          <svg className="size-7 animate-spin text-purple/50" fill="none" viewBox="0 0 24 24">
+            <circle className="opacity-20" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" />
+            <path className="opacity-80" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+          </svg>
+        </main>
+      </>
+    );
   }
 
+  const activeUser = user;
+  const activeProfile = profile;
+
   function startEdit() {
-    setUsername(profile!.username);
-    setSelectedColor(profile!.avatar_color);
+    setUsername(activeProfile.username);
+    setSelectedColor(activeProfile.avatar_color);
     setEditing(true);
   }
 
@@ -67,36 +89,44 @@ export default function ProfilePage() {
     const { error } = await supabase
       .from("profiles")
       .update({ username: username.trim(), avatar_color: selectedColor })
-      .eq("id", user!.id);
+      .eq("id", activeUser.id);
     setSaving(false);
     if (error) {
       toast.error(error.message);
       return;
     }
+    setPreferredDisplayName(username.trim());
     toast.success("Profile updated");
     setEditing(false);
     router.refresh();
   }
 
-  const totalWins = profile.group_wins + profile.impostor_wins;
+  const totalWins = activeProfile.group_wins + activeProfile.impostor_wins;
   const winRate =
-    profile.games_played > 0
-      ? Math.round((totalWins / profile.games_played) * 100)
+    activeProfile.games_played > 0
+      ? Math.round((totalWins / activeProfile.games_played) * 100)
       : 0;
   const impostorWinRate =
-    profile.impostor_games > 0
-      ? Math.round((profile.impostor_wins / profile.impostor_games) * 100)
+    activeProfile.impostor_games > 0
+      ? Math.round(
+          (activeProfile.impostor_wins / activeProfile.impostor_games) * 100
+        )
       : 0;
 
   function getStatValue(key: (typeof statConfig)[number]["key"]): string | number {
     if (key === "winRate") return `${winRate}%`;
     if (key === "impostorWinRate") return `${impostorWinRate}%`;
-    return profile![key as keyof typeof profile] as number ?? 0;
+    return (activeProfile[key as keyof typeof activeProfile] as number) ?? 0;
   }
 
   return (
     <>
-      <Header user={{ username: profile.username, avatarColor: profile.avatar_color }} />
+      <Header
+        user={{
+          username: activeProfile.username,
+          avatarColor: activeProfile.avatar_color,
+        }}
+      />
       <main className="min-h-screen bg-background pt-20 pb-16 px-4 relative overflow-hidden">
         <div className="absolute top-40 left-10 w-72 h-72 rounded-full bg-purple/5 blur-3xl pointer-events-none" aria-hidden />
         <FloatingCharacter from="left" delay={0.4} floatAmplitude={11} floatDuration={5} className="absolute left-4 bottom-16 hidden xl:block">
@@ -120,15 +150,17 @@ export default function ProfilePage() {
                 transition={{ type: "spring", stiffness: 220, damping: 18 }}
               >
                 <Avatar
-                  name={profile.username}
-                  color={profile.avatar_color}
+                  name={activeProfile.username}
+                  color={activeProfile.avatar_color}
                   size="lg"
                   className="mx-auto mb-4 !size-20 !text-2xl"
                 />
               </motion.div>
-              <h1 className="font-heading text-3xl text-foreground mb-1">{profile.username}</h1>
+              <h1 className="font-heading text-3xl text-foreground mb-1">
+                {activeProfile.username}
+              </h1>
               <p className="text-sm text-muted">
-                {user.is_anonymous ? "Guest Player" : user.email}
+                {activeUser.is_anonymous ? "Guest Player" : activeUser.email}
               </p>
               {!editing && (
                 <Button variant="ghost" size="sm" className="mt-3" onClick={startEdit}>

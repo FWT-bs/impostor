@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/Button";
@@ -13,12 +13,14 @@ import { getCategories, getPremiumCategories } from "@/lib/game/words";
 import { useAuth } from "@/lib/hooks/use-auth";
 import { cn } from "@/lib/utils";
 import { Header } from "@/components/layout/Header";
+import { loginWithNext, signupWithNext } from "@/lib/auth-path";
 
 const MIN_PLAYERS = 3;
 const MAX_PLAYERS = 10;
 
 export default function LocalSetupPage() {
   const router = useRouter();
+  const pathname = usePathname();
   const initGame = useLocalGameStore((s) => s.initGame);
   const { user, loading: authLoading } = useAuth();
   const categories = getCategories();
@@ -248,10 +250,18 @@ export default function LocalSetupPage() {
             Create a free account to unlock all premium categories and track your stats.
           </p>
           <div className="flex gap-3">
-            <Button variant="secondary" className="flex-1" onClick={() => router.push("/login")}>
+            <Button
+              variant="secondary"
+              className="flex-1"
+              onClick={() => router.push(loginWithNext(pathname))}
+            >
               Log In
             </Button>
-            <Button variant="primary" className="flex-1" onClick={() => router.push("/signup")}>
+            <Button
+              variant="primary"
+              className="flex-1"
+              onClick={() => router.push(signupWithNext(pathname))}
+            >
               Sign Up Free
             </Button>
           </div>
