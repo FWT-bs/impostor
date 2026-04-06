@@ -2,7 +2,7 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import type { Database } from "@/lib/supabase/types";
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   let supabaseResponse = NextResponse.next({
     request,
   });
@@ -30,6 +30,7 @@ export async function middleware(request: NextRequest) {
     }
   );
 
+  // Refreshes the session cookie on every request so it doesn't expire
   await supabase.auth.getUser();
 
   return supabaseResponse;
