@@ -78,9 +78,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (cancelled) return;
       const nextUser = session?.user ?? null;
+
+      // JWT refresh runs often (and stacks with proxy getUser refresh). Re-syncing
+      // profile and replacing user state each time rebuilds the tree and can make
+      // Realtime reconnect → SUBSCRIBED storms → feels like the page "keeps refreshing".
+      if (event === "TOKEN_REFRESHED") {
+        setUser((prev) => {
+          if (!nextUser) return null;
+          if (prev?.id === nextUser.id) return prev;
+          return nextUser;
+        });
+        if (!cancelled) setLoading(false);
+        return;
+      }
+
       setUser(nextUser);
       await syncProfile(nextUser);
       if (!cancelled) setLoading(false);

@@ -10,11 +10,13 @@ import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { Avatar } from "@/components/ui/Avatar";
 import { FloatingCharacter } from "@/components/ui/FloatingCharacter";
-import { ImpostorMini, GhostMini } from "@/components/ui/Characters";
+import { ImpostorMini, GhostMini, DetectiveMini, SpectatorFull } from "@/components/ui/Characters";
 import { useAuth } from "@/lib/hooks/use-auth";
 import { createClient } from "@/lib/supabase/client";
 import { loginWithNext } from "@/lib/auth-path";
 import { setPreferredDisplayName } from "@/lib/preferred-display-name";
+import { cn } from "@/lib/utils";
+import Link from "next/link";
 
 const AVATAR_COLORS = [
   "#ef4444", "#f97316", "#f59e0b", "#22c55e", "#14b8a6",
@@ -29,6 +31,22 @@ const statConfig = [
   { key: "impostor_games" as const, label: "Times Impostor", color: "" },
   { key: "impostorWinRate" as const, label: "Impostor Win Rate", color: "text-orange" },
 ];
+
+function PageSpinner({ label }: { label: string }) {
+  return (
+    <main className="min-h-screen bg-background pt-20 pb-16 px-4 relative overflow-hidden flex flex-col items-center justify-center">
+      <div className="absolute top-20 -left-20 w-72 h-72 rounded-full bg-purple/5 blur-3xl pointer-events-none" aria-hidden />
+      <div className="absolute bottom-10 -right-20 w-64 h-64 rounded-full bg-cyan/5 blur-3xl pointer-events-none" aria-hidden />
+      <div className="flex flex-col items-center gap-4 relative z-10">
+        <svg className="size-8 animate-spin text-purple/50" fill="none" viewBox="0 0 24 24">
+          <circle className="opacity-20" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" />
+          <path className="opacity-80" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+        </svg>
+        <p className="text-sm text-muted">{label}</p>
+      </div>
+    </main>
+  );
+}
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -46,30 +64,11 @@ export default function ProfilePage() {
     }
   }, [loading, user, profile, pathname, router]);
 
-  if (loading) {
+  if (loading || !user || !profile) {
     return (
       <>
         <Header />
-        <main className="min-h-screen bg-background flex items-center justify-center">
-          <svg className="size-7 animate-spin text-purple/50" fill="none" viewBox="0 0 24 24">
-            <circle className="opacity-20" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" />
-            <path className="opacity-80" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-          </svg>
-        </main>
-      </>
-    );
-  }
-
-  if (!user || !profile) {
-    return (
-      <>
-        <Header />
-        <main className="min-h-screen bg-background flex items-center justify-center">
-          <svg className="size-7 animate-spin text-purple/50" fill="none" viewBox="0 0 24 24">
-            <circle className="opacity-20" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" />
-            <path className="opacity-80" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-          </svg>
-        </main>
+        <PageSpinner label={loading ? "Loading profile…" : "Redirecting…"} />
       </>
     );
   }
@@ -128,24 +127,53 @@ export default function ProfilePage() {
         }}
       />
       <main className="min-h-screen bg-background pt-20 pb-16 px-4 relative overflow-hidden">
-        <div className="absolute top-40 left-10 w-72 h-72 rounded-full bg-purple/5 blur-3xl pointer-events-none" aria-hidden />
-        <FloatingCharacter from="left" delay={0.4} floatAmplitude={11} floatDuration={5} className="absolute left-4 bottom-16 hidden xl:block">
+        <div className="absolute top-20 -left-20 w-72 h-72 rounded-full bg-purple/5 blur-3xl pointer-events-none" aria-hidden />
+        <div className="absolute bottom-10 -right-20 w-64 h-64 rounded-full bg-cyan/5 blur-3xl pointer-events-none" aria-hidden />
+
+        <FloatingCharacter
+          from="left"
+          delay={0.25}
+          floatAmplitude={10}
+          floatDuration={5}
+          sway
+          className="absolute left-4 bottom-16 hidden xl:block"
+        >
+          <SpectatorFull className="w-28 opacity-18" />
+        </FloatingCharacter>
+        <FloatingCharacter from="right" delay={0.55} floatAmplitude={12} floatDuration={5.2} className="absolute right-8 top-28 hidden lg:block">
+          <DetectiveMini className="w-10 opacity-15" />
+        </FloatingCharacter>
+        <FloatingCharacter from="left" delay={0.8} floatAmplitude={10} floatDuration={4.5} className="absolute left-10 top-36 hidden lg:block">
+          <GhostMini className="w-9 opacity-15" />
+        </FloatingCharacter>
+        <FloatingCharacter from="right" delay={0.4} floatAmplitude={11} floatDuration={5.5} className="absolute right-6 bottom-24 hidden xl:block">
           <ImpostorMini className="w-12 opacity-18" />
         </FloatingCharacter>
-        <FloatingCharacter from="right" delay={0.7} floatAmplitude={14} floatDuration={6} className="absolute right-8 top-32 hidden xl:block">
-          <GhostMini className="w-11 opacity-18" />
-        </FloatingCharacter>
 
-        <div className="mx-auto max-w-lg relative z-10">
+        <div className="mx-auto max-w-2xl relative z-10">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+            className="mb-8 text-center"
           >
-            {/* Profile card */}
-            <Card padding="lg" className="text-center mb-5">
+            <p className="text-[10px] uppercase tracking-[0.5em] text-muted/60 mb-3">
+              Agent record
+            </p>
+            <h1 className="font-heading text-4xl text-foreground mb-2">Profile</h1>
+            <p className="text-sm text-muted max-w-md mx-auto">
+              Your alias, colors, and stats carry into online matches and the leaderboard.
+            </p>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.08, duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
+          >
+            <Card padding="lg" className="text-center mb-6 border-2 border-border shadow-[0_0_40px_rgba(168,85,247,0.06)]">
               <motion.div
-                initial={{ scale: 0.85 }}
+                initial={{ scale: 0.88 }}
                 animate={{ scale: 1 }}
                 transition={{ type: "spring", stiffness: 220, damping: 18 }}
               >
@@ -153,31 +181,31 @@ export default function ProfilePage() {
                   name={activeProfile.username}
                   color={activeProfile.avatar_color}
                   size="lg"
-                  className="mx-auto mb-4 !size-20 !text-2xl"
+                  className="mx-auto mb-4 !size-24 !text-3xl"
                 />
               </motion.div>
-              <h1 className="font-heading text-3xl text-foreground mb-1">
+              <h2 className="font-heading text-3xl text-foreground mb-1 tracking-wide">
                 {activeProfile.username}
-              </h1>
-              <p className="text-sm text-muted">
-                {activeUser.is_anonymous ? "Guest Player" : activeUser.email}
+              </h2>
+              <p className="text-sm text-muted mb-1">
+                {activeUser.is_anonymous ? "Guest operative" : activeUser.email}
               </p>
               {!editing && (
-                <Button variant="ghost" size="sm" className="mt-3" onClick={startEdit}>
-                  Edit Profile
+                <Button variant="secondary" size="sm" className="mt-4" onClick={startEdit}>
+                  Edit profile
                 </Button>
               )}
             </Card>
 
-            {/* Edit form */}
             {editing && (
               <motion.div
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: "auto" }}
                 transition={{ type: "spring", stiffness: 220, damping: 22 }}
+                className="mb-6"
               >
-                <Card padding="lg" className="mb-5">
-                  <h2 className="font-heading text-lg text-foreground mb-4">Edit Profile</h2>
+                <Card padding="lg" className="border-2 border-border">
+                  <h3 className="font-heading text-lg text-foreground mb-4">Customize</h3>
                   <Input
                     label="Username"
                     value={username}
@@ -185,18 +213,20 @@ export default function ProfilePage() {
                     className="mb-4"
                   />
                   <label className="block text-sm font-semibold text-foreground mb-2">
-                    Avatar Color
+                    Avatar color
                   </label>
                   <div className="flex gap-2 flex-wrap mb-5">
                     {AVATAR_COLORS.map((c) => (
                       <button
                         key={c}
+                        type="button"
                         onClick={() => setSelectedColor(c)}
-                        className={`size-9 rounded-full transition-all duration-200 cursor-pointer ${
+                        className={cn(
+                          "size-9 rounded-full transition-all duration-200 cursor-pointer",
                           selectedColor === c
                             ? "ring-2 ring-purple scale-110 shadow-[0_0_12px_rgba(128,112,212,0.35)]"
-                            : "hover:scale-110"
-                        }`}
+                            : "hover:scale-110",
+                        )}
                         style={{ backgroundColor: c }}
                       />
                     ))}
@@ -213,27 +243,33 @@ export default function ProfilePage() {
               </motion.div>
             )}
 
-            {/* Stats */}
-            <Card padding="lg" className="mb-5">
-              <h2 className="font-heading text-lg text-foreground mb-5">Statistics</h2>
-              <div className="grid grid-cols-2 gap-3">
+            <Card padding="lg" className="mb-6 border-2 border-border">
+              <h3 className="font-heading text-xl text-foreground mb-5">Statistics</h3>
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
                 {statConfig.map((s) => (
                   <div
                     key={s.key}
-                    className="rounded-xl border border-border bg-card-hover/60 px-3 py-3 text-center transition-all duration-200 hover:border-purple/15"
+                    className="rounded-2xl border-2 border-border bg-card-hover/50 px-3 py-3 text-center transition-all duration-200 hover:border-purple/20"
                   >
-                    <p className={`font-heading text-2xl ${s.color || "text-foreground"}`}>
+                    <p className={cn("font-heading text-2xl", s.color || "text-foreground")}>
                       {getStatValue(s.key)}
                     </p>
-                    <p className="text-xs text-muted mt-1">{s.label}</p>
+                    <p className="text-[11px] text-muted mt-1 uppercase tracking-wider">
+                      {s.label}
+                    </p>
                   </div>
                 ))}
               </div>
             </Card>
 
-            <Button variant="danger" size="md" className="w-full" onClick={signOut}>
-              Sign Out
-            </Button>
+            <div className="flex flex-col gap-3 sm:flex-row sm:justify-center">
+              <Button variant="ghost" size="md" className="sm:flex-1" asChild>
+                <Link href="/leaderboard">View leaderboard</Link>
+              </Button>
+              <Button variant="danger" size="md" className="sm:flex-1" onClick={signOut}>
+                Sign out
+              </Button>
+            </div>
           </motion.div>
         </div>
       </main>

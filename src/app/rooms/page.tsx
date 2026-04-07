@@ -81,26 +81,39 @@ export default function RoomsPage() {
     }
   }, [supabase]);
 
+  const userId = user?.id ?? null;
+
   useEffect(() => {
+    let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+    function scheduleFetchRooms() {
+      if (debounceTimer) clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => {
+        debounceTimer = null;
+        void fetchRooms();
+      }, 400);
+    }
+
     void fetchRooms();
 
+    // New channel when auth changes so the socket JWT matches the session; one
+    // stable channel name avoids anon vs signed-in connection fighting itself.
     const channel = supabase
-      .channel("public-rooms-watch")
+      .channel(`public-rooms:${userId ?? "anon"}`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "rooms" },
-        () => void fetchRooms()
+        () => scheduleFetchRooms()
       )
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "room_players" },
-        () => void fetchRooms()
+        () => scheduleFetchRooms()
       )
       .subscribe((status, err) => {
-        if (status === "SUBSCRIBED") void fetchRooms();
+        if (status === "SUBSCRIBED") scheduleFetchRooms();
         if (status === "CHANNEL_ERROR" || err) {
           console.warn("rooms realtime:", status, err);
-          void fetchRooms();
+          scheduleFetchRooms();
         }
       });
 
@@ -112,11 +125,12 @@ export default function RoomsPage() {
     document.addEventListener("visibilitychange", onVisible);
 
     return () => {
+      if (debounceTimer) clearTimeout(debounceTimer);
       clearInterval(poll);
       document.removeEventListener("visibilitychange", onVisible);
       supabase.removeChannel(channel);
     };
-  }, [supabase, fetchRooms]);
+  }, [supabase, fetchRooms, userId]);
 
   function updateDisplayName(value: string) {
     setDisplayName(value);

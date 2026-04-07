@@ -62,14 +62,6 @@ export async function POST(
     );
   }
 
-  const allReady = players.every((p) => p.is_ready || p.is_host);
-  if (!allReady) {
-    return NextResponse.json(
-      { error: "Not all players are ready" },
-      { status: 400 }
-    );
-  }
-
   const settings = room.settings as { category?: string | null } | null;
   const category = settings?.category ?? null;
   const { entry } = pickWord([], category);
