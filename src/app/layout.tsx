@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter, Rajdhani, Bebas_Neue } from "next/font/google";
 import { Toaster } from "sonner";
+import { AuthProvider } from "@/components/providers/auth-provider";
 import "./globals.css";
 
 const inter = Inter({
@@ -49,7 +50,9 @@ export default function RootLayout({
             opacity: 0.028,
           }}
         />
-        {children}
+        <AuthProvider>
+          {children}
+        </AuthProvider>
         <Toaster
           theme="dark"
           position="bottom-center"
