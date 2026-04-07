@@ -49,9 +49,10 @@ export function useRoom(roomCode: string) {
   useEffect(() => {
     if (!roomId) return;
 
+    // Fallback poll at a relaxed 15s — realtime handles the fast path
     const poll = setInterval(() => {
       void fetchRoom();
-    }, 4000);
+    }, 15000);
 
     const roomChannel = supabase
       .channel(`room-${roomId}`)

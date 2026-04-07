@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { Header } from "@/components/layout/Header";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -59,6 +59,8 @@ export default function ProfilePage() {
   const [recoveryUsername, setRecoveryUsername] = useState("");
   const [recoveryColor, setRecoveryColor] = useState("#06b6d4");
   const [creatingProfile, setCreatingProfile] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   useEffect(() => {
     if (loading) return;
@@ -217,6 +219,64 @@ export default function ProfilePage() {
     await refreshAuth();
   }
 
+  async function handleAvatarUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error("Image must be under 2 MB");
+      return;
+    }
+    setUploading(true);
+    const supabase = createClient();
+    const ext = file.name.split(".").pop() ?? "png";
+    const path = `${activeUser.id}/avatar.${ext}`;
+
+    // Remove old avatar if exists
+    await supabase.storage.from("avatars").remove([path]);
+
+    const { error: uploadError } = await supabase.storage
+      .from("avatars")
+      .upload(path, file, { upsert: true, contentType: file.type });
+
+    if (uploadError) {
+      toast.error(uploadError.message);
+      setUploading(false);
+      return;
+    }
+
+    const { data: urlData } = supabase.storage.from("avatars").getPublicUrl(path);
+    const publicUrl = `${urlData.publicUrl}?t=${Date.now()}`;
+
+    const { error: profileError } = await supabase
+      .from("profiles")
+      .update({ avatar_url: publicUrl })
+      .eq("id", activeUser.id);
+
+    setUploading(false);
+    if (profileError) {
+      toast.error(profileError.message);
+      return;
+    }
+    toast.success("Avatar uploaded");
+    await refreshAuth();
+  }
+
+  function handleRemoveAvatar() {
+    const supabase = createClient();
+    supabase
+      .from("profiles")
+      .update({ avatar_url: null })
+      .eq("id", activeUser.id)
+      .then(({ error }) => {
+        if (error) {
+          toast.error(error.message);
+          return;
+        }
+        toast.success("Avatar removed");
+        void refreshAuth();
+      });
+  }
+
   const totalWins = activeProfile.total_wins;
   const winRate =
     activeProfile.games_played > 0
@@ -293,14 +353,53 @@ export default function ProfilePage() {
                 initial={{ scale: 0.88 }}
                 animate={{ scale: 1 }}
                 transition={{ type: "spring", stiffness: 220, damping: 18 }}
+                className="relative inline-block"
               >
                 <Avatar
                   name={activeProfile.username}
                   color={activeProfile.avatar_color}
+                  imageUrl={activeProfile.avatar_url}
                   size="lg"
                   className="mx-auto mb-4 !size-24 !text-3xl"
                 />
+                {/* Upload overlay */}
+                <label
+                  className={cn(
+                    "absolute inset-0 mb-4 flex items-center justify-center rounded-full cursor-pointer",
+                    "bg-black/0 hover:bg-black/50 transition-all duration-200 group",
+                  )}
+                >
+                  <svg
+                    className="size-6 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={1.5}
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0z" />
+                  </svg>
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp,image/gif"
+                    className="hidden"
+                    onChange={handleAvatarUpload}
+                    disabled={uploading}
+                  />
+                </label>
               </motion.div>
+              {uploading && (
+                <p className="text-xs text-purple mb-2">Uploading...</p>
+              )}
+              {activeProfile.avatar_url && !uploading && (
+                <button
+                  type="button"
+                  onClick={handleRemoveAvatar}
+                  className="text-xs text-muted hover:text-rose transition-colors cursor-pointer mb-2"
+                >
+                  Remove photo
+                </button>
+              )}
               <h2 className="font-heading text-3xl text-foreground mb-1 tracking-wide">
                 {activeProfile.username}
               </h2>
@@ -332,6 +431,9 @@ export default function ProfilePage() {
                   <label className="block text-sm font-semibold text-foreground mb-2">
                     Avatar color
                   </label>
+                  <p className="text-xs text-muted mb-3">
+                    Used as fallback when no profile picture is set.
+                  </p>
                   <div className="flex gap-2 flex-wrap mb-5">
                     {AVATAR_COLORS.map((c) => (
                       <button
@@ -359,6 +461,80 @@ export default function ProfilePage() {
                 </Card>
               </motion.div>
             )}
+
+            {/* Settings */}
+            <Card padding="lg" className="mb-6 border-2 border-border">
+              <button
+                type="button"
+                onClick={() => setSettingsOpen((o) => !o)}
+                className="w-full flex items-center justify-between cursor-pointer"
+              >
+                <h3 className="font-heading text-xl text-foreground">Settings</h3>
+                <motion.svg
+                  className="size-5 text-muted"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                  animate={{ rotate: settingsOpen ? 180 : 0 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+                </motion.svg>
+              </button>
+              <AnimatePresence>
+                {settingsOpen && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: "auto", opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                    className="overflow-hidden"
+                  >
+                    <div className="pt-5 space-y-4">
+                      <div className="flex items-center justify-between rounded-2xl border-2 border-border bg-card-hover/50 px-4 py-3">
+                        <div>
+                          <p className="text-sm font-medium text-foreground">Account type</p>
+                          <p className="text-xs text-muted mt-0.5">
+                            {activeUser.is_anonymous ? "Guest — sign up to keep your stats" : "Full account"}
+                          </p>
+                        </div>
+                        <span className={cn(
+                          "text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border",
+                          activeUser.is_anonymous
+                            ? "border-orange/30 text-orange bg-orange/10"
+                            : "border-emerald/30 text-emerald bg-emerald/10"
+                        )}>
+                          {activeUser.is_anonymous ? "Guest" : "Verified"}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center justify-between rounded-2xl border-2 border-border bg-card-hover/50 px-4 py-3">
+                        <div>
+                          <p className="text-sm font-medium text-foreground">Email</p>
+                          <p className="text-xs text-muted mt-0.5">
+                            {activeUser.is_anonymous ? "Not set" : activeUser.email}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-between rounded-2xl border-2 border-border bg-card-hover/50 px-4 py-3">
+                        <div>
+                          <p className="text-sm font-medium text-foreground">Member since</p>
+                          <p className="text-xs text-muted mt-0.5">
+                            {new Date(activeProfile.created_at).toLocaleDateString(undefined, {
+                              year: "numeric",
+                              month: "long",
+                              day: "numeric",
+                            })}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </Card>
 
             <Card padding="lg" className="mb-6 border-2 border-border">
               <h3 className="font-heading text-xl text-foreground mb-5">Statistics</h3>

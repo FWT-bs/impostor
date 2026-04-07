@@ -45,41 +45,42 @@ export async function POST(request: Request) {
       `Player_${user.id.slice(0, 6)}`;
   }
 
-  let code = generateRoomCode();
-  let attempts = 0;
+  // Try inserting with generated codes — retry on unique constraint collision
+  let room: Room | null = null;
+  let roomError: { message: string } | null = null;
 
-  while (attempts < 10) {
-    const { data: existing } = await supabase
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const code = generateRoomCode();
+    const { data, error } = await supabase
       .from("rooms")
-      .select("id")
-      .eq("code", code)
+      .insert({
+        code,
+        host_id: user.id,
+        status: "waiting",
+        phase: "lobby",
+        max_players: maxPlayers,
+        is_private: isPrivate,
+        settings: { discussionTimer, category },
+      })
+      .select()
       .returns<Room[]>()
-      .maybeSingle();
+      .single();
 
-    if (!existing) break;
-    code = generateRoomCode();
-    attempts++;
+    if (!error) {
+      room = data;
+      roomError = null;
+      break;
+    }
+    // 23505 = unique_violation — retry with new code
+    if (error.code === "23505") continue;
+    roomError = error;
+    break;
   }
 
-  const { data: room, error: roomError } = await supabase
-    .from("rooms")
-    .insert({
-      code,
-      host_id: user.id,
-      status: "waiting",
-      phase: "lobby",
-      max_players: maxPlayers,
-      is_private: isPrivate,
-      settings: { discussionTimer, category },
-    })
-    .select()
-    .returns<Room[]>()
-    .single();
-
-  if (roomError) {
-    console.error("[rooms/create] room insert error:", roomError.message);
+  if (roomError || !room) {
+    console.error("[rooms/create] room insert error:", roomError?.message);
     return NextResponse.json(
-      { error: roomError.message },
+      { error: roomError?.message ?? "Failed to create room" },
       { status: 500 }
     );
   }

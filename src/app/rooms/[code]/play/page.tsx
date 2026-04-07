@@ -161,127 +161,135 @@ function OnlineRoleReveal({
 
   return (
     <div className="text-center">
-      <h2 className="font-heading text-2xl text-foreground mb-6">🎭 Your Role</h2>
+      <h2 className="font-heading text-2xl text-foreground mb-6">Your Role</h2>
 
-      <div className="perspective-[600px]">
-        <AnimatePresence mode="wait">
-          {!revealed ? (
-            <motion.div
-              key="hidden"
-              initial={{ rotateY: 180, opacity: 0 }}
-              animate={{ rotateY: 0, opacity: 1 }}
-              exit={{ rotateY: -90, opacity: 0 }}
-              transition={{ duration: 0.5, type: "spring", stiffness: 200 }}
+      {/* 3D card flip — both faces always in the DOM, GPU-composited transform */}
+      <div
+        style={{ perspective: "800px" }}
+        className="mx-auto w-full max-w-sm"
+        onClick={() => !revealed && setRevealed(true)}
+      >
+        <div
+          className="relative w-full min-h-[260px] cursor-pointer"
+          style={{
+            transformStyle: "preserve-3d",
+            transition: "transform 0.6s cubic-bezier(0.4, 0.0, 0.2, 1)",
+            transform: revealed ? "rotateY(180deg)" : "rotateY(0deg)",
+          }}
+        >
+          {/* ── FRONT FACE (hidden role) ── */}
+          <div
+            className="absolute inset-0"
+            style={{ backfaceVisibility: "hidden", WebkitBackfaceVisibility: "hidden" }}
+          >
+            <Card
+              glow
+              padding="lg"
+              className="h-full flex flex-col items-center justify-center"
             >
-              <Card
-                glow
-                padding="lg"
-                className="cursor-pointer min-h-[220px] flex flex-col items-center justify-center"
-                onClick={() => setRevealed(true)}
+              <motion.div
+                className="text-6xl mb-4"
+                animate={{ scale: [1, 1.1, 1] }}
+                transition={{ repeat: Infinity, duration: 2 }}
               >
-                <motion.div
-                  className="text-6xl mb-4"
-                  animate={{ scale: [1, 1.1, 1] }}
-                  transition={{ repeat: Infinity, duration: 2 }}
-                >
-                  🔒
-                </motion.div>
-                <p className="font-heading text-xl text-foreground">
-                  Tap to Reveal
-                </p>
-              </Card>
-            </motion.div>
-          ) : (
-            <motion.div
-              key="revealed"
-              initial={{ rotateY: 90, opacity: 0 }}
-              animate={{ rotateY: 0, opacity: 1 }}
-              transition={{ duration: 0.5, type: "spring", stiffness: 200 }}
+                🔒
+              </motion.div>
+              <p className="font-heading text-xl text-foreground">
+                Tap to Reveal
+              </p>
+              <p className="text-sm text-muted mt-2">Your role is hidden</p>
+            </Card>
+          </div>
+
+          {/* ── BACK FACE (revealed role) ── */}
+          <div
+            className="absolute inset-0"
+            style={{
+              backfaceVisibility: "hidden",
+              WebkitBackfaceVisibility: "hidden",
+              transform: "rotateY(180deg)",
+            }}
+          >
+            <Card
+              padding="lg"
+              className={cn(
+                "h-full flex flex-col items-center justify-center",
+                isImpostor
+                  ? "border-rose/50 shadow-[0_0_30px_rgba(244,63,94,0.15)]"
+                  : "border-purple/50 shadow-[0_0_30px_rgba(168,85,247,0.15)]",
+              )}
             >
-              <Card
-                padding="lg"
-                className={cn(
-                  "min-h-[220px] flex flex-col items-center justify-center",
-                  isImpostor ? "border-rose/50 shadow-[0_0_30px_rgba(244,63,94,0.15)]" : "border-purple/50 shadow-[0_0_30px_rgba(168,85,247,0.15)]"
-                )}
-              >
-                {isImpostor ? (
-                  <>
-                    <motion.div
-                      className="text-6xl mb-4"
-                      initial={{ scale: 0 }}
-                      animate={{ scale: 1 }}
-                      transition={{ type: "spring", stiffness: 300 }}
-                    >
-                      🕵️
-                    </motion.div>
-                    <p className="font-heading text-2xl text-rose mb-2">
-                      You are the IMPOSTOR
-                    </p>
-                    <p className="text-muted">
-                      Topic:{" "}
-                      <span className="text-orange font-medium">
-                        {secret?.topic}
-                      </span>
-                    </p>
-                    <p className="text-sm text-rose/70 mt-2">
-                      You do NOT know the secret word 🤫
-                    </p>
-                  </>
-                ) : (
-                  <>
-                    <motion.div
-                      className="text-6xl mb-4"
-                      initial={{ scale: 0 }}
-                      animate={{ scale: 1 }}
-                      transition={{ type: "spring", stiffness: 300 }}
-                    >
-                      ✅
-                    </motion.div>
-                    <p className="font-heading text-2xl text-purple mb-2">
-                      Regular Player
-                    </p>
-                    <p className="text-muted">
-                      Topic:{" "}
-                      <span className="text-orange font-medium">
-                        {secret?.topic}
-                      </span>
-                    </p>
-                    <p className="text-foreground mt-2">
-                      Secret Word:{" "}
-                      <span className="text-purple font-bold text-xl">
-                        {secret?.secret_word}
-                      </span>
-                    </p>
-                  </>
-                )}
-              </Card>
-            </motion.div>
-          )}
-        </AnimatePresence>
+              {isImpostor ? (
+                <>
+                  <div className="text-6xl mb-4">🕵️</div>
+                  <p className="font-heading text-2xl text-rose mb-2">
+                    You are the IMPOSTOR
+                  </p>
+                  <p className="text-muted">
+                    Topic:{" "}
+                    <span className="text-orange font-medium">
+                      {secret?.topic}
+                    </span>
+                  </p>
+                  <p className="text-sm text-rose/70 mt-2">
+                    You do NOT know the secret word
+                  </p>
+                </>
+              ) : (
+                <>
+                  <div className="text-6xl mb-4">✅</div>
+                  <p className="font-heading text-2xl text-purple mb-2">
+                    Regular Player
+                  </p>
+                  <p className="text-muted">
+                    Topic:{" "}
+                    <span className="text-orange font-medium">
+                      {secret?.topic}
+                    </span>
+                  </p>
+                  <p className="text-foreground mt-2">
+                    Secret Word:{" "}
+                    <span className="text-purple font-bold text-xl">
+                      {secret?.secret_word}
+                    </span>
+                  </p>
+                </>
+              )}
+            </Card>
+          </div>
+        </div>
       </div>
 
-      {revealed && isHost && (
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-        >
-          <Button
-            variant="primary"
-            size="lg"
-            className="mt-6 w-full"
-            onClick={handleReady}
+      <AnimatePresence>
+        {revealed && isHost && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 10 }}
+            transition={{ delay: 0.3 }}
           >
-            🎤 Start Clue Phase
-          </Button>
-        </motion.div>
-      )}
-      {revealed && !isHost && (
-        <p className="mt-6 text-sm text-muted">
-          ⏳ Waiting for the host to start the clue phase...
-        </p>
-      )}
+            <Button
+              variant="primary"
+              size="lg"
+              className="mt-6 w-full"
+              onClick={handleReady}
+            >
+              Start Clue Phase
+            </Button>
+          </motion.div>
+        )}
+        {revealed && !isHost && (
+          <motion.p
+            className="mt-6 text-sm text-muted"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ delay: 0.4 }}
+          >
+            Waiting for the host to start the clue phase...
+          </motion.p>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

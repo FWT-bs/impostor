@@ -151,7 +151,6 @@ export default function RoomsPage() {
     async (opts?: { silent?: boolean }) => {
       if (!opts?.silent) {
         setListError(null);
-        await supabase.auth.getSession();
       }
       try {
         const [openRes, liveRes, myRes] = await Promise.all([
@@ -186,7 +185,7 @@ export default function RoomsPage() {
         }
       }
     },
-    [loadOpenRooms, loadLiveRooms, loadMyRooms, supabase],
+    [loadOpenRooms, loadLiveRooms, loadMyRooms],
   );
 
   const userId = user?.id ?? null;
@@ -260,7 +259,7 @@ export default function RoomsPage() {
 
     const poll = setInterval(
       () => void refreshAllListings({ silent: true }),
-      5000,
+      15000,
     );
 
     function onVisible() {

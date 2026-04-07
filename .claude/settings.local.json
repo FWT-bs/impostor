@@ -17,7 +17,10 @@
       "mcp__supabase__apply_migration",
       "mcp__supabase__get_project_url",
       "mcp__supabase__get_logs",
-      "Bash(xargs grep:*)"
+      "Bash(xargs grep:*)",
+      "mcp__supabase__list_migrations",
+      "mcp__supabase__list_storage_buckets",
+      "mcp__supabase__get_storage_config"
     ]
   },
   "enableAllProjectMcpServers": true,

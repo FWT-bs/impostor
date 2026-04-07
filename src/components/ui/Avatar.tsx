@@ -9,6 +9,7 @@ export interface AvatarProps extends HTMLAttributes<HTMLDivElement> {
   name: string;
   color: string;
   size?: AvatarSize;
+  imageUrl?: string | null;
 }
 
 const sizeClasses: Record<AvatarSize, string> = {
@@ -21,6 +22,7 @@ export function Avatar({
   name,
   color,
   size = "md",
+  imageUrl,
   className,
   style,
   ...props
@@ -34,7 +36,7 @@ export function Avatar({
       className={cn(
         "flex shrink-0 items-center justify-center rounded-full font-heading font-bold uppercase tracking-wide text-white",
         "shadow-[0_2px_8px_rgba(0,0,0,0.3)] ring-2 ring-white/10",
-        "transition-transform duration-200 hover:scale-105",
+        "transition-transform duration-200 hover:scale-105 overflow-hidden",
         sizeClasses[size],
         className,
       )}
@@ -44,7 +46,16 @@ export function Avatar({
       }}
       {...props}
     >
-      {initials || "?"}
+      {imageUrl ? (
+        <img
+          src={imageUrl}
+          alt={name.trim() || "Player"}
+          className="w-full h-full object-cover"
+          draggable={false}
+        />
+      ) : (
+        initials || "?"
+      )}
     </div>
   );
 }

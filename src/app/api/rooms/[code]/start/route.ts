@@ -127,20 +127,16 @@ export async function POST(
     );
   }
 
-  // Reset clues for new round
-  await admin
-    .from("room_players")
-    .update({ clue_text: null })
-    .eq("room_id", room.id);
-
-  // Randomize player order
+  // Randomize player order and reset clues in parallel batched updates
   const turnOrder = [...players].sort(() => Math.random() - 0.5);
-  for (let i = 0; i < turnOrder.length; i++) {
-    await admin
-      .from("room_players")
-      .update({ player_order: i })
-      .eq("id", turnOrder[i].id);
-  }
+  await Promise.all(
+    turnOrder.map((p, i) =>
+      admin
+        .from("room_players")
+        .update({ player_order: i, clue_text: null })
+        .eq("id", p.id)
+    )
+  );
 
   const { error: roomUpdateError } = await admin
     .from("rooms")

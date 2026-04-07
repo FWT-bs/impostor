@@ -15,6 +15,7 @@ export interface Database {
           id: string;
           username: string;
           avatar_color: string;
+          avatar_url: string | null;
           games_played: number;
           group_wins: number;
           impostor_wins: number;
@@ -26,6 +27,7 @@ export interface Database {
           id: string;
           username: string;
           avatar_color?: string;
+          avatar_url?: string | null;
           games_played?: number;
           group_wins?: number;
           impostor_wins?: number;
@@ -36,6 +38,7 @@ export interface Database {
           id?: string;
           username?: string;
           avatar_color?: string;
+          avatar_url?: string | null;
           games_played?: number;
           group_wins?: number;
           impostor_wins?: number;
