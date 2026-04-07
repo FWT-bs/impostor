@@ -9,9 +9,15 @@ export async function POST(request: Request) {
   const supabase = await createClient();
   const {
     data: { user },
+    error: authError,
   } = await supabase.auth.getUser();
 
+  if (authError) {
+    console.error("[rooms/create] auth.getUser error:", authError.message);
+  }
+
   if (!user) {
+    console.warn("[rooms/create] No user — returning 401");
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -54,6 +60,7 @@ export async function POST(request: Request) {
     .single();
 
   if (roomError) {
+    console.error("[rooms/create] room insert error:", roomError.message);
     return NextResponse.json(
       { error: roomError.message },
       { status: 500 }
@@ -70,6 +77,7 @@ export async function POST(request: Request) {
   });
 
   if (playerError) {
+    console.error("[rooms/create] player insert error:", playerError.message);
     await supabase.from("rooms").delete().eq("id", room.id);
     return NextResponse.json(
       { error: playerError.message },
