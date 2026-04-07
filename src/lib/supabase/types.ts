@@ -16,6 +16,9 @@ export interface Database {
           username: string;
           avatar_color: string;
           avatar_url: string | null;
+          stripe_customer_id: string | null;
+          is_premium: boolean;
+          premium_until: string | null;
           games_played: number;
           group_wins: number;
           impostor_wins: number;
@@ -28,6 +31,9 @@ export interface Database {
           username: string;
           avatar_color?: string;
           avatar_url?: string | null;
+          stripe_customer_id?: string | null;
+          is_premium?: boolean;
+          premium_until?: string | null;
           games_played?: number;
           group_wins?: number;
           impostor_wins?: number;
@@ -39,6 +45,9 @@ export interface Database {
           username?: string;
           avatar_color?: string;
           avatar_url?: string | null;
+          stripe_customer_id?: string | null;
+          is_premium?: boolean;
+          premium_until?: string | null;
           games_played?: number;
           group_wins?: number;
           impostor_wins?: number;

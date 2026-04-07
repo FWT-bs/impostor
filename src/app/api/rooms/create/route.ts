@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { generateRoomCode } from "@/lib/utils";
+import { getPremiumCategories } from "@/lib/game/words";
 import type { Database } from "@/lib/supabase/types";
 
 type Room = Database["public"]["Tables"]["rooms"]["Row"];
@@ -32,13 +33,25 @@ export async function POST(request: Request) {
       ? Math.min(300, Math.max(30, Math.round(rawTimer)))
       : 60;
 
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("username, is_premium")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  // Validate premium category access server-side
+  if (category) {
+    const premiumCats = getPremiumCategories();
+    if (premiumCats.has(category) && !profile?.is_premium) {
+      return NextResponse.json(
+        { error: "Premium subscription required for this category" },
+        { status: 403 },
+      );
+    }
+  }
+
   let displayName = requestedDisplayName;
   if (!displayName) {
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("username")
-      .eq("id", user.id)
-      .maybeSingle();
     displayName =
       profile?.username?.trim() ||
       user.email?.split("@")[0]?.trim() ||

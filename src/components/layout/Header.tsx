@@ -17,6 +17,7 @@ const nav = [
   { href: "/local/setup", label: "Play Local" },
   { href: "/rooms", label: "Online" },
   { href: "/leaderboard", label: "Leaderboard" },
+  { href: "/pricing", label: "Premium" },
 ] as const;
 
 export interface HeaderUser {

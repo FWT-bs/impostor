@@ -371,9 +371,11 @@ export default function RoomsPage() {
     setCreating(false);
   }
 
+  const hasPremium = profile?.is_premium ?? false;
+
   function handleCreateCategoryClick(cat: string) {
-    if (premiumCategories.has(cat) && isGuestUser) {
-      toast.error("Sign in with a full account to use premium categories.");
+    if (premiumCategories.has(cat) && !hasPremium) {
+      toast.error("Upgrade to Premium to unlock this category.");
       return;
     }
     setCreateCategory((c) => (c === cat ? null : cat));
@@ -826,7 +828,7 @@ export default function RoomsPage() {
               </button>
               {categories.map((cat) => {
                 const isPremium = premiumCategories.has(cat);
-                const locked = isPremium && isGuestUser;
+                const locked = isPremium && !hasPremium;
                 const isSelected = createCategory === cat;
                 return (
                   <button

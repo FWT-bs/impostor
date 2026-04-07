@@ -530,6 +530,35 @@ export default function ProfilePage() {
                           </p>
                         </div>
                       </div>
+
+                      <div className="flex items-center justify-between rounded-2xl border-2 bg-card-hover/50 px-4 py-3"
+                        style={{
+                          borderColor: activeProfile.is_premium
+                            ? "rgba(168,85,247,0.3)"
+                            : "rgba(28,31,58,1)",
+                        }}
+                      >
+                        <div>
+                          <p className="text-sm font-medium text-foreground">Subscription</p>
+                          <p className="text-xs text-muted mt-0.5">
+                            {activeProfile.is_premium
+                              ? `Premium${activeProfile.premium_until ? ` — renews ${new Date(activeProfile.premium_until).toLocaleDateString()}` : ""}`
+                              : "Free plan"}
+                          </p>
+                        </div>
+                        {activeProfile.is_premium ? (
+                          <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border border-purple/30 text-purple bg-purple/10">
+                            Premium
+                          </span>
+                        ) : (
+                          <Link
+                            href="/pricing"
+                            className="text-xs font-medium text-purple hover:text-purple-glow transition-colors"
+                          >
+                            Upgrade
+                          </Link>
+                        )}
+                      </div>
                     </div>
                   </motion.div>
                 )}
