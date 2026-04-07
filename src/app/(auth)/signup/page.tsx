@@ -2,16 +2,15 @@
 
 import { Suspense, useState } from "react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
-import { createClient } from "@/lib/supabase/client";
 import { InnocentFull, GhostMini, ImpostorMini } from "@/components/ui/Characters";
 import { cn, randomAvatarColor } from "@/lib/utils";
 import { safeNextPath } from "@/lib/auth-path";
+import { postJson } from "@/lib/api-fetch";
 
 function SignupForm() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const nextPath = safeNextPath(searchParams.get("next"));
 
@@ -24,41 +23,42 @@ function SignupForm() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
-    const supabase = createClient();
-    const avatar_color = randomAvatarColor();
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: { username: username.trim(), avatar_color },
-      },
-    });
-    setLoading(false);
-    if (error) {
-      toast.error(error.message);
-      return;
-    }
-    if (data.session) {
-      toast.success("Account ready");
-      router.push(nextPath);
-      router.refresh();
-    } else {
-      toast.success("Check your email to confirm your account");
+    try {
+      const avatar_color = randomAvatarColor();
+      const result = await postJson<{ session: unknown }>("/api/auth/sign-up", {
+        email,
+        password,
+        username: username.trim(),
+        avatar_color,
+      });
+      if (!result.ok) {
+        toast.error(result.errorMessage);
+        return;
+      }
+      if (result.data?.session) {
+        toast.success("Account ready");
+        window.location.assign(nextPath);
+      } else {
+        toast.success("Check your email to confirm your account");
+      }
+    } finally {
+      setLoading(false);
     }
   }
 
   async function handleGuest() {
     setGuestLoading(true);
-    const supabase = createClient();
-    const { error } = await supabase.auth.signInAnonymously();
-    setGuestLoading(false);
-    if (error) {
-      toast.error(error.message);
-      return;
+    try {
+      const result = await postJson<unknown>("/api/auth/guest", {});
+      if (!result.ok) {
+        toast.error(result.errorMessage);
+        return;
+      }
+      toast.success("Playing as guest");
+      window.location.assign(nextPath);
+    } finally {
+      setGuestLoading(false);
     }
-    toast.success("Playing as guest");
-    router.push(nextPath);
-    router.refresh();
   }
 
   const loginHref = `/login?next=${encodeURIComponent(nextPath)}`;

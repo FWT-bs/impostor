@@ -26,6 +26,9 @@ export const metadata: Metadata = {
     "Find the impostor among your friends. A thrilling party game of bluffing, deduction, and deception.",
 };
 
+/** Auth uses cookies; avoid caching HTML/RSC shells that ignore Set-Cookie / session. */
+export const dynamic = "force-dynamic";
+
 export default function RootLayout({
   children,
 }: Readonly<{

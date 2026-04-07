@@ -1,6 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import type { Database } from "@/lib/supabase/types";
+import { getSupabaseCookieOptions } from "@/lib/supabase/cookie-options";
 
 export async function proxy(request: NextRequest) {
   let supabaseResponse = NextResponse.next({
@@ -11,8 +12,7 @@ export async function proxy(request: NextRequest) {
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
-      cookieOptions:
-        process.env.NODE_ENV === "production" ? { secure: true } : undefined,
+      cookieOptions: getSupabaseCookieOptions(),
       cookies: {
         getAll() {
           return request.cookies.getAll();
@@ -37,7 +37,16 @@ export async function proxy(request: NextRequest) {
     }
   );
 
-  await supabase.auth.getUser();
+  try {
+    await supabase.auth.getUser();
+  } catch (e) {
+    console.error("[proxy] auth.getUser failed:", e);
+  }
+
+  supabaseResponse.headers.set(
+    "Cache-Control",
+    "private, no-store, no-cache, max-age=0, must-revalidate"
+  );
 
   return supabaseResponse;
 }

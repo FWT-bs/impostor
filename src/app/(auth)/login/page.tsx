@@ -2,16 +2,15 @@
 
 import { Suspense, useState } from "react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
-import { createClient } from "@/lib/supabase/client";
 import { ImpostorFull, GhostMini, DetectiveMini } from "@/components/ui/Characters";
 import { cn } from "@/lib/utils";
 import { safeNextPath } from "@/lib/auth-path";
+import { postJson } from "@/lib/api-fetch";
 
 function LoginForm() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const nextPath = safeNextPath(searchParams.get("next"));
 
@@ -23,30 +22,35 @@ function LoginForm() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
-    const supabase = createClient();
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    setLoading(false);
-    if (error) {
-      toast.error(error.message);
-      return;
+    try {
+      const result = await postJson<unknown>("/api/auth/sign-in", {
+        email,
+        password,
+      });
+      if (!result.ok) {
+        toast.error(result.errorMessage);
+        return;
+      }
+      toast.success("Signed in");
+      window.location.assign(nextPath);
+    } finally {
+      setLoading(false);
     }
-    toast.success("Signed in");
-    router.push(nextPath);
-    router.refresh();
   }
 
   async function handleGuest() {
     setGuestLoading(true);
-    const supabase = createClient();
-    const { error } = await supabase.auth.signInAnonymously();
-    setGuestLoading(false);
-    if (error) {
-      toast.error(error.message);
-      return;
+    try {
+      const result = await postJson<unknown>("/api/auth/guest", {});
+      if (!result.ok) {
+        toast.error(result.errorMessage);
+        return;
+      }
+      toast.success("Playing as guest");
+      window.location.assign(nextPath);
+    } finally {
+      setGuestLoading(false);
     }
-    toast.success("Playing as guest");
-    router.push(nextPath);
-    router.refresh();
   }
 
   const signupHref = `/signup?next=${encodeURIComponent(nextPath)}`;
