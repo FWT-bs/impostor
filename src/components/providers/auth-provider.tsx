@@ -21,6 +21,8 @@ type AuthContextValue = {
   profile: Profile | null;
   loading: boolean;
   signOut: () => Promise<void>;
+  /** Re-run getUser + profile fetch (e.g. after creating a missing profile row). */
+  refreshAuth: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -106,6 +108,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, [supabase]);
 
+  const refreshAuth = useCallback(async () => {
+    const {
+      data: { user: u },
+      error,
+    } = await supabase.auth.getUser();
+    if (error) {
+      setUser(null);
+      setProfile(null);
+      return;
+    }
+    setUser(u ?? null);
+    if (!u) {
+      setProfile(null);
+      return;
+    }
+    const { data, error: profileError } = await supabase
+      .from("profiles")
+      .select("*")
+      .eq("id", u.id)
+      .maybeSingle();
+    setProfile(profileError ? null : data);
+  }, [supabase]);
+
   const signOut = useCallback(async () => {
     const { error } = await supabase.auth.signOut();
     if (error) return;
@@ -116,8 +141,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [router, supabase]);
 
   const value = useMemo(
-    () => ({ user, profile, loading, signOut }),
-    [user, profile, loading, signOut],
+    () => ({ user, profile, loading, signOut, refreshAuth }),
+    [user, profile, loading, signOut, refreshAuth],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

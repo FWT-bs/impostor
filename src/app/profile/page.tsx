@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
@@ -51,24 +51,141 @@ function PageSpinner({ label }: { label: string }) {
 export default function ProfilePage() {
   const router = useRouter();
   const pathname = usePathname();
-  const { user, profile, loading, signOut } = useAuth();
+  const { user, profile, loading, signOut, refreshAuth } = useAuth();
   const [editing, setEditing] = useState(false);
   const [username, setUsername] = useState("");
   const [selectedColor, setSelectedColor] = useState("");
   const [saving, setSaving] = useState(false);
+  const [recoveryUsername, setRecoveryUsername] = useState("");
+  const [recoveryColor, setRecoveryColor] = useState("#06b6d4");
+  const [creatingProfile, setCreatingProfile] = useState(false);
 
   useEffect(() => {
     if (loading) return;
-    if (!user || !profile) {
+    if (!user) {
       router.replace(loginWithNext(pathname));
     }
-  }, [loading, user, profile, pathname, router]);
+  }, [loading, user, pathname, router]);
 
-  if (loading || !user || !profile) {
+  useEffect(() => {
+    if (!user) return;
+    const meta = user.user_metadata as { username?: string; avatar_color?: string } | undefined;
+    const fromMeta = meta?.username?.trim();
+    setRecoveryUsername(
+      fromMeta || user.email?.split("@")[0]?.trim() || `Player_${user.id.slice(0, 6)}`,
+    );
+    const c = meta?.avatar_color?.trim();
+    if (c) setRecoveryColor(c);
+  }, [user]);
+
+  const handleCreateMissingProfile = useCallback(async () => {
+    if (!user) return;
+    setCreatingProfile(true);
+    const supabase = createClient();
+    const uname =
+      recoveryUsername.trim() || `Player_${user.id.slice(0, 6)}`;
+    const { error } = await supabase.from("profiles").insert({
+      id: user.id,
+      username: uname,
+      avatar_color: recoveryColor,
+    });
+    setCreatingProfile(false);
+    if (error) {
+      if (error.code === "23505") {
+        await refreshAuth();
+        toast.success("Profile linked");
+        return;
+      }
+      toast.error(error.message);
+      return;
+    }
+    setPreferredDisplayName(uname);
+    await refreshAuth();
+    toast.success("Profile created");
+  }, [user, recoveryUsername, recoveryColor, refreshAuth]);
+
+  if (loading) {
     return (
       <>
         <Header />
-        <PageSpinner label={loading ? "Loading profile…" : "Redirecting…"} />
+        <PageSpinner label="Loading profile…" />
+      </>
+    );
+  }
+
+  if (!user) {
+    return (
+      <>
+        <Header />
+        <PageSpinner label="Redirecting…" />
+      </>
+    );
+  }
+
+  if (!profile) {
+    return (
+      <>
+        <Header
+          user={{
+            username: recoveryUsername || "Player",
+            avatarColor: recoveryColor,
+          }}
+        />
+        <main className="min-h-screen bg-background pt-20 pb-16 px-4 relative overflow-hidden">
+          <div className="absolute top-20 -left-20 w-72 h-72 rounded-full bg-purple/5 blur-3xl pointer-events-none" aria-hidden />
+          <div className="absolute bottom-10 -right-20 w-64 h-64 rounded-full bg-cyan/5 blur-3xl pointer-events-none" aria-hidden />
+          <div className="mx-auto max-w-2xl relative z-10">
+            <motion.div
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mb-8 text-center"
+            >
+              <p className="text-[10px] uppercase tracking-[0.5em] text-muted/60 mb-3">
+                Agent record
+              </p>
+              <h1 className="font-heading text-4xl text-foreground mb-2">Finish setup</h1>
+              <p className="text-sm text-muted max-w-md mx-auto">
+                You&apos;re signed in, but there&apos;s no player row in the database yet (often a missed trigger).
+                Create your profile here — same permissions as normal signup.
+              </p>
+            </motion.div>
+            <Card padding="lg" className="border-2 border-border">
+              <Input
+                label="Username"
+                value={recoveryUsername}
+                onChange={(e) => setRecoveryUsername(e.target.value)}
+                className="mb-4"
+              />
+              <label className="block text-sm font-semibold text-foreground mb-2">
+                Avatar color
+              </label>
+              <div className="flex gap-2 flex-wrap mb-6">
+                {AVATAR_COLORS.map((c) => (
+                  <button
+                    key={c}
+                    type="button"
+                    onClick={() => setRecoveryColor(c)}
+                    className={cn(
+                      "size-9 rounded-full transition-all duration-200 cursor-pointer",
+                      recoveryColor === c
+                        ? "ring-2 ring-purple scale-110 shadow-[0_0_12px_rgba(128,112,212,0.35)]"
+                        : "hover:scale-110",
+                    )}
+                    style={{ backgroundColor: c }}
+                  />
+                ))}
+              </div>
+              <div className="flex flex-col gap-3 sm:flex-row">
+                <Button variant="primary" className="sm:flex-1" onClick={handleCreateMissingProfile} isLoading={creatingProfile}>
+                  Create profile
+                </Button>
+                <Button variant="secondary" className="sm:flex-1" onClick={() => void refreshAuth()}>
+                  I already have one — refresh
+                </Button>
+              </div>
+            </Card>
+          </div>
+        </main>
       </>
     );
   }
@@ -97,7 +214,7 @@ export default function ProfilePage() {
     setPreferredDisplayName(username.trim());
     toast.success("Profile updated");
     setEditing(false);
-    router.refresh();
+    await refreshAuth();
   }
 
   const totalWins = activeProfile.group_wins + activeProfile.impostor_wins;

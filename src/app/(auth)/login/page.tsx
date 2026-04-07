@@ -7,8 +7,12 @@ import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { ImpostorFull, GhostMini, DetectiveMini } from "@/components/ui/Characters";
 import { cn } from "@/lib/utils";
+import type { Session } from "@supabase/supabase-js";
 import { safeNextPath } from "@/lib/auth-path";
 import { postJson } from "@/lib/api-fetch";
+import { syncBrowserSessionFromApi } from "@/lib/sync-browser-session";
+
+type AuthOkResponse = { user: unknown; session: Session | null };
 
 function LoginForm() {
   const searchParams = useSearchParams();
@@ -23,7 +27,7 @@ function LoginForm() {
     e.preventDefault();
     setLoading(true);
     try {
-      const result = await postJson<unknown>("/api/auth/sign-in", {
+      const result = await postJson<AuthOkResponse>("/api/auth/sign-in", {
         email,
         password,
       });
@@ -31,6 +35,7 @@ function LoginForm() {
         toast.error(result.errorMessage);
         return;
       }
+      await syncBrowserSessionFromApi(result.data.session);
       toast.success("Signed in");
       window.location.assign(nextPath);
     } finally {
@@ -41,11 +46,12 @@ function LoginForm() {
   async function handleGuest() {
     setGuestLoading(true);
     try {
-      const result = await postJson<unknown>("/api/auth/guest", {});
+      const result = await postJson<AuthOkResponse>("/api/auth/guest", {});
       if (!result.ok) {
         toast.error(result.errorMessage);
         return;
       }
+      await syncBrowserSessionFromApi(result.data.session);
       toast.success("Playing as guest");
       window.location.assign(nextPath);
     } finally {
