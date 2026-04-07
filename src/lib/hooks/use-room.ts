@@ -13,6 +13,13 @@ export function useRoom(roomCode: string) {
   const [players, setPlayers] = useState<RoomPlayer[]>([]);
   const [loading, setLoading] = useState(true);
 
+  function sortPlayers(items: RoomPlayer[]) {
+    return [...items].sort((a, b) => {
+      if (a.player_order !== b.player_order) return a.player_order - b.player_order;
+      return a.created_at.localeCompare(b.created_at);
+    });
+  }
+
   const fetchRoom = useCallback(async () => {
     const { data: roomData } = await supabase
       .from("rooms")
@@ -28,7 +35,7 @@ export function useRoom(roomCode: string) {
         .eq("room_id", roomData.id)
         .order("player_order", { ascending: true });
 
-      setPlayers(playerData ?? []);
+      setPlayers(sortPlayers(playerData ?? []));
     }
     setLoading(false);
   }, [supabase, roomCode]);
@@ -70,18 +77,20 @@ export function useRoom(roomCode: string) {
         },
         (payload) => {
           if (payload.eventType === "INSERT") {
-            setPlayers((prev) => [...prev, payload.new as RoomPlayer]);
+            setPlayers((prev) => sortPlayers([...prev, payload.new as RoomPlayer]));
           } else if (payload.eventType === "UPDATE") {
             setPlayers((prev) =>
-              prev.map((p) =>
+              sortPlayers(prev.map((p) =>
                 p.id === (payload.new as RoomPlayer).id
                   ? (payload.new as RoomPlayer)
                   : p
-              )
+              ))
             );
           } else if (payload.eventType === "DELETE") {
             setPlayers((prev) =>
-              prev.filter((p) => p.id !== (payload.old as { id: string }).id)
+              sortPlayers(
+                prev.filter((p) => p.id !== (payload.old as { id: string }).id)
+              )
             );
           }
         }

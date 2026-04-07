@@ -24,8 +24,7 @@ export async function POST(request: Request) {
 
   const body = await request.json().catch(() => ({}));
   const code: string = (body.code ?? "").toUpperCase().trim();
-  const displayName: string =
-    body.displayName?.trim() || `Player_${user.id.slice(0, 6)}`;
+  const requestedDisplayName: string = body.displayName?.trim() ?? "";
 
   if (!code || code.length !== 4) {
     return NextResponse.json(
@@ -76,6 +75,19 @@ export async function POST(request: Request) {
 
   if (existingPlayer) {
     return NextResponse.json({ room }, { headers: noStore });
+  }
+
+  let displayName = requestedDisplayName;
+  if (!displayName) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("username")
+      .eq("id", user.id)
+      .maybeSingle();
+    displayName =
+      profile?.username?.trim() ||
+      user.email?.split("@")[0]?.trim() ||
+      `Player_${user.id.slice(0, 6)}`;
   }
 
   const { error: joinError } = await supabase.from("room_players").insert({

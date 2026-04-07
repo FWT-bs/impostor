@@ -22,11 +22,23 @@ export async function POST(request: Request) {
   }
 
   const body = await request.json().catch(() => ({}));
-  const displayName: string =
-    body.displayName?.trim() || `Player_${user.id.slice(0, 6)}`;
+  const requestedDisplayName: string = body.displayName?.trim() ?? "";
   const maxPlayers: number = Math.min(10, Math.max(3, body.maxPlayers ?? 10));
   const category: string | null = body.category ?? null;
   const isPrivate: boolean = body.isPrivate ?? false;
+
+  let displayName = requestedDisplayName;
+  if (!displayName) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("username")
+      .eq("id", user.id)
+      .maybeSingle();
+    displayName =
+      profile?.username?.trim() ||
+      user.email?.split("@")[0]?.trim() ||
+      `Player_${user.id.slice(0, 6)}`;
+  }
 
   let code = generateRoomCode();
   let attempts = 0;
