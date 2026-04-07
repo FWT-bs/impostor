@@ -205,18 +205,21 @@ export default function RoomsPage() {
       const done = setTimeout(() => setListLoadPercent(0), 380);
       return () => clearTimeout(done);
     }
-    const plateaus = [10, 26, 42, 56, 68, 78, 87, 93, 96];
-    let step = 0;
-    setListLoadPercent(5);
-    const id = setInterval(() => {
-      if (step < plateaus.length) {
-        setListLoadPercent(plateaus[step]);
-        step += 1;
-      } else {
-        setListLoadPercent((p) => (p >= 97 ? p : p + 1));
-      }
-    }, 420);
-    return () => clearInterval(id);
+    // Smooth continuous progress using requestAnimationFrame
+    let raf: number;
+    let start: number | null = null;
+    setListLoadPercent(0);
+
+    function tick(ts: number) {
+      if (!start) start = ts;
+      const elapsed = ts - start;
+      // Ease-out curve: fast at first, slows down approaching 95%
+      const progress = Math.min(95, 95 * (1 - Math.exp(-elapsed / 1800)));
+      setListLoadPercent(Math.round(progress));
+      raf = requestAnimationFrame(tick);
+    }
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
   }, [loadingRooms]);
 
   useEffect(() => {
@@ -580,13 +583,16 @@ export default function RoomsPage() {
                       aria-valuemax={100}
                     >
                       <div
-                        className="h-full rounded-full transition-none"
+                        className="h-full rounded-full"
                         style={{
                           width: `${Math.min(100, listLoadPercent)}%`,
                           background:
                             "linear-gradient(90deg, var(--purple-dim) 0%, var(--purple) 45%, var(--purple-glow) 100%)",
                           boxShadow:
                             "0 0 14px rgba(128, 112, 212, 0.45), inset 0 1px 0 rgba(255,255,255,0.12)",
+                          transition: listLoadPercent === 100
+                            ? "width 0.25s ease-out"
+                            : "width 0.08s linear",
                         }}
                       />
                     </div>

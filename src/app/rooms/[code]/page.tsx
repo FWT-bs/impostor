@@ -1,7 +1,7 @@
 "use client";
 
 import { use, useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { Header } from "@/components/layout/Header";
@@ -16,6 +16,8 @@ import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import { postJson } from "@/lib/api-fetch";
 import { getAuthAvatarColor, getAuthDisplayName } from "@/lib/auth-display-name";
+import { loginWithNext, signupWithNext } from "@/lib/auth-path";
+import Link from "next/link";
 
 const AVATAR_COLORS = [
   "#ef4444", "#f97316", "#f59e0b", "#22c55e", "#14b8a6",
@@ -29,9 +31,11 @@ export default function LobbyPage({
 }) {
   const { code } = use(params);
   const router = useRouter();
+  const pathname = usePathname();
   const { user, profile } = useAuth();
   const { room, players, loading } = useRoom(code);
   const [starting, setStarting] = useState(false);
+  const [joiningRoom, setJoiningRoom] = useState(false);
 
   const isHost = Boolean(user && room?.host_id === user.id);
   const myPlayer = players.find((p) => p.user_id === user?.id);
@@ -99,6 +103,28 @@ export default function LobbyPage({
     const supabase = createClient();
     await supabase.from("room_players").delete().eq("id", myPlayer.id);
     router.push("/rooms");
+  }
+
+  async function handleJoinRoom() {
+    if (!user) return;
+    setJoiningRoom(true);
+    try {
+      const displayName =
+        profile?.username?.trim() ||
+        getAuthDisplayName(user, profile) ||
+        `Player_${user.id.slice(0, 6)}`;
+      const result = await postJson<{ room: { code: string } }>(
+        "/api/rooms/join",
+        { code: code.toUpperCase(), displayName },
+      );
+      if (!result.ok) {
+        toast.error(result.errorMessage);
+        return;
+      }
+      router.refresh();
+    } finally {
+      setJoiningRoom(false);
+    }
   }
 
   const headerUser = user
@@ -280,7 +306,37 @@ export default function LobbyPage({
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
           >
-            {isHost ? (
+            {!user ? (
+              /* ── Not signed in ── */
+              <Card padding="lg" className="text-center border-2 border-border">
+                <p className="text-sm text-muted mb-4">Sign in to join this room</p>
+                <div className="flex gap-3">
+                  <Button variant="secondary" size="lg" className="flex-1" asChild>
+                    <Link href={loginWithNext(pathname)}>Sign In</Link>
+                  </Button>
+                  <Button variant="primary" size="lg" className="flex-1" asChild>
+                    <Link href={signupWithNext(pathname)}>Sign Up</Link>
+                  </Button>
+                </div>
+              </Card>
+            ) : !myPlayer ? (
+              /* ── Signed in but not in the room ── */
+              <Card padding="lg" className="text-center border-2 border-border">
+                <p className="text-sm text-muted mb-4">
+                  You&apos;re not in this room yet.
+                </p>
+                <Button
+                  variant="primary"
+                  size="lg"
+                  className="w-full"
+                  onClick={handleJoinRoom}
+                  isLoading={joiningRoom}
+                >
+                  Join Room
+                </Button>
+              </Card>
+            ) : isHost ? (
+              /* ── Host controls ── */
               <>
                 <Button
                   variant="primary"
@@ -293,28 +349,47 @@ export default function LobbyPage({
                   {canStartNow ? "Start now" : `Need ${playersNeeded} more`}
                 </Button>
                 <p className="text-center text-xs text-muted">
-                  Host can begin as soon as three players are in the lobby. Ready toggles are optional —
-                  use them to signal when you&apos;re set.
+                  Host can begin as soon as three players are in the lobby.
                 </p>
               </>
             ) : (
-              <Button
-                variant={myPlayer?.is_ready ? "secondary" : "primary"}
-                size="lg"
-                className="w-full"
-                onClick={handleToggleReady}
-                disabled={!myPlayer}
-              >
-                {!myPlayer
-                  ? "Rejoin room to ready up"
-                  : myPlayer.is_ready
-                    ? "Mark not ready"
-                    : "Ready"}
+              /* ── Regular player — ready toggle ── */
+              <Card padding="md" className="border-2 border-border">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-foreground">Ready status</p>
+                    <p className="text-xs text-muted mt-0.5">
+                      {myPlayer.is_ready ? "You're ready to go" : "Toggle when you're set"}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={myPlayer.is_ready}
+                    onClick={handleToggleReady}
+                    className={cn(
+                      "relative inline-flex h-7 w-12 shrink-0 cursor-pointer rounded-full border-2 transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple",
+                      myPlayer.is_ready
+                        ? "bg-emerald border-emerald/50"
+                        : "bg-border border-border",
+                    )}
+                  >
+                    <span
+                      className={cn(
+                        "pointer-events-none inline-block size-5 rounded-full bg-white shadow-md ring-0 transition-transform duration-200",
+                        myPlayer.is_ready ? "translate-x-[22px]" : "translate-x-[2px]",
+                      )}
+                      style={{ marginTop: "2px" }}
+                    />
+                  </button>
+                </div>
+              </Card>
+            )}
+            {myPlayer && (
+              <Button variant="ghost" size="md" className="w-full text-muted" onClick={handleLeave}>
+                Leave room
               </Button>
             )}
-            <Button variant="ghost" size="md" className="w-full text-muted" onClick={handleLeave}>
-              Leave room
-            </Button>
           </motion.div>
         </div>
       </main>
