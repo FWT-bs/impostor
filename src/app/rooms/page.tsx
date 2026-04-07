@@ -63,7 +63,7 @@ export default function RoomsPage() {
   const [createMaxPlayers, setCreateMaxPlayers] = useState(8);
   const [createDiscussionTimer, setCreateDiscussionTimer] = useState(60);
   const [createCategory, setCreateCategory] = useState<string | null>(null);
-  const listRefreshGenRef = useRef(0);
+  const [listLoadPercent, setListLoadPercent] = useState(0);
 
   useEffect(() => {
     const saved = getPreferredDisplayName();
@@ -149,9 +149,9 @@ export default function RoomsPage() {
 
   const refreshAllListings = useCallback(
     async (opts?: { silent?: boolean }) => {
-      const gen = ++listRefreshGenRef.current;
       if (!opts?.silent) {
         setListError(null);
+        await supabase.auth.getSession();
       }
       try {
         const [openRes, liveRes, myRes] = await Promise.all([
@@ -159,7 +159,6 @@ export default function RoomsPage() {
           loadLiveRooms(),
           loadMyRooms(),
         ]);
-        if (listRefreshGenRef.current !== gen) return;
 
         setOpenRooms(openRes.rooms);
         setLiveRooms(liveRes.rooms);
@@ -173,7 +172,6 @@ export default function RoomsPage() {
           }
         }
       } catch (e) {
-        if (listRefreshGenRef.current !== gen) return;
         console.error("refreshAllListings:", e);
         if (!opts?.silent) {
           setListError(
@@ -188,7 +186,7 @@ export default function RoomsPage() {
         }
       }
     },
-    [loadOpenRooms, loadLiveRooms, loadMyRooms],
+    [loadOpenRooms, loadLiveRooms, loadMyRooms, supabase],
   );
 
   const userId = user?.id ?? null;
@@ -203,7 +201,28 @@ export default function RoomsPage() {
   }, [authLoading, refreshAllListings]);
 
   useEffect(() => {
+    if (!loadingRooms) {
+      setListLoadPercent(100);
+      const done = setTimeout(() => setListLoadPercent(0), 380);
+      return () => clearTimeout(done);
+    }
+    const plateaus = [10, 26, 42, 56, 68, 78, 87, 93, 96];
+    let step = 0;
+    setListLoadPercent(5);
+    const id = setInterval(() => {
+      if (step < plateaus.length) {
+        setListLoadPercent(plateaus[step]);
+        step += 1;
+      } else {
+        setListLoadPercent((p) => (p >= 97 ? p : p + 1));
+      }
+    }, 420);
+    return () => clearInterval(id);
+  }, [loadingRooms]);
+
+  useEffect(() => {
     let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+    let firstSubscribed = true;
     function scheduleRefresh() {
       if (debounceTimer) clearTimeout(debounceTimer);
       debounceTimer = setTimeout(() => {
@@ -225,7 +244,14 @@ export default function RoomsPage() {
         () => scheduleRefresh()
       )
       .subscribe((status, err) => {
-        if (status === "SUBSCRIBED") scheduleRefresh();
+        if (status === "SUBSCRIBED") {
+          if (firstSubscribed) {
+            firstSubscribed = false;
+            setTimeout(() => scheduleRefresh(), 650);
+          } else {
+            scheduleRefresh();
+          }
+        }
         if (status === "CHANNEL_ERROR" || err) {
           console.warn("rooms realtime:", status, err);
           scheduleRefresh();
@@ -505,12 +531,77 @@ export default function RoomsPage() {
             )}
 
             {loadingRooms ? (
-              <div className="flex flex-col items-center justify-center py-14 gap-4">
-                <svg className="size-7 animate-spin text-purple/50" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-20" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" />
-                  <path className="opacity-80" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                </svg>
-                <p className="text-sm text-muted">Loading room list…</p>
+              <div className="w-full max-w-sm mx-auto py-14 px-1">
+                <div
+                  className="rounded-2xl border-2 border-border bg-card/70 px-6 py-8 flex flex-col items-center gap-5"
+                  style={{
+                    boxShadow:
+                      "inset 0 1px 0 rgba(255,255,255,0.04), 0 8px 32px rgba(0,0,0,0.25)",
+                  }}
+                >
+                  <svg
+                    className="size-8 animate-spin text-purple/65"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    aria-hidden
+                  >
+                    <circle
+                      className="opacity-20"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="3"
+                    />
+                    <path
+                      className="opacity-90"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                    />
+                  </svg>
+                  <div className="text-center space-y-1">
+                    <p className="text-sm font-medium text-foreground tracking-wide">
+                      Loading room list…
+                    </p>
+                    <p className="text-[11px] text-muted uppercase tracking-[0.2em]">
+                      Briefing channel
+                    </p>
+                  </div>
+                  <div className="w-full space-y-2.5">
+                    <div
+                      className="h-2.5 w-full rounded-full border border-border/90 overflow-hidden"
+                      style={{
+                        background:
+                          "linear-gradient(180deg, rgba(14,16,36,0.95) 0%, rgba(19,21,40,0.85) 100%)",
+                        boxShadow: "inset 0 1px 2px rgba(0,0,0,0.35)",
+                      }}
+                      role="progressbar"
+                      aria-valuenow={listLoadPercent}
+                      aria-valuemin={0}
+                      aria-valuemax={100}
+                    >
+                      <div
+                        className="h-full rounded-full transition-none"
+                        style={{
+                          width: `${Math.min(100, listLoadPercent)}%`,
+                          background:
+                            "linear-gradient(90deg, var(--purple-dim) 0%, var(--purple) 45%, var(--purple-glow) 100%)",
+                          boxShadow:
+                            "0 0 14px rgba(128, 112, 212, 0.45), inset 0 1px 0 rgba(255,255,255,0.12)",
+                        }}
+                      />
+                    </div>
+                    <p className="text-[11px] text-center text-muted font-medium tabular-nums">
+                      {listLoadPercent < 100 ? (
+                        <>
+                          Almost there · <span className="text-purple/90">{listLoadPercent}%</span>
+                        </>
+                      ) : (
+                        <span className="text-emerald/90">Ready</span>
+                      )}
+                    </p>
+                  </div>
+                </div>
               </div>
             ) : displayRooms.length === 0 ? (
               <Card padding="lg" className="text-center">
