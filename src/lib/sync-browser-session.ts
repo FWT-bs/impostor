@@ -13,6 +13,12 @@ export async function syncBrowserSessionFromApi(
 ): Promise<void> {
   if (!session?.access_token || !session.refresh_token) return;
   const supabase = createClient();
+  const {
+    data: { session: existing },
+  } = await supabase.auth.getSession();
+  if (existing?.user?.is_anonymous) {
+    await supabase.auth.signOut({ scope: "local" });
+  }
   const { error } = await supabase.auth.setSession({
     access_token: session.access_token,
     refresh_token: session.refresh_token,

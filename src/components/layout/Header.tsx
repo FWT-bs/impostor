@@ -35,6 +35,7 @@ export function Header({ user: userProp, authSlot, className }: HeaderProps) {
   const { user: authUser, profile } = useAuth();
   const loginHref = loginWithNext(pathname);
   const signupHref = signupWithNext(pathname);
+  const isAnonymous = Boolean(authUser?.is_anonymous);
 
   // Use the explicit prop if provided, otherwise derive from auth state
   const user: HeaderUser | null =
@@ -45,6 +46,9 @@ export function Header({ user: userProp, authSlot, className }: HeaderProps) {
         : authUser
           ? { username: authUser.email?.split("@")[0] ?? "Player", avatarColor: "#8070d4" }
           : null;
+
+  /** Guests look "signed in" in the UI but must still reach Login / Sign up anytime. */
+  const showLoginSignup = user === null || isAnonymous;
 
   return (
     <motion.header
@@ -112,40 +116,40 @@ export function Header({ user: userProp, authSlot, className }: HeaderProps) {
 
         {/* Right side */}
         <div className="flex items-center gap-2 sm:gap-3">
-          {authSlot ??
-            (user ? (
-              <Link
-                href="/profile"
-                className="group flex items-center gap-2 sm:gap-2.5 rounded-full py-1.5 pl-1.5 pr-3 transition-all duration-200"
-                style={{ border: "1px solid transparent" }}
-                onMouseEnter={(e) => {
-                  (e.currentTarget as HTMLElement).style.borderColor = "rgba(28,31,58,1)";
-                  (e.currentTarget as HTMLElement).style.background = "rgba(14,16,36,0.6)";
-                }}
-                onMouseLeave={(e) => {
-                  (e.currentTarget as HTMLElement).style.borderColor = "transparent";
-                  (e.currentTarget as HTMLElement).style.background = "transparent";
-                }}
-              >
-                <Avatar
-                  name={user.username}
-                  color={user.avatarColor}
-                  size="sm"
-                />
-                <span className="hidden max-w-[130px] truncate text-[13px] font-medium text-foreground transition-colors group-hover:text-purple sm:inline">
-                  {user.username}
-                </span>
-              </Link>
-            ) : (
-              <div className="hidden items-center gap-2 sm:flex">
-                <Button variant="ghost" size="sm" asChild>
-                  <Link href={loginHref}>Login</Link>
-                </Button>
-                <Button variant="primary" size="sm" asChild>
-                  <Link href={signupHref}>Sign up</Link>
-                </Button>
-              </div>
-            ))}
+          {authSlot ?? (
+            <div className="flex items-center gap-2 sm:gap-3">
+              {user && (
+                <Link
+                  href="/profile"
+                  className="group flex items-center gap-2 sm:gap-2.5 rounded-full py-1.5 pl-1.5 pr-3 transition-all duration-200"
+                  style={{ border: "1px solid transparent" }}
+                  onMouseEnter={(e) => {
+                    (e.currentTarget as HTMLElement).style.borderColor = "rgba(28,31,58,1)";
+                    (e.currentTarget as HTMLElement).style.background = "rgba(14,16,36,0.6)";
+                  }}
+                  onMouseLeave={(e) => {
+                    (e.currentTarget as HTMLElement).style.borderColor = "transparent";
+                    (e.currentTarget as HTMLElement).style.background = "transparent";
+                  }}
+                >
+                  <Avatar name={user.username} color={user.avatarColor} size="sm" />
+                  <span className="hidden max-w-[130px] truncate text-[13px] font-medium text-foreground transition-colors group-hover:text-purple sm:inline">
+                    {user.username}
+                  </span>
+                </Link>
+              )}
+              {showLoginSignup && (
+                <div className="hidden items-center gap-2 sm:flex">
+                  <Button variant="ghost" size="sm" asChild>
+                    <Link href={loginHref}>Login</Link>
+                  </Button>
+                  <Button variant="primary" size="sm" asChild>
+                    <Link href={signupHref}>Sign up</Link>
+                  </Button>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Mobile menu toggle */}
           <button
@@ -240,7 +244,7 @@ export function Header({ user: userProp, authSlot, className }: HeaderProps) {
                   </motion.div>
                 );
               })}
-              {!user && !authSlot && (
+              {showLoginSignup && !authSlot && (
                 <motion.div
                   className="mt-2 flex flex-col gap-2 border-t pt-3 sm:hidden"
                   style={{ borderColor: "rgba(28,31,58,0.8)" }}
