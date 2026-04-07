@@ -13,23 +13,56 @@ export function usePlayerSecret(roundId: string | null) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let cancelled = false;
+
     if (!roundId) {
       setSecret(null);
       setLoading(false);
       return;
     }
 
-    async function fetch() {
+    const rid = roundId;
+
+    async function fetchSecret() {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user || cancelled) return;
       const { data } = await supabase
         .from("player_secrets")
         .select("*")
-        .eq("round_id", roundId!)
+        .eq("round_id", rid)
+        .eq("user_id", user.id)
         .maybeSingle();
-      setSecret(data);
-      setLoading(false);
+      if (!cancelled) {
+        setSecret(data);
+        setLoading(false);
+      }
     }
 
-    fetch();
+    setLoading(true);
+    void fetchSecret();
+
+    const channel = supabase
+      .channel(`player-secret-${rid}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "player_secrets",
+          filter: `round_id=eq.${rid}`,
+        },
+        () => {
+          void fetchSecret();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      cancelled = true;
+      supabase.removeChannel(channel);
+    };
   }, [roundId, supabase]);
 
   return { secret, loading };

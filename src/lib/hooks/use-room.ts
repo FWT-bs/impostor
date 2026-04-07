@@ -49,6 +49,10 @@ export function useRoom(roomCode: string) {
   useEffect(() => {
     if (!roomId) return;
 
+    const poll = setInterval(() => {
+      void fetchRoom();
+    }, 4000);
+
     const roomChannel = supabase
       .channel(`room-${roomId}`)
       .on(
@@ -98,9 +102,10 @@ export function useRoom(roomCode: string) {
       .subscribe();
 
     return () => {
+      clearInterval(poll);
       supabase.removeChannel(roomChannel);
     };
-  }, [roomId, supabase]);
+  }, [roomId, supabase, fetchRoom]);
 
   return { room, players, loading, refetch: fetchRoom };
 }

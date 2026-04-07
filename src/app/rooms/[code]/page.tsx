@@ -14,6 +14,7 @@ import { useAuth } from "@/lib/hooks/use-auth";
 import { useRoom } from "@/lib/hooks/use-room";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
+import { postJson } from "@/lib/api-fetch";
 
 const AVATAR_COLORS = [
   "#ef4444", "#f97316", "#f59e0b", "#22c55e", "#14b8a6",
@@ -44,11 +45,13 @@ export default function LobbyPage({
 
   async function handleToggleReady() {
     if (!myPlayer) return;
-    const supabase = createClient();
-    await supabase
-      .from("room_players")
-      .update({ is_ready: !myPlayer.is_ready })
-      .eq("id", myPlayer.id);
+    const result = await postJson<{ ok: boolean; is_ready: boolean }>(
+      `/api/rooms/${code}/ready`,
+      {}
+    );
+    if (!result.ok) {
+      toast.error(result.errorMessage);
+    }
   }
 
   async function handleStart() {
@@ -299,8 +302,13 @@ export default function LobbyPage({
                 size="lg"
                 className="w-full"
                 onClick={handleToggleReady}
+                disabled={!myPlayer}
               >
-                {myPlayer?.is_ready ? "Mark not ready" : "Ready"}
+                {!myPlayer
+                  ? "Rejoin room to ready up"
+                  : myPlayer.is_ready
+                    ? "Mark not ready"
+                    : "Ready"}
               </Button>
             )}
             <Button variant="ghost" size="md" className="w-full text-muted" onClick={handleLeave}>

@@ -21,6 +21,9 @@ import {
   setPreferredDisplayName,
 } from "@/lib/preferred-display-name";
 
+const ROOM_LIST_SELECT =
+  "id, code, host_id, max_players, is_private, settings, status, room_players(id)";
+
 type RoomRow = {
   id: string;
   code: string;
@@ -28,8 +31,11 @@ type RoomRow = {
   max_players: number;
   is_private: boolean;
   settings: unknown;
+  status: string;
   room_players: { id: string }[];
 };
+
+type RoomTab = "mine" | "open" | "live";
 
 export default function RoomsPage() {
   const router = useRouter();
@@ -37,8 +43,12 @@ export default function RoomsPage() {
   const { user, profile, loading: authLoading } = useAuth();
   const supabase = useMemo(() => createClient(), []);
 
-  const [rooms, setRooms] = useState<RoomRow[]>([]);
+  const [tab, setTab] = useState<RoomTab>("open");
+  const [myRooms, setMyRooms] = useState<RoomRow[]>([]);
+  const [openRooms, setOpenRooms] = useState<RoomRow[]>([]);
+  const [liveRooms, setLiveRooms] = useState<RoomRow[]>([]);
   const [loadingRooms, setLoadingRooms] = useState(true);
+  const [listError, setListError] = useState<string | null>(null);
   const [joinCode, setJoinCode] = useState("");
   const [joining, setJoining] = useState(false);
   const [showCreate, setShowCreate] = useState(false);
@@ -60,67 +70,144 @@ export default function RoomsPage() {
     });
   }, [profile?.username]);
 
-  const fetchRooms = useCallback(async () => {
+  const fetchOpenRooms = useCallback(async (): Promise<boolean> => {
+    const { data, error } = await supabase
+      .from("rooms")
+      .select(ROOM_LIST_SELECT)
+      .eq("status", "waiting")
+      .eq("is_private", false)
+      .order("created_at", { ascending: false })
+      .limit(30);
+    if (error) {
+      console.error("fetchOpenRooms:", error);
+      setOpenRooms([]);
+      return false;
+    }
+    setOpenRooms((data as RoomRow[]) ?? []);
+    return true;
+  }, [supabase]);
+
+  const fetchLiveRooms = useCallback(async (): Promise<boolean> => {
+    const { data, error } = await supabase
+      .from("rooms")
+      .select(ROOM_LIST_SELECT)
+      .eq("status", "playing")
+      .eq("is_private", false)
+      .order("updated_at", { ascending: false })
+      .limit(30);
+    if (error) {
+      console.error("fetchLiveRooms:", error);
+      setLiveRooms([]);
+      return false;
+    }
+    setLiveRooms((data as RoomRow[]) ?? []);
+    return true;
+  }, [supabase]);
+
+  const fetchMyRooms = useCallback(async (): Promise<boolean> => {
+    if (!user?.id) {
+      setMyRooms([]);
+      return true;
+    }
+    const { data: rp, error: rpErr } = await supabase
+      .from("room_players")
+      .select("room_id")
+      .eq("user_id", user.id);
+    if (rpErr) {
+      console.error("fetchMyRooms room_players:", rpErr);
+      setMyRooms([]);
+      return false;
+    }
+    const ids = [...new Set((rp ?? []).map((r) => r.room_id))];
+    if (ids.length === 0) {
+      setMyRooms([]);
+      return true;
+    }
+    const { data, error } = await supabase
+      .from("rooms")
+      .select(ROOM_LIST_SELECT)
+      .in("id", ids)
+      .order("updated_at", { ascending: false })
+      .limit(30);
+    if (error) {
+      console.error("fetchMyRooms rooms:", error);
+      setMyRooms([]);
+      return false;
+    }
+    setMyRooms((data as RoomRow[]) ?? []);
+    return true;
+  }, [supabase, user?.id]);
+
+  const refreshAllListings = useCallback(async () => {
+    setListError(null);
+    const timeout = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error("Request timed out")), 12000)
+    );
     try {
-      const { data, error } = await supabase
-        .from("rooms")
-        .select("id, code, host_id, max_players, is_private, settings, room_players(id)")
-        .eq("status", "waiting")
-        .eq("is_private", false)
-        .order("created_at", { ascending: false })
-        .limit(20);
-      if (error) {
-        console.error("fetchRooms:", error.message);
+      const [openOk, liveOk, mineOk] = await Promise.race([
+        Promise.all([
+          fetchOpenRooms(),
+          fetchLiveRooms(),
+          fetchMyRooms(),
+        ]),
+        timeout,
+      ]);
+      if (!openOk && !liveOk && !mineOk) {
+        setListError("Could not load rooms. Try Refresh.");
+      } else if (!openOk || !liveOk || !mineOk) {
+        setListError("Some lists could not be refreshed.");
       }
-      setRooms((data as RoomRow[]) ?? []);
     } catch (e) {
-      console.error("fetchRooms:", e);
-      setRooms([]);
+      console.error("refreshAllListings:", e);
+      setListError(
+        e instanceof Error ? e.message : "Could not load rooms. Try Refresh."
+      );
     } finally {
       setLoadingRooms(false);
     }
-  }, [supabase]);
+  }, [fetchOpenRooms, fetchLiveRooms, fetchMyRooms]);
 
   const userId = user?.id ?? null;
 
   useEffect(() => {
+    setLoadingRooms(true);
+    void refreshAllListings();
+  }, [refreshAllListings]);
+
+  useEffect(() => {
     let debounceTimer: ReturnType<typeof setTimeout> | null = null;
-    function scheduleFetchRooms() {
+    function scheduleRefresh() {
       if (debounceTimer) clearTimeout(debounceTimer);
       debounceTimer = setTimeout(() => {
         debounceTimer = null;
-        void fetchRooms();
+        void refreshAllListings();
       }, 400);
     }
 
-    void fetchRooms();
-
-    // New channel when auth changes so the socket JWT matches the session; one
-    // stable channel name avoids anon vs signed-in connection fighting itself.
     const channel = supabase
       .channel(`public-rooms:${userId ?? "anon"}`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "rooms" },
-        () => scheduleFetchRooms()
+        () => scheduleRefresh()
       )
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "room_players" },
-        () => scheduleFetchRooms()
+        () => scheduleRefresh()
       )
       .subscribe((status, err) => {
-        if (status === "SUBSCRIBED") scheduleFetchRooms();
+        if (status === "SUBSCRIBED") scheduleRefresh();
         if (status === "CHANNEL_ERROR" || err) {
           console.warn("rooms realtime:", status, err);
-          scheduleFetchRooms();
+          scheduleRefresh();
         }
       });
 
-    const poll = setInterval(() => void fetchRooms(), 4000);
+    const poll = setInterval(() => void refreshAllListings(), 5000);
 
     function onVisible() {
-      if (document.visibilityState === "visible") void fetchRooms();
+      if (document.visibilityState === "visible") void refreshAllListings();
     }
     document.addEventListener("visibilitychange", onVisible);
 
@@ -130,7 +217,10 @@ export default function RoomsPage() {
       document.removeEventListener("visibilitychange", onVisible);
       supabase.removeChannel(channel);
     };
-  }, [supabase, fetchRooms, userId]);
+  }, [supabase, refreshAllListings, userId]);
+
+  const displayRooms =
+    tab === "mine" ? myRooms : tab === "live" ? liveRooms : openRooms;
 
   function updateDisplayName(value: string) {
     setDisplayName(value);
@@ -157,7 +247,7 @@ export default function RoomsPage() {
         return;
       }
       setPreferredDisplayName(name);
-      void fetchRooms();
+      void refreshAllListings();
       router.push(`/rooms/${code.toUpperCase()}`);
       router.refresh();
     } finally {
@@ -187,13 +277,13 @@ export default function RoomsPage() {
       const code = result.data?.room?.code;
       if (!code) {
         toast.error("Room was created but the response was incomplete.");
-        void fetchRooms();
+        void refreshAllListings();
         return;
       }
       setPreferredDisplayName(name);
       setShowCreate(false);
       setIsPrivate(false);
-      void fetchRooms();
+      void refreshAllListings();
       router.push(`/rooms/${code}`);
       router.refresh();
     } finally {
@@ -204,6 +294,14 @@ export default function RoomsPage() {
   function closeCreateModal() {
     setShowCreate(false);
     setCreating(false);
+  }
+
+  function enterMyRoom(room: RoomRow) {
+    if (room.status === "playing") {
+      router.push(`/rooms/${room.code}/play`);
+    } else {
+      router.push(`/rooms/${room.code}`);
+    }
   }
 
   return (
@@ -281,94 +379,172 @@ export default function RoomsPage() {
             </Card>
           </motion.div>
 
-          {/* Public rooms header */}
+          {/* Room browser */}
           <motion.div
-            className="flex items-center justify-between mb-4"
+            className="mb-4"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.22 }}
           >
-            <div className="flex items-center gap-3">
-              <h2 className="font-heading text-xl text-foreground">Public Rooms</h2>
-              {/* Live indicator */}
-              <span className="flex items-center gap-1.5 text-[11px] text-emerald/70">
-                <span className="relative flex size-2">
-                  <span className="animate-ping absolute inline-flex size-full rounded-full bg-emerald opacity-40" />
-                  <span className="relative inline-flex size-2 rounded-full bg-emerald/70" />
-                </span>
-                Live
-              </span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Button
-                variant="ghost"
-                size="sm"
-                type="button"
-                onClick={() => void fetchRooms()}
-                className="text-muted"
-              >
-                Refresh
-              </Button>
-              <Button variant="secondary" size="sm" onClick={() => setShowCreate(true)}>
-                Create Room
-              </Button>
-            </div>
-          </motion.div>
-
-          {loadingRooms ? (
-            <div className="flex flex-col items-center justify-center py-14 gap-4">
-              <svg className="size-7 animate-spin text-purple/50" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-20" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" />
-                <path className="opacity-80" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-              </svg>
-              <p className="text-sm text-muted">Finding rooms...</p>
-            </div>
-          ) : rooms.length === 0 ? (
-            <Card padding="lg" className="text-center">
-              <div className="w-12 h-12 rounded-full bg-card-hover border border-border flex items-center justify-center mx-auto mb-4">
-                <svg className="size-6 text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" />
-                </svg>
-              </div>
-              <p className="text-muted text-sm mb-4">No public rooms right now</p>
-              <Button variant="primary" size="sm" onClick={() => setShowCreate(true)}>
-                Create One
-              </Button>
-            </Card>
-          ) : (
-            <AnimatePresence mode="popLayout">
-              <div className="space-y-3">
-                {rooms.map((room, i) => (
-                  <motion.div
-                    key={room.id}
-                    initial={{ opacity: 0, y: 8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -8 }}
-                    transition={{ delay: 0.28 + i * 0.05, duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-4">
+              <div className="flex rounded-2xl border-2 border-border bg-card/60 p-1 gap-1">
+                {(
+                  [
+                    ["open", "Open"] as const,
+                    ["live", "Live"] as const,
+                    ["mine", "Mine"] as const,
+                  ] as const
+                ).map(([key, label]) => (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => setTab(key)}
+                    className={cn(
+                      "flex-1 rounded-xl px-4 py-2 text-sm font-semibold transition-all duration-200 cursor-pointer",
+                      tab === key
+                        ? "bg-purple/15 text-foreground border border-purple/25"
+                        : "text-muted hover:text-foreground",
+                    )}
                   >
-                    <Card hover padding="md" className="flex items-center justify-between">
-                      <div className="flex items-center gap-4">
-                        <span className="font-heading text-xl text-purple tracking-widest">
-                          {room.code}
-                        </span>
-                        <span className="text-sm text-muted">
-                          {room.room_players.length}/{room.max_players} players
-                        </span>
-                      </div>
-                      <Button
-                        variant="primary"
-                        size="sm"
-                        onClick={() => handleJoin(room.code)}
-                        disabled={joining}
-                      >
-                        Join
-                      </Button>
-                    </Card>
-                  </motion.div>
+                    {label}
+                  </button>
                 ))}
               </div>
-            </AnimatePresence>
-          )}
+              <div className="flex items-center gap-2 justify-end">
+                <span className="flex items-center gap-1.5 text-[11px] text-emerald/70">
+                  <span className="relative flex size-2">
+                    <span className="animate-ping absolute inline-flex size-full rounded-full bg-emerald opacity-40" />
+                    <span className="relative inline-flex size-2 rounded-full bg-emerald/70" />
+                  </span>
+                  Sync
+                </span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  type="button"
+                  onClick={() => {
+                    setLoadingRooms(true);
+                    void refreshAllListings();
+                  }}
+                  className="text-muted"
+                >
+                  Refresh
+                </Button>
+                <Button variant="secondary" size="sm" onClick={() => setShowCreate(true)}>
+                  Create Room
+                </Button>
+              </div>
+            </div>
+
+            <p className="text-xs text-muted mb-3">
+              {tab === "open" && "Public lobbies that still need players."}
+              {tab === "live" && "Public matches currently in progress (copy a code to ask for an invite)."}
+              {tab === "mine" && "Rooms you’re in right now — lobby or in-game."}
+            </p>
+
+            {listError && (
+              <p className="text-sm text-rose mb-3" role="alert">
+                {listError}
+              </p>
+            )}
+
+            {loadingRooms ? (
+              <div className="flex flex-col items-center justify-center py-14 gap-4">
+                <svg className="size-7 animate-spin text-purple/50" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-20" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" />
+                  <path className="opacity-80" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                </svg>
+                <p className="text-sm text-muted">Loading room list…</p>
+              </div>
+            ) : displayRooms.length === 0 ? (
+              <Card padding="lg" className="text-center">
+                <p className="text-muted text-sm mb-4">
+                  {tab === "mine" && !user && "Sign in to see rooms you’re part of."}
+                  {tab === "mine" && user && "You’re not in any room yet. Join one from Open or use a code."}
+                  {tab === "open" && "No public open lobbies right now."}
+                  {tab === "live" && "No public games in progress right now."}
+                </p>
+                {tab === "open" && (
+                  <Button variant="primary" size="sm" onClick={() => setShowCreate(true)}>
+                    Create a room
+                  </Button>
+                )}
+              </Card>
+            ) : (
+              <AnimatePresence mode="popLayout">
+                <div className="space-y-3">
+                  {displayRooms.map((room, i) => (
+                    <motion.div
+                      key={`${tab}-${room.id}`}
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -8 }}
+                      transition={{ delay: 0.06 + i * 0.03, duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+                    >
+                      <Card hover padding="md" className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                        <div className="flex flex-wrap items-center gap-3">
+                          <span className="font-heading text-xl text-purple tracking-widest">
+                            {room.code}
+                          </span>
+                          <span className="text-sm text-muted">
+                            {room.room_players.length}/{room.max_players} players
+                          </span>
+                          {tab === "mine" && (
+                            <span
+                              className={cn(
+                                "text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border",
+                                room.status === "playing"
+                                  ? "border-emerald/30 text-emerald bg-emerald/10"
+                                  : "border-purple/30 text-purple bg-purple/10",
+                              )}
+                            >
+                              {room.status === "playing" ? "In game" : "Lobby"}
+                            </span>
+                          )}
+                          {tab === "live" && (
+                            <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border border-orange/30 text-orange bg-orange/10">
+                              Live
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          {tab === "open" && (
+                            <Button
+                              variant="primary"
+                              size="sm"
+                              onClick={() => handleJoin(room.code)}
+                              disabled={joining || authLoading}
+                              isLoading={joining}
+                            >
+                              Join
+                            </Button>
+                          )}
+                          {tab === "mine" && (
+                            <Button variant="primary" size="sm" onClick={() => enterMyRoom(room)}>
+                              Enter
+                            </Button>
+                          )}
+                          {tab === "live" && (
+                            <Button
+                              variant="secondary"
+                              size="sm"
+                              type="button"
+                              onClick={() => {
+                                void navigator.clipboard.writeText(room.code);
+                                toast.success("Room code copied");
+                              }}
+                            >
+                              Copy code
+                            </Button>
+                          )}
+                        </div>
+                      </Card>
+                    </motion.div>
+                  ))}
+                </div>
+              </AnimatePresence>
+            )}
+          </motion.div>
         </div>
       </main>
 
