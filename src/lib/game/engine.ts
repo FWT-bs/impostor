@@ -29,8 +29,11 @@ export function tallyVotes(
 
 export function determineWinner(
   votes: Record<string, string>,
-  impostorId: string
+  impostorIds: string[]
 ): { winner: GameWinner; votedOutId: string | null; isTie: boolean } {
+  const impostorSet = new Set(
+    impostorIds.filter((id): id is string => Boolean(id)),
+  );
   const tally = tallyVotes(votes);
 
   if (tally.length === 0) {
@@ -45,7 +48,9 @@ export function determineWinner(
   }
 
   const votedOutId = tally[0].targetId;
-  const winner: GameWinner = votedOutId === impostorId ? "group" : "impostor";
+  const winner: GameWinner = impostorSet.has(votedOutId)
+    ? "group"
+    : "impostor";
 
   return { winner, votedOutId, isTie: false };
 }

@@ -217,7 +217,7 @@ export default function ProfilePage() {
     await refreshAuth();
   }
 
-  const totalWins = activeProfile.group_wins + activeProfile.impostor_wins;
+  const totalWins = activeProfile.total_wins;
   const winRate =
     activeProfile.games_played > 0
       ? Math.round((totalWins / activeProfile.games_played) * 100)

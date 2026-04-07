@@ -26,6 +26,11 @@ export async function POST(request: Request) {
   const maxPlayers: number = Math.min(10, Math.max(3, body.maxPlayers ?? 10));
   const category: string | null = body.category ?? null;
   const isPrivate: boolean = body.isPrivate ?? false;
+  const rawTimer = body.discussionTimer;
+  const discussionTimer =
+    typeof rawTimer === "number" && Number.isFinite(rawTimer)
+      ? Math.min(300, Math.max(30, Math.round(rawTimer)))
+      : 60;
 
   let displayName = requestedDisplayName;
   if (!displayName) {
@@ -65,7 +70,7 @@ export async function POST(request: Request) {
       phase: "lobby",
       max_players: maxPlayers,
       is_private: isPrivate,
-      settings: { discussionTimer: 60, category },
+      settings: { discussionTimer, category },
     })
     .select()
     .returns<Room[]>()

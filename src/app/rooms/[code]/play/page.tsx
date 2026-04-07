@@ -307,6 +307,7 @@ function OnlineCluePhase({
     setSubmitting(true);
     const res = await fetch(`/api/rooms/${code}/clue`, {
       method: "POST",
+      credentials: "include",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ clue: clue.trim() }),
     });
@@ -602,6 +603,7 @@ function OnlineVotingPhase({
     setSubmitting(true);
     const res = await fetch(`/api/rooms/${code}/vote`, {
       method: "POST",
+      credentials: "include",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ votedForId: selectedId }),
     });
@@ -737,11 +739,19 @@ function OnlineResultsPhase({
   async function handlePlayAgain() {
     const res = await fetch(`/api/rooms/${code}/start`, {
       method: "POST",
+      credentials: "include",
     });
+    const data = await res.json().catch(() => ({}));
     if (!res.ok) {
-      const data = await res.json();
-      toast.error(data.error || "Failed to start new round");
+      toast.error(
+        typeof data === "object" && data && "error" in data
+          ? String((data as { error: unknown }).error)
+          : "Failed to start new round",
+      );
+      return;
     }
+    router.replace(`/rooms/${code}/play`);
+    router.refresh();
   }
 
   async function handleBackToLobby() {
@@ -760,7 +770,12 @@ function OnlineResultsPhase({
     );
   }
 
-  const impostor = players.find((p) => p.user_id === round.impostor_id);
+  const impostorIdSet = new Set(
+    [round.impostor_id, round.second_impostor_id].filter(
+      (id): id is string => typeof id === "string" && id.length > 0,
+    ),
+  );
+  const impostors = players.filter((p) => impostorIdSet.has(p.user_id));
   const groupWon = round.winner === "group";
 
   const voteCounts: Record<string, number> = {};
@@ -787,21 +802,26 @@ function OnlineResultsPhase({
       </motion.div>
 
       <Card padding="lg" className="mb-6 mt-4">
-        <div className="flex items-center justify-center gap-3 mb-4">
-          <Avatar
-            name={impostor?.display_name || "?"}
-            color={
-              AVATAR_COLORS[
-                players.indexOf(impostor!) % AVATAR_COLORS.length
-              ] || "#666"
-            }
-            size="lg"
-          />
-          <div className="text-left">
-            <p className="text-sm text-muted">The Impostor was</p>
-            <p className="font-heading text-xl text-rose">
-              {impostor?.display_name}
-            </p>
+        <div className="flex flex-col items-center justify-center gap-4 mb-4">
+          <p className="text-sm text-muted">
+            {impostors.length > 1 ? "The impostors were" : "The impostor was"}
+          </p>
+          <div className="flex flex-wrap items-center justify-center gap-4">
+            {impostors.map((imp) => {
+              const idx = players.indexOf(imp);
+              return (
+                <div key={imp.id} className="flex items-center gap-3">
+                  <Avatar
+                    name={imp.display_name}
+                    color={AVATAR_COLORS[idx % AVATAR_COLORS.length] || "#666"}
+                    size="lg"
+                  />
+                  <p className="font-heading text-xl text-rose">
+                    {imp.display_name}
+                  </p>
+                </div>
+              );
+            })}
           </div>
         </div>
         <div className="border-t-2 border-border pt-4 mt-4">
@@ -823,7 +843,7 @@ function OnlineResultsPhase({
               key={p.id}
               className={cn(
                 "flex items-center gap-3 rounded-2xl px-3 py-2",
-                p.user_id === round.impostor_id &&
+                impostorIdSet.has(p.user_id) &&
                   "bg-rose/10 border-2 border-rose/30"
               )}
             >
@@ -839,7 +859,7 @@ function OnlineResultsPhase({
                 {voteCounts[p.user_id] || 0} vote
                 {(voteCounts[p.user_id] || 0) !== 1 ? "s" : ""}
               </span>
-              {p.user_id === round.impostor_id && (
+              {impostorIdSet.has(p.user_id) && (
                 <span className="text-xs bg-rose/20 text-rose px-2 py-0.5 rounded-full font-bold">
                   IMPOSTOR
                 </span>

@@ -100,7 +100,7 @@ export const useLocalGameStore = create<LocalGameStore>((set, get) => ({
       if (p.votedFor) voteMap[p.id] = p.votedFor;
     }
 
-    const result = determineWinner(voteMap, state.impostorId);
+    const result = determineWinner(voteMap, [state.impostorId]);
 
     const playersWithCounts = state.players.map((p) => ({
       ...p,

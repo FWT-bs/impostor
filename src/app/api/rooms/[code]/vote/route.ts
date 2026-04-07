@@ -10,6 +10,31 @@ type Vote = Database["public"]["Tables"]["votes"]["Row"];
 type GameRound = Database["public"]["Tables"]["game_rounds"]["Row"];
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 
+async function ensurePlayerProfile(
+  admin: ReturnType<typeof createAdminClient>,
+  userId: string,
+  displayName: string,
+) {
+  const { data: existing } = await admin
+    .from("profiles")
+    .select("id")
+    .eq("id", userId)
+    .maybeSingle();
+  if (existing) return;
+  const username =
+    displayName.trim().replace(/\s+/g, "_").slice(0, 24) ||
+    `Player_${userId.slice(0, 8)}`;
+  await admin.from("profiles").insert({
+    id: userId,
+    username,
+    avatar_color: "#06b6d4",
+    games_played: 0,
+    group_wins: 0,
+    impostor_wins: 0,
+    impostor_games: 0,
+  });
+}
+
 export async function POST(
   request: Request,
   { params }: { params: Promise<{ code: string }> }
@@ -83,7 +108,7 @@ export async function POST(
 
   const { data: players } = await admin
     .from("room_players")
-    .select("user_id")
+    .select("user_id, display_name")
     .eq("room_id", room.id)
     .returns<RoomPlayer[]>();
 
@@ -99,7 +124,7 @@ export async function POST(
   if (totalVotes >= totalPlayers) {
     const { data: round } = await admin
       .from("game_rounds")
-      .select("impostor_id")
+      .select("impostor_id, second_impostor_id")
       .eq("id", room.current_round_id)
       .returns<GameRound[]>()
       .single();
@@ -109,7 +134,10 @@ export async function POST(
       for (const v of allVotes!) {
         voteMap[v.voter_id] = v.voted_for_id;
       }
-      const result = determineWinner(voteMap, round.impostor_id);
+      const impostorIds = [round.impostor_id, round.second_impostor_id].filter(
+        (id): id is string => typeof id === "string" && id.length > 0,
+      );
+      const result = determineWinner(voteMap, impostorIds);
 
       await admin
         .from("game_rounds")
@@ -122,31 +150,34 @@ export async function POST(
         .eq("id", room.id);
 
       if (players) {
+        const isImpostor = (uid: string) => impostorIds.includes(uid);
         for (const p of players) {
-          const isImpostor = p.user_id === round.impostor_id;
+          await ensurePlayerProfile(admin, p.user_id, p.display_name);
           const { data: profile } = await admin
             .from("profiles")
             .select("games_played, group_wins, impostor_wins, impostor_games")
             .eq("id", p.user_id)
             .returns<Profile[]>()
-            .single();
+            .maybeSingle();
 
-          if (profile) {
-            await admin
-              .from("profiles")
-              .update({
-                games_played: profile.games_played + 1,
-                group_wins:
-                  profile.group_wins +
-                  (!isImpostor && result.winner === "group" ? 1 : 0),
-                impostor_wins:
-                  profile.impostor_wins +
-                  (isImpostor && result.winner === "impostor" ? 1 : 0),
-                impostor_games:
-                  profile.impostor_games + (isImpostor ? 1 : 0),
-              })
-              .eq("id", p.user_id);
-          }
+          if (!profile) continue;
+
+          await admin
+            .from("profiles")
+            .update({
+              games_played: profile.games_played + 1,
+              group_wins:
+                profile.group_wins +
+                (!isImpostor(p.user_id) && result.winner === "group" ? 1 : 0),
+              impostor_wins:
+                profile.impostor_wins +
+                (isImpostor(p.user_id) && result.winner === "impostor"
+                  ? 1
+                  : 0),
+              impostor_games:
+                profile.impostor_games + (isImpostor(p.user_id) ? 1 : 0),
+            })
+            .eq("id", p.user_id);
         }
       }
     }

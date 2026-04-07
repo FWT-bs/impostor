@@ -66,8 +66,11 @@ export async function POST(
   const category = settings?.category ?? null;
   const { entry } = pickWord([], category);
 
-  const impostorIdx = Math.floor(Math.random() * players.length);
-  const impostorId = players[impostorIdx].user_id;
+  const nImpostors = players.length > 5 ? 2 : 1;
+  const impostorPickOrder = [...players].sort(() => Math.random() - 0.5);
+  const impostorId = impostorPickOrder[0].user_id;
+  const secondImpostorId =
+    nImpostors === 2 ? impostorPickOrder[1].user_id : null;
 
   const { data: prevRounds } = await admin
     .from("game_rounds")
@@ -87,6 +90,7 @@ export async function POST(
       topic: entry.topic,
       secret_word: entry.word,
       impostor_id: impostorId,
+      second_impostor_id: secondImpostorId,
       status: "active",
     })
     .select()
@@ -100,12 +104,15 @@ export async function POST(
     );
   }
 
+  const impostorSet = new Set(
+    [impostorId, secondImpostorId].filter((id): id is string => Boolean(id)),
+  );
   const secrets = players.map((p) => ({
     room_id: room.id,
     round_id: round.id,
     user_id: p.user_id,
-    role: p.user_id === impostorId ? "impostor" : "player",
-    secret_word: p.user_id === impostorId ? null : entry.word,
+    role: impostorSet.has(p.user_id) ? "impostor" : "player",
+    secret_word: impostorSet.has(p.user_id) ? null : entry.word,
     topic: entry.topic,
   }));
 
@@ -127,12 +134,12 @@ export async function POST(
     .eq("room_id", room.id);
 
   // Randomize player order
-  const shuffled = [...players].sort(() => Math.random() - 0.5);
-  for (let i = 0; i < shuffled.length; i++) {
+  const turnOrder = [...players].sort(() => Math.random() - 0.5);
+  for (let i = 0; i < turnOrder.length; i++) {
     await admin
       .from("room_players")
       .update({ player_order: i })
-      .eq("id", shuffled[i].id);
+      .eq("id", turnOrder[i].id);
   }
 
   const { error: roomUpdateError } = await admin

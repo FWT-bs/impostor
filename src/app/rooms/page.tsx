@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
@@ -20,6 +20,10 @@ import {
   getPreferredDisplayName,
   setPreferredDisplayName,
 } from "@/lib/preferred-display-name";
+import { getCategories, getPremiumCategories } from "@/lib/game/words";
+
+const MIN_ROOM_PLAYERS = 3;
+const MAX_ROOM_PLAYERS = 10;
 
 const ROOM_LIST_SELECT =
   "id, code, host_id, max_players, is_private, settings, status, room_players(id)";
@@ -43,7 +47,7 @@ export default function RoomsPage() {
   const { user, profile, loading: authLoading } = useAuth();
   const supabase = useMemo(() => createClient(), []);
 
-  const [tab, setTab] = useState<RoomTab>("open");
+  const [tab, setTab] = useState<RoomTab>("mine");
   const [myRooms, setMyRooms] = useState<RoomRow[]>([]);
   const [openRooms, setOpenRooms] = useState<RoomRow[]>([]);
   const [liveRooms, setLiveRooms] = useState<RoomRow[]>([]);
@@ -55,6 +59,10 @@ export default function RoomsPage() {
   const [creating, setCreating] = useState(false);
   const [displayName, setDisplayName] = useState("");
   const [isPrivate, setIsPrivate] = useState(false);
+  const [createMaxPlayers, setCreateMaxPlayers] = useState(8);
+  const [createDiscussionTimer, setCreateDiscussionTimer] = useState(60);
+  const [createCategory, setCreateCategory] = useState<string | null>(null);
+  const listRefreshGenRef = useRef(0);
 
   useEffect(() => {
     const saved = getPreferredDisplayName();
@@ -70,7 +78,10 @@ export default function RoomsPage() {
     });
   }, [profile?.username]);
 
-  const fetchOpenRooms = useCallback(async (): Promise<boolean> => {
+  const loadOpenRooms = useCallback(async (): Promise<{
+    ok: boolean;
+    rooms: RoomRow[];
+  }> => {
     const { data, error } = await supabase
       .from("rooms")
       .select(ROOM_LIST_SELECT)
@@ -79,15 +90,16 @@ export default function RoomsPage() {
       .order("created_at", { ascending: false })
       .limit(30);
     if (error) {
-      console.error("fetchOpenRooms:", error);
-      setOpenRooms([]);
-      return false;
+      console.error("loadOpenRooms:", error);
+      return { ok: false, rooms: [] };
     }
-    setOpenRooms((data as RoomRow[]) ?? []);
-    return true;
+    return { ok: true, rooms: (data as RoomRow[]) ?? [] };
   }, [supabase]);
 
-  const fetchLiveRooms = useCallback(async (): Promise<boolean> => {
+  const loadLiveRooms = useCallback(async (): Promise<{
+    ok: boolean;
+    rooms: RoomRow[];
+  }> => {
     const { data, error } = await supabase
       .from("rooms")
       .select(ROOM_LIST_SELECT)
@@ -96,32 +108,30 @@ export default function RoomsPage() {
       .order("updated_at", { ascending: false })
       .limit(30);
     if (error) {
-      console.error("fetchLiveRooms:", error);
-      setLiveRooms([]);
-      return false;
+      console.error("loadLiveRooms:", error);
+      return { ok: false, rooms: [] };
     }
-    setLiveRooms((data as RoomRow[]) ?? []);
-    return true;
+    return { ok: true, rooms: (data as RoomRow[]) ?? [] };
   }, [supabase]);
 
-  const fetchMyRooms = useCallback(async (): Promise<boolean> => {
+  const loadMyRooms = useCallback(async (): Promise<{
+    ok: boolean;
+    rooms: RoomRow[];
+  }> => {
     if (!user?.id) {
-      setMyRooms([]);
-      return true;
+      return { ok: true, rooms: [] };
     }
     const { data: rp, error: rpErr } = await supabase
       .from("room_players")
       .select("room_id")
       .eq("user_id", user.id);
     if (rpErr) {
-      console.error("fetchMyRooms room_players:", rpErr);
-      setMyRooms([]);
-      return false;
+      console.error("loadMyRooms room_players:", rpErr);
+      return { ok: false, rooms: [] };
     }
     const ids = [...new Set((rp ?? []).map((r) => r.room_id))];
     if (ids.length === 0) {
-      setMyRooms([]);
-      return true;
+      return { ok: true, rooms: [] };
     }
     const { data, error } = await supabase
       .from("rooms")
@@ -130,48 +140,64 @@ export default function RoomsPage() {
       .order("updated_at", { ascending: false })
       .limit(30);
     if (error) {
-      console.error("fetchMyRooms rooms:", error);
-      setMyRooms([]);
-      return false;
+      console.error("loadMyRooms rooms:", error);
+      return { ok: false, rooms: [] };
     }
-    setMyRooms((data as RoomRow[]) ?? []);
-    return true;
+    return { ok: true, rooms: (data as RoomRow[]) ?? [] };
   }, [supabase, user?.id]);
 
-  const refreshAllListings = useCallback(async () => {
-    setListError(null);
-    const timeout = new Promise<never>((_, reject) =>
-      setTimeout(() => reject(new Error("Request timed out")), 12000)
-    );
-    try {
-      const [openOk, liveOk, mineOk] = await Promise.race([
-        Promise.all([
-          fetchOpenRooms(),
-          fetchLiveRooms(),
-          fetchMyRooms(),
-        ]),
-        timeout,
-      ]);
-      if (!openOk && !liveOk && !mineOk) {
-        setListError("Could not load rooms. Try Refresh.");
-      } else if (!openOk || !liveOk || !mineOk) {
-        setListError("Some lists could not be refreshed.");
+  const refreshAllListings = useCallback(
+    async (opts?: { silent?: boolean }) => {
+      const gen = ++listRefreshGenRef.current;
+      if (!opts?.silent) {
+        setListError(null);
       }
-    } catch (e) {
-      console.error("refreshAllListings:", e);
-      setListError(
-        e instanceof Error ? e.message : "Could not load rooms. Try Refresh."
-      );
-    } finally {
-      setLoadingRooms(false);
-    }
-  }, [fetchOpenRooms, fetchLiveRooms, fetchMyRooms]);
+      try {
+        const [openRes, liveRes, myRes] = await Promise.all([
+          loadOpenRooms(),
+          loadLiveRooms(),
+          loadMyRooms(),
+        ]);
+        if (listRefreshGenRef.current !== gen) return;
+
+        setOpenRooms(openRes.rooms);
+        setLiveRooms(liveRes.rooms);
+        setMyRooms(myRes.rooms);
+
+        if (!opts?.silent) {
+          if (!openRes.ok && !liveRes.ok && !myRes.ok) {
+            setListError("Could not load rooms. Try Refresh.");
+          } else if (!openRes.ok || !liveRes.ok || !myRes.ok) {
+            setListError("Some lists could not be refreshed.");
+          }
+        }
+      } catch (e) {
+        if (listRefreshGenRef.current !== gen) return;
+        console.error("refreshAllListings:", e);
+        if (!opts?.silent) {
+          setListError(
+            e instanceof Error
+              ? e.message
+              : "Could not load rooms. Try Refresh.",
+          );
+        }
+      } finally {
+        if (!opts?.silent && listRefreshGenRef.current === gen) {
+          setLoadingRooms(false);
+        }
+      }
+    },
+    [loadOpenRooms, loadLiveRooms, loadMyRooms],
+  );
 
   const userId = user?.id ?? null;
+  const categories = useMemo(() => getCategories(), []);
+  const premiumCategories = useMemo(() => getPremiumCategories(), []);
+  const isGuestUser = !user || user.is_anonymous;
 
   useEffect(() => {
     setLoadingRooms(true);
-    void refreshAllListings();
+    void refreshAllListings({ silent: false });
   }, [refreshAllListings]);
 
   useEffect(() => {
@@ -180,7 +206,7 @@ export default function RoomsPage() {
       if (debounceTimer) clearTimeout(debounceTimer);
       debounceTimer = setTimeout(() => {
         debounceTimer = null;
-        void refreshAllListings();
+        void refreshAllListings({ silent: true });
       }, 400);
     }
 
@@ -204,10 +230,15 @@ export default function RoomsPage() {
         }
       });
 
-    const poll = setInterval(() => void refreshAllListings(), 5000);
+    const poll = setInterval(
+      () => void refreshAllListings({ silent: true }),
+      5000,
+    );
 
     function onVisible() {
-      if (document.visibilityState === "visible") void refreshAllListings();
+      if (document.visibilityState === "visible") {
+        void refreshAllListings({ silent: true });
+      }
     }
     document.addEventListener("visibilitychange", onVisible);
 
@@ -247,7 +278,7 @@ export default function RoomsPage() {
         return;
       }
       setPreferredDisplayName(name);
-      void refreshAllListings();
+      void refreshAllListings({ silent: true });
       router.push(`/rooms/${code.toUpperCase()}`);
       router.refresh();
     } finally {
@@ -268,7 +299,13 @@ export default function RoomsPage() {
         displayName.trim() || profile?.username?.trim() || "Host";
       const result = await postJson<{ room: { code: string } }>(
         "/api/rooms/create",
-        { displayName: name, isPrivate }
+        {
+          displayName: name,
+          isPrivate,
+          maxPlayers: createMaxPlayers,
+          category: createCategory,
+          discussionTimer: createDiscussionTimer,
+        },
       );
       if (!result.ok) {
         toast.error(result.errorMessage);
@@ -277,13 +314,16 @@ export default function RoomsPage() {
       const code = result.data?.room?.code;
       if (!code) {
         toast.error("Room was created but the response was incomplete.");
-        void refreshAllListings();
+        void refreshAllListings({ silent: true });
         return;
       }
       setPreferredDisplayName(name);
       setShowCreate(false);
       setIsPrivate(false);
-      void refreshAllListings();
+      setCreateMaxPlayers(8);
+      setCreateDiscussionTimer(60);
+      setCreateCategory(null);
+      void refreshAllListings({ silent: true });
       router.push(`/rooms/${code}`);
       router.refresh();
     } finally {
@@ -294,6 +334,14 @@ export default function RoomsPage() {
   function closeCreateModal() {
     setShowCreate(false);
     setCreating(false);
+  }
+
+  function handleCreateCategoryClick(cat: string) {
+    if (premiumCategories.has(cat) && isGuestUser) {
+      toast.error("Sign in with a full account to use premium categories.");
+      return;
+    }
+    setCreateCategory((c) => (c === cat ? null : cat));
   }
 
   function enterMyRoom(room: RoomRow) {
@@ -390,9 +438,9 @@ export default function RoomsPage() {
               <div className="flex rounded-2xl border-2 border-border bg-card/60 p-1 gap-1">
                 {(
                   [
+                    ["mine", "Mine"] as const,
                     ["open", "Open"] as const,
                     ["live", "Live"] as const,
-                    ["mine", "Mine"] as const,
                   ] as const
                 ).map(([key, label]) => (
                   <button
@@ -424,7 +472,7 @@ export default function RoomsPage() {
                   type="button"
                   onClick={() => {
                     setLoadingRooms(true);
-                    void refreshAllListings();
+                    void refreshAllListings({ silent: false });
                   }}
                   className="text-muted"
                 >
@@ -437,9 +485,9 @@ export default function RoomsPage() {
             </div>
 
             <p className="text-xs text-muted mb-3">
+              {tab === "mine" && "Rooms you’re in right now — lobby or in-game."}
               {tab === "open" && "Public lobbies that still need players."}
               {tab === "live" && "Public matches currently in progress (copy a code to ask for an invite)."}
-              {tab === "mine" && "Rooms you’re in right now — lobby or in-game."}
             </p>
 
             {listError && (
@@ -594,6 +642,111 @@ export default function RoomsPage() {
                 <p className="text-sm font-medium">Private</p>
                 <p className="text-xs text-muted mt-0.5">Join by code only</p>
               </button>
+            </div>
+          </div>
+
+          <Card padding="md" className="!bg-card/40 border border-border">
+            <label className="block text-sm font-semibold text-foreground mb-3">
+              Max players ({createMaxPlayers})
+            </label>
+            <div className="flex items-center gap-4 justify-center">
+              <Button
+                variant="secondary"
+                size="sm"
+                type="button"
+                onClick={() =>
+                  setCreateMaxPlayers((c) =>
+                    Math.max(MIN_ROOM_PLAYERS, c - 1),
+                  )
+                }
+                disabled={createMaxPlayers <= MIN_ROOM_PLAYERS}
+                className="!rounded-full !size-10 !p-0 shrink-0"
+              >
+                −
+              </Button>
+              <span className="font-heading text-2xl text-purple min-w-[2ch] text-center">
+                {createMaxPlayers}
+              </span>
+              <Button
+                variant="secondary"
+                size="sm"
+                type="button"
+                onClick={() =>
+                  setCreateMaxPlayers((c) =>
+                    Math.min(MAX_ROOM_PLAYERS, c + 1),
+                  )
+                }
+                disabled={createMaxPlayers >= MAX_ROOM_PLAYERS}
+                className="!rounded-full !size-10 !p-0 shrink-0"
+              >
+                +
+              </Button>
+            </div>
+          </Card>
+
+          <div>
+            <label className="block text-sm font-semibold text-foreground mb-2">
+              Discussion timer (seconds)
+            </label>
+            <Input
+              type="number"
+              min={30}
+              max={300}
+              value={createDiscussionTimer}
+              onChange={(e) => {
+                const v = Number(e.target.value);
+                if (Number.isFinite(v)) {
+                  setCreateDiscussionTimer(Math.min(300, Math.max(30, v)));
+                }
+              }}
+              className="bg-background"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-semibold text-foreground mb-2">
+              Category <span className="text-muted font-normal">(optional)</span>
+            </label>
+            <div className="flex flex-wrap gap-2 max-h-40 overflow-y-auto pr-1">
+              <button
+                type="button"
+                onClick={() => setCreateCategory(null)}
+                className={cn(
+                  "rounded-full border px-3 py-1.5 text-xs transition-all duration-200 cursor-pointer",
+                  !createCategory
+                    ? "border-purple/40 bg-purple/12 text-purple"
+                    : "border-border text-muted hover:border-purple/25",
+                )}
+              >
+                Random
+              </button>
+              {categories.map((cat) => {
+                const isPremium = premiumCategories.has(cat);
+                const locked = isPremium && isGuestUser;
+                const isSelected = createCategory === cat;
+                return (
+                  <button
+                    key={cat}
+                    type="button"
+                    onClick={() => handleCreateCategoryClick(cat)}
+                    className={cn(
+                      "rounded-full border px-3 py-1.5 text-xs transition-all duration-200 cursor-pointer flex items-center gap-1",
+                      isSelected
+                        ? "border-purple/40 bg-purple/12 text-purple"
+                        : locked
+                          ? "border-orange/20 text-muted/60"
+                          : "border-border text-muted hover:border-purple/25",
+                    )}
+                  >
+                    {locked && (
+                      <svg className="size-3 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
+                      </svg>
+                    )}
+                    {cat}
+                  </button>
+                );
+              })}
             </div>
           </div>
 

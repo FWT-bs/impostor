@@ -35,7 +35,7 @@ export default function LeaderboardPage() {
     let query = supabase.from("profiles").select("*").gt("games_played", 0);
 
     if (currentTab === "wins") {
-      query = query.order("group_wins", { ascending: false });
+      query = query.order("total_wins", { ascending: false });
     } else if (currentTab === "impostor") {
       query = query.order("impostor_wins", { ascending: false });
     } else {
@@ -48,25 +48,40 @@ export default function LeaderboardPage() {
   }
 
   useEffect(() => {
-    fetchLeaders(tab);
-    // Real-time subscription — re-fetch whenever any profile is updated
+    let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+    function scheduleRefetch() {
+      if (debounceTimer) clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => {
+        debounceTimer = null;
+        void fetchLeaders(tab);
+      }, 400);
+    }
+
+    void fetchLeaders(tab);
+
     const channel = supabase
       .channel("leaderboard-updates")
       .on(
         "postgres_changes",
         { event: "UPDATE", schema: "public", table: "profiles" },
-        () => fetchLeaders(tab),
+        () => scheduleRefetch(),
+      )
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "profiles" },
+        () => scheduleRefetch(),
       )
       .subscribe();
 
     return () => {
+      if (debounceTimer) clearTimeout(debounceTimer);
       supabase.removeChannel(channel);
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [supabase, tab]);
 
   function getValue(p: Profile): number {
-    if (tab === "wins") return p.group_wins + p.impostor_wins;
+    if (tab === "wins") return p.total_wins;
     if (tab === "impostor") return p.impostor_wins;
     return p.games_played;
   }

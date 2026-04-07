@@ -19,6 +19,7 @@ export interface Database {
           group_wins: number;
           impostor_wins: number;
           impostor_games: number;
+          total_wins: number;
           created_at: string;
         };
         Insert: {
@@ -162,6 +163,7 @@ export interface Database {
           topic: string;
           secret_word: string;
           impostor_id: string;
+          second_impostor_id: string | null;
           winner: string | null;
           status: string;
           created_at: string;
@@ -173,6 +175,7 @@ export interface Database {
           topic: string;
           secret_word: string;
           impostor_id: string;
+          second_impostor_id?: string | null;
           winner?: string | null;
           status?: string;
           created_at?: string;
@@ -184,6 +187,7 @@ export interface Database {
           topic?: string;
           secret_word?: string;
           impostor_id?: string;
+          second_impostor_id?: string | null;
           winner?: string | null;
           status?: string;
           created_at?: string;
@@ -224,6 +228,7 @@ export interface Database {
           topic: string;
           secret_word: string;
           impostor_id: string | null;
+          second_impostor_id: string | null;
           winner: string | null;
           status: string;
           created_at: string;
