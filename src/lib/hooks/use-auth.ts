@@ -34,13 +34,29 @@ export function useAuth() {
 
     // Eagerly load the current session so the UI doesn't flash "signed out"
     // while waiting for the first onAuthStateChange event.
-    supabase.auth.getUser().then(({ data: { user: initialUser } }) => {
-      if (cancelled) return;
-      setUser(initialUser ?? null);
-      syncProfile(initialUser ?? null).then(() => {
+    // One short retry: after server Set-Cookie + full navigation, cookies can
+    // lag a tick before the browser client reads them.
+    supabase.auth
+      .getUser()
+      .then(async ({ data: { user: initialUser } }) => {
+        if (cancelled) return;
+        try {
+          let u = initialUser ?? null;
+          if (!u) {
+            await new Promise((r) => setTimeout(r, 200));
+            if (cancelled) return;
+            const { data: again } = await supabase.auth.getUser();
+            u = again.user ?? null;
+          }
+          setUser(u);
+          await syncProfile(u);
+        } finally {
+          if (!cancelled) setLoading(false);
+        }
+      })
+      .catch(() => {
         if (!cancelled) setLoading(false);
       });
-    });
 
     // Keep in sync with tab-focus refreshes, sign-in/out events, etc.
     const {

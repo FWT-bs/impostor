@@ -61,18 +61,24 @@ export default function RoomsPage() {
   }, [profile?.username]);
 
   const fetchRooms = useCallback(async () => {
-    const { data, error } = await supabase
-      .from("rooms")
-      .select("id, code, host_id, max_players, is_private, settings, room_players(id)")
-      .eq("status", "waiting")
-      .eq("is_private", false)
-      .order("created_at", { ascending: false })
-      .limit(20);
-    if (error) {
-      console.error("fetchRooms:", error.message);
+    try {
+      const { data, error } = await supabase
+        .from("rooms")
+        .select("id, code, host_id, max_players, is_private, settings, room_players(id)")
+        .eq("status", "waiting")
+        .eq("is_private", false)
+        .order("created_at", { ascending: false })
+        .limit(20);
+      if (error) {
+        console.error("fetchRooms:", error.message);
+      }
+      setRooms((data as RoomRow[]) ?? []);
+    } catch (e) {
+      console.error("fetchRooms:", e);
+      setRooms([]);
+    } finally {
+      setLoadingRooms(false);
     }
-    setRooms((data as RoomRow[]) ?? []);
-    setLoadingRooms(false);
   }, [supabase]);
 
   useEffect(() => {
