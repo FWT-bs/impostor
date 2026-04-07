@@ -9,6 +9,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { loginWithNext, signupWithNext } from "@/lib/auth-path";
+import { getAuthAvatarColor, getAuthDisplayName } from "@/lib/auth-display-name";
 import { useState, type ReactNode } from "react";
 
 const nav = [
@@ -41,11 +42,12 @@ export function Header({ user: userProp, authSlot, className }: HeaderProps) {
   const user: HeaderUser | null =
     userProp !== undefined
       ? userProp
-      : profile
-        ? { username: profile.username, avatarColor: profile.avatar_color }
-        : authUser
-          ? { username: authUser.email?.split("@")[0] ?? "Player", avatarColor: "#8070d4" }
-          : null;
+      : authUser
+        ? {
+            username: getAuthDisplayName(authUser, profile),
+            avatarColor: getAuthAvatarColor(authUser, profile),
+          }
+        : null;
 
   /** Guests look "signed in" in the UI but must still reach Login / Sign up anytime. */
   const showLoginSignup = user === null || isAnonymous;

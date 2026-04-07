@@ -15,6 +15,7 @@ import { useRoom } from "@/lib/hooks/use-room";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import { postJson } from "@/lib/api-fetch";
+import { getAuthAvatarColor, getAuthDisplayName } from "@/lib/auth-display-name";
 
 const AVATAR_COLORS = [
   "#ef4444", "#f97316", "#f59e0b", "#22c55e", "#14b8a6",
@@ -100,12 +101,12 @@ export default function LobbyPage({
     router.push("/rooms");
   }
 
-  const headerUser =
-    profile
-      ? { username: profile.username, avatarColor: profile.avatar_color }
-      : user
-        ? { username: user.email?.split("@")[0] ?? "Player", avatarColor: "#8070d4" }
-        : null;
+  const headerUser = user
+    ? {
+        username: getAuthDisplayName(user, profile),
+        avatarColor: getAuthAvatarColor(user, profile),
+      }
+    : null;
 
   if (loading) {
     return (

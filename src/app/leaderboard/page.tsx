@@ -8,6 +8,7 @@ import { Avatar } from "@/components/ui/Avatar";
 import { FloatingCharacter } from "@/components/ui/FloatingCharacter";
 import { DetectiveFull, ImpostorMini, GhostMini } from "@/components/ui/Characters";
 import { useAuth } from "@/lib/hooks/use-auth";
+import { getAuthAvatarColor, getAuthDisplayName } from "@/lib/auth-display-name";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import type { Database } from "@/lib/supabase/types";
@@ -96,11 +97,12 @@ export default function LeaderboardPage() {
     <>
       <Header
         user={
-          profile
-            ? { username: profile.username, avatarColor: profile.avatar_color }
-            : user
-              ? { username: user.email?.split("@")[0] ?? "Player", avatarColor: "#8070d4" }
-              : null
+          user
+            ? {
+                username: getAuthDisplayName(user, profile),
+                avatarColor: getAuthAvatarColor(user, profile),
+              }
+            : null
         }
       />
       <main className="min-h-screen bg-background pt-20 pb-16 px-4 relative overflow-hidden">

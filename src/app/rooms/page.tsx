@@ -16,6 +16,7 @@ import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import { postJson } from "@/lib/api-fetch";
 import { loginWithNext } from "@/lib/auth-path";
+import { getAuthAvatarColor, getAuthDisplayName } from "@/lib/auth-display-name";
 import {
   getPreferredDisplayName,
   setPreferredDisplayName,
@@ -182,7 +183,7 @@ export default function RoomsPage() {
           );
         }
       } finally {
-        if (!opts?.silent && listRefreshGenRef.current === gen) {
+        if (!opts?.silent) {
           setLoadingRooms(false);
         }
       }
@@ -196,9 +197,10 @@ export default function RoomsPage() {
   const isGuestUser = !user || user.is_anonymous;
 
   useEffect(() => {
+    if (authLoading) return;
     setLoadingRooms(true);
     void refreshAllListings({ silent: false });
-  }, [refreshAllListings]);
+  }, [authLoading, refreshAllListings]);
 
   useEffect(() => {
     let debounceTimer: ReturnType<typeof setTimeout> | null = null;
@@ -268,7 +270,9 @@ export default function RoomsPage() {
     setJoining(true);
     try {
       const name =
-        displayName.trim() || profile?.username?.trim() || "Player";
+        displayName.trim() ||
+        profile?.username?.trim() ||
+        getAuthDisplayName(user, profile);
       const result = await postJson<{ room: { code: string } }>(
         "/api/rooms/join",
         { code, displayName: name }
@@ -296,7 +300,10 @@ export default function RoomsPage() {
     setCreating(true);
     try {
       const name =
-        displayName.trim() || profile?.username?.trim() || "Host";
+        displayName.trim() ||
+        profile?.username?.trim() ||
+        getAuthDisplayName(user, profile) ||
+        "Host";
       const result = await postJson<{ room: { code: string } }>(
         "/api/rooms/create",
         {
@@ -356,11 +363,12 @@ export default function RoomsPage() {
     <>
       <Header
         user={
-          profile
-            ? { username: profile.username, avatarColor: profile.avatar_color }
-            : user
-              ? { username: user.email?.split("@")[0] ?? "Player", avatarColor: "#8070d4" }
-              : null
+          user
+            ? {
+                username: getAuthDisplayName(user, profile),
+                avatarColor: getAuthAvatarColor(user, profile),
+              }
+            : null
         }
       />
       <main className="min-h-screen bg-background pt-20 pb-16 px-4 relative overflow-hidden">

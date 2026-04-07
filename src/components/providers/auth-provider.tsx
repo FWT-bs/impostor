@@ -47,13 +47,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (!cancelled) setProfile(null);
         return;
       }
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", nextUser.id)
-        .maybeSingle();
-      if (cancelled) return;
-      setProfile(error ? null : data);
+      for (let attempt = 0; attempt < 5; attempt++) {
+        if (cancelled) return;
+        const { data, error } = await supabase
+          .from("profiles")
+          .select("*")
+          .eq("id", nextUser.id)
+          .maybeSingle();
+        if (cancelled) return;
+        if (!error && data) {
+          setProfile(data);
+          return;
+        }
+        if (error) {
+          setProfile(null);
+          return;
+        }
+        await new Promise((r) => setTimeout(r, 120 * (attempt + 1)));
+      }
+      if (!cancelled) setProfile(null);
     }
 
     supabase.auth

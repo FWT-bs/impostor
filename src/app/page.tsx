@@ -20,6 +20,7 @@ import { motion, useScroll, useTransform } from "framer-motion";
 import { useRef } from "react";
 import { usePathname } from "next/navigation";
 import { loginWithNext, signupWithNext } from "@/lib/auth-path";
+import { getAuthAvatarColor, getAuthDisplayName } from "@/lib/auth-display-name";
 
 const TITLE = "IMPOSTOR";
 
@@ -58,11 +59,12 @@ export default function HomePage() {
     <>
       <Header
         user={
-          profile
-            ? { username: profile.username, avatarColor: profile.avatar_color }
-            : user
-              ? { username: user.email?.split("@")[0] ?? "Player", avatarColor: "#8070d4" }
-              : null
+          user
+            ? {
+                username: getAuthDisplayName(user, profile),
+                avatarColor: getAuthAvatarColor(user, profile),
+              }
+            : null
         }
       />
 
