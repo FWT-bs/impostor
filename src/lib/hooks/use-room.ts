@@ -21,27 +21,37 @@ export function useRoom(roomCode: string) {
   }
 
   const fetchRoom = useCallback(async () => {
-    const { data: roomData } = await supabase
-      .from("rooms")
-      .select("*")
-      .eq("code", roomCode.toUpperCase())
-      .maybeSingle();
-
-    if (roomData) {
-      setRoom(roomData);
-      const { data: playerData } = await supabase
-        .from("room_players")
+    try {
+      const { data: roomData, error } = await supabase
+        .from("rooms")
         .select("*")
-        .eq("room_id", roomData.id)
-        .order("player_order", { ascending: true });
+        .eq("code", roomCode.toUpperCase())
+        .maybeSingle();
 
-      setPlayers(sortPlayers(playerData ?? []));
+      if (error) throw error;
+
+      if (roomData) {
+        setRoom(roomData);
+        const { data: playerData } = await supabase
+          .from("room_players")
+          .select("*")
+          .eq("room_id", roomData.id)
+          .order("player_order", { ascending: true });
+
+        setPlayers(sortPlayers(playerData ?? []));
+      }
+    } catch (err) {
+      console.error("fetchRoom error:", err);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }, [supabase, roomCode]);
 
   useEffect(() => {
-    fetchRoom();
+    // Safety timeout: never leave loading=true for more than 8 seconds
+    const timeout = setTimeout(() => setLoading(false), 8000);
+    fetchRoom().finally(() => clearTimeout(timeout));
+    return () => clearTimeout(timeout);
   }, [fetchRoom]);
 
   const roomId = room?.id;

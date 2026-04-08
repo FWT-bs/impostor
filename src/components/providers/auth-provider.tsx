@@ -68,6 +68,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (!cancelled) setProfile(null);
     }
 
+    // Absolute safety net: never leave loading=true beyond 9 seconds
+    const loadingTimeout = setTimeout(() => {
+      if (!cancelled) setLoading(false);
+    }, 9000);
+
     supabase.auth
       .getUser()
       .then(async ({ data: { user: initialUser } }) => {
@@ -83,10 +88,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setUser(u);
           await syncProfile(u);
         } finally {
+          clearTimeout(loadingTimeout);
           if (!cancelled) setLoading(false);
         }
       })
       .catch(() => {
+        clearTimeout(loadingTimeout);
         if (!cancelled) setLoading(false);
       });
 
@@ -116,6 +123,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     return () => {
       cancelled = true;
+      clearTimeout(loadingTimeout);
       subscription.unsubscribe();
     };
   }, [supabase]);

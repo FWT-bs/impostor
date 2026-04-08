@@ -40,7 +40,7 @@ type RoomRow = {
   room_players: { id: string }[];
 };
 
-type RoomTab = "mine" | "open" | "live";
+type RoomTab = "mine" | "open" | "live" | "completed";
 
 export default function RoomsPage() {
   const router = useRouter();
@@ -52,6 +52,7 @@ export default function RoomsPage() {
   const [myRooms, setMyRooms] = useState<RoomRow[]>([]);
   const [openRooms, setOpenRooms] = useState<RoomRow[]>([]);
   const [liveRooms, setLiveRooms] = useState<RoomRow[]>([]);
+  const [completedRooms, setCompletedRooms] = useState<RoomRow[]>([]);
   const [loadingRooms, setLoadingRooms] = useState(true);
   const [listError, setListError] = useState<string | null>(null);
   const [joinCode, setJoinCode] = useState("");
@@ -138,10 +139,42 @@ export default function RoomsPage() {
       .from("rooms")
       .select(ROOM_LIST_SELECT)
       .in("id", ids)
+      .in("status", ["waiting", "playing"])
       .order("updated_at", { ascending: false })
       .limit(30);
     if (error) {
       console.error("loadMyRooms rooms:", error);
+      return { ok: false, rooms: [] };
+    }
+    return { ok: true, rooms: (data as RoomRow[]) ?? [] };
+  }, [supabase, user?.id]);
+
+  const loadCompletedRooms = useCallback(async (): Promise<{
+    ok: boolean;
+    rooms: RoomRow[];
+  }> => {
+    if (!user?.id) {
+      return { ok: true, rooms: [] };
+    }
+    const { data: rp, error: rpErr } = await supabase
+      .from("room_players")
+      .select("room_id")
+      .eq("user_id", user.id);
+    if (rpErr) {
+      return { ok: false, rooms: [] };
+    }
+    const ids = [...new Set((rp ?? []).map((r) => r.room_id))];
+    if (ids.length === 0) {
+      return { ok: true, rooms: [] };
+    }
+    const { data, error } = await supabase
+      .from("rooms")
+      .select(ROOM_LIST_SELECT)
+      .in("id", ids)
+      .eq("status", "finished")
+      .order("updated_at", { ascending: false })
+      .limit(20);
+    if (error) {
       return { ok: false, rooms: [] };
     }
     return { ok: true, rooms: (data as RoomRow[]) ?? [] };
@@ -153,15 +186,17 @@ export default function RoomsPage() {
         setListError(null);
       }
       try {
-        const [openRes, liveRes, myRes] = await Promise.all([
+        const [openRes, liveRes, myRes, completedRes] = await Promise.all([
           loadOpenRooms(),
           loadLiveRooms(),
           loadMyRooms(),
+          loadCompletedRooms(),
         ]);
 
         setOpenRooms(openRes.rooms);
         setLiveRooms(liveRes.rooms);
         setMyRooms(myRes.rooms);
+        setCompletedRooms(completedRes.rooms);
 
         if (!opts?.silent) {
           if (!openRes.ok && !liveRes.ok && !myRes.ok) {
@@ -185,7 +220,7 @@ export default function RoomsPage() {
         }
       }
     },
-    [loadOpenRooms, loadLiveRooms, loadMyRooms],
+    [loadOpenRooms, loadLiveRooms, loadMyRooms, loadCompletedRooms],
   );
 
   const userId = user?.id ?? null;
@@ -281,7 +316,10 @@ export default function RoomsPage() {
   }, [supabase, refreshAllListings, userId]);
 
   const displayRooms =
-    tab === "mine" ? myRooms : tab === "live" ? liveRooms : openRooms;
+    tab === "mine" ? myRooms
+    : tab === "live" ? liveRooms
+    : tab === "completed" ? completedRooms
+    : openRooms;
 
   function updateDisplayName(value: string) {
     setDisplayName(value);
@@ -479,6 +517,7 @@ export default function RoomsPage() {
                     ["mine", "Mine"] as const,
                     ["open", "Open"] as const,
                     ["live", "Live"] as const,
+                    ["completed", "Done"] as const,
                   ] as const
                 ).map(([key, label]) => (
                   <button
@@ -486,7 +525,7 @@ export default function RoomsPage() {
                     type="button"
                     onClick={() => setTab(key)}
                     className={cn(
-                      "flex-1 rounded-xl px-4 py-2 text-sm font-semibold transition-all duration-200 cursor-pointer",
+                      "flex-1 rounded-xl px-3 py-2 text-sm font-semibold transition-all duration-200 cursor-pointer",
                       tab === key
                         ? "bg-purple/15 text-foreground border border-purple/25"
                         : "text-muted hover:text-foreground",
@@ -526,6 +565,7 @@ export default function RoomsPage() {
               {tab === "mine" && "Rooms you’re in right now — lobby or in-game."}
               {tab === "open" && "Public lobbies that still need players."}
               {tab === "live" && "Public matches currently in progress (copy a code to ask for an invite)."}
+              {tab === "completed" && "Your finished games — rooms that ended or timed out after 30 minutes."}
             </p>
 
             {listError && (
@@ -617,6 +657,7 @@ export default function RoomsPage() {
                   {tab === "mine" && user && "You’re not in any room yet. Join one from Open or use a code."}
                   {tab === "open" && "No public open lobbies right now."}
                   {tab === "live" && "No public games in progress right now."}
+                  {tab === "completed" && "No completed games yet — finished rooms appear here."}
                 </p>
                 {tab === "open" && (
                   <Button variant="primary" size="sm" onClick={() => setShowCreate(true)}>
@@ -658,6 +699,11 @@ export default function RoomsPage() {
                           {tab === "live" && (
                             <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border border-orange/30 text-orange bg-orange/10">
                               Live
+                            </span>
+                          )}
+                          {tab === "completed" && (
+                            <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border border-muted/30 text-muted bg-muted/10">
+                              Finished
                             </span>
                           )}
                         </div>

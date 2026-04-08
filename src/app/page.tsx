@@ -16,9 +16,10 @@ import {
 import { FloatingCharacter } from "@/components/ui/FloatingCharacter";
 import { useAuth } from "@/lib/hooks/use-auth";
 import Link from "next/link";
-import { motion, useScroll, useTransform } from "framer-motion";
-import { useRef } from "react";
+import { motion, useScroll, useTransform, AnimatePresence } from "framer-motion";
+import { useRef, useState, useEffect } from "react";
 import { usePathname } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
 import { loginWithNext, signupWithNext } from "@/lib/auth-path";
 import { getAuthAvatarColor, getAuthDisplayName } from "@/lib/auth-display-name";
 
@@ -42,10 +43,40 @@ const steps = [
   },
 ];
 
+type LiveRoom = { id: string; code: string; max_players: number; status: string; room_players: { id: string }[] };
+
 export default function HomePage() {
   const pathname = usePathname();
   const { user, profile } = useAuth();
   const heroRef = useRef<HTMLElement>(null);
+
+  // Live rooms carousel state
+  const [liveRooms, setLiveRooms] = useState<LiveRoom[]>([]);
+  const [carouselIdx, setCarouselIdx] = useState(0);
+
+  useEffect(() => {
+    const supabase = createClient();
+    async function fetchRooms() {
+      const { data: open } = await supabase
+        .from("rooms")
+        .select("id, code, max_players, status, room_players(id)")
+        .eq("is_private", false)
+        .in("status", ["waiting", "playing"])
+        .order("updated_at", { ascending: false })
+        .limit(10);
+      setLiveRooms((open ?? []) as LiveRoom[]);
+    }
+    void fetchRooms();
+    const poll = setInterval(fetchRooms, 15000);
+    return () => clearInterval(poll);
+  }, []);
+
+  // Auto-rotate carousel
+  useEffect(() => {
+    if (liveRooms.length < 2) return;
+    const t = setInterval(() => setCarouselIdx((i) => (i + 1) % liveRooms.length), 4000);
+    return () => clearInterval(t);
+  }, [liveRooms.length]);
   const { scrollYProgress } = useScroll({
     target: heroRef,
     offset: ["start start", "end start"],
@@ -663,6 +694,96 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+
+      {/* ── LIVE ROOMS CAROUSEL ──────────────────────────────────────────────── */}
+      {liveRooms.length > 0 && (
+        <motion.section
+          className="relative px-4 py-16"
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 1 }}
+          viewport={{ once: true, margin: "-60px" }}
+          transition={{ duration: 0.6 }}
+        >
+          <div
+            className="absolute top-0 left-0 right-0 h-px"
+            style={{ background: "linear-gradient(to right, transparent, rgba(28,31,58,0.9) 20%, rgba(28,31,58,0.9) 80%, transparent)" }}
+          />
+          <div className="mx-auto max-w-xl text-center">
+            <p className="mb-2 text-[10px] uppercase tracking-[0.5em] text-muted/60">Now live</p>
+            <h2 className="font-heading text-[clamp(22px,3.5vw,30px)] text-foreground mb-6">
+              Rooms Online
+            </h2>
+
+            <div className="relative h-[88px] overflow-hidden">
+              <AnimatePresence mode="wait">
+                {liveRooms[carouselIdx] && (
+                  <motion.div
+                    key={liveRooms[carouselIdx].id}
+                    initial={{ opacity: 0, y: 16 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -16 }}
+                    transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+                    className="absolute inset-0 flex items-center justify-center"
+                  >
+                    <div className="flex items-center gap-4 rounded-2xl border-2 border-border bg-card px-6 py-4 shadow-md w-full max-w-sm">
+                      <div>
+                        <p className="font-heading text-2xl text-purple tracking-widest">
+                          {liveRooms[carouselIdx].code}
+                        </p>
+                        <p className="text-xs text-muted mt-0.5">
+                          {liveRooms[carouselIdx].room_players.length}/{liveRooms[carouselIdx].max_players} players
+                        </p>
+                      </div>
+                      <span
+                        className={`ml-auto text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border ${
+                          liveRooms[carouselIdx].status === "playing"
+                            ? "border-orange/30 text-orange bg-orange/10"
+                            : "border-emerald/30 text-emerald bg-emerald/10"
+                        }`}
+                      >
+                        {liveRooms[carouselIdx].status === "playing" ? "In game" : "Open"}
+                      </span>
+                      <Link href="/rooms">
+                        <motion.span
+                          className="text-xs text-purple underline underline-offset-2 cursor-pointer"
+                          whileHover={{ opacity: 0.7 }}
+                        >
+                          Join →
+                        </motion.span>
+                      </Link>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+
+            {/* Dots */}
+            {liveRooms.length > 1 && (
+              <div className="flex justify-center gap-1.5 mt-4">
+                {liveRooms.map((_, i) => (
+                  <button
+                    key={i}
+                    type="button"
+                    onClick={() => setCarouselIdx(i)}
+                    className={`size-1.5 rounded-full transition-all duration-300 ${
+                      i === carouselIdx ? "bg-purple w-4" : "bg-border"
+                    }`}
+                  />
+                ))}
+              </div>
+            )}
+
+            <Link href="/rooms">
+              <motion.p
+                className="mt-5 text-sm text-muted underline underline-offset-2 cursor-pointer"
+                whileHover={{ color: "var(--foreground)" }}
+              >
+                Browse all rooms →
+              </motion.p>
+            </Link>
+          </div>
+        </motion.section>
+      )}
 
       {/* ── AUTH CTA ─────────────────────────────────────────────────────────── */}
       {!user && (
