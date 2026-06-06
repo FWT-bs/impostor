@@ -2,16 +2,14 @@
 
 import { useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { toast } from "sonner";
-import { motion } from "framer-motion";
 import { Button } from "@/components/ui/Button";
-import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { Modal } from "@/components/ui/Modal";
+import { Chip } from "@/components/ui/Chip";
+import { Icon } from "@/components/ui/Icon";
 import { useLocalGameStore } from "@/stores/local-game-store";
 import { getCategories, getPremiumCategories } from "@/lib/game/words";
 import { useAuth } from "@/lib/hooks/use-auth";
-import { cn } from "@/lib/utils";
 import { Header } from "@/components/layout/Header";
 import { loginWithNext, signupWithNext } from "@/lib/auth-path";
 
@@ -22,7 +20,7 @@ export default function LocalSetupPage() {
   const router = useRouter();
   const pathname = usePathname();
   const initGame = useLocalGameStore((s) => s.initGame);
-  const { user, loading: authLoading } = useAuth();
+  const { user } = useAuth();
   const categories = getCategories();
   const premiumCats = getPremiumCategories();
 
@@ -30,7 +28,7 @@ export default function LocalSetupPage() {
 
   const [playerCount, setPlayerCount] = useState(4);
   const [names, setNames] = useState<string[]>(
-    Array.from({ length: MAX_PLAYERS }, (_, i) => `Player ${i + 1}`)
+    Array.from({ length: MAX_PLAYERS }, (_, i) => `Player ${i + 1}`),
   );
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [showAuthModal, setShowAuthModal] = useState(false);
@@ -59,216 +57,118 @@ export default function LocalSetupPage() {
     router.push("/local/play");
   }
 
+  function chipStyle(active: boolean): React.CSSProperties {
+    return {
+      cursor: "pointer",
+      fontSize: 12.5,
+      padding: "8px 14px",
+      color: active ? "var(--brand-ink)" : "var(--text)",
+      background: active ? "var(--brand)" : "rgba(255,255,255,.02)",
+      borderColor: active ? "var(--brand)" : "var(--border)",
+    };
+  }
+
   return (
     <>
       <Header />
-      <main className="min-h-screen bg-background pt-20 pb-16 px-4 relative overflow-hidden">
-        <div className="absolute top-20 right-10 w-72 h-72 rounded-full bg-cyan/5 blur-3xl pointer-events-none" aria-hidden />
-        <div className="absolute bottom-20 left-10 w-64 h-64 rounded-full bg-purple/5 blur-3xl pointer-events-none" aria-hidden />
+      <main className="mx-auto max-w-[560px] px-5 pt-28 pb-20">
+        <div className="mb-1.5">
+          <Chip tone="brand" icon="users">Pass &amp; play</Chip>
+        </div>
+        <h1 className="mb-7" style={{ fontSize: "clamp(30px,5vw,44px)" }}>Set up your party</h1>
 
-        <div className="mx-auto max-w-lg relative z-10">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-            className="mb-8 text-center"
-          >
-            <p className="text-[10px] uppercase tracking-[0.5em] text-muted/60 mb-3">Local Game</p>
-            <h1 className="font-heading text-4xl text-foreground mb-2">Party Mode</h1>
-            <p className="text-sm text-muted">
-              Pass the device around — everyone plays on one screen
-            </p>
-          </motion.div>
-
+        <div className="flex flex-col gap-4">
           {/* Player count */}
-          <motion.div
-            initial={{ opacity: 0, y: 14 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1, duration: 0.5 }}
-          >
-            <Card padding="lg" className="mb-5">
-              <label className="block text-sm font-semibold text-foreground mb-4">
-                Number of Players
-              </label>
-              <div className="flex items-center gap-5 justify-center">
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={() => setPlayerCount((c) => Math.max(MIN_PLAYERS, c - 1))}
-                  disabled={playerCount <= MIN_PLAYERS}
-                  className="!rounded-full !size-10 !p-0 flex-shrink-0"
-                >
-                  −
-                </Button>
-                <motion.span
-                  key={playerCount}
-                  className="font-heading text-4xl text-purple min-w-[3ch] text-center"
-                  initial={{ scale: 1.25, opacity: 0.7 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  transition={{ type: "spring", stiffness: 400, damping: 20 }}
-                >
-                  {playerCount}
-                </motion.span>
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={() => setPlayerCount((c) => Math.min(MAX_PLAYERS, c + 1))}
-                  disabled={playerCount >= MAX_PLAYERS}
-                  className="!rounded-full !size-10 !p-0 flex-shrink-0"
-                >
-                  +
-                </Button>
-              </div>
-            </Card>
-          </motion.div>
+          <div className="card card-pad">
+            <p className="mb-3.5 text-[13px] font-semibold uppercase" style={{ fontFamily: "var(--font-head)", color: "var(--muted)", letterSpacing: ".06em" }}>
+              Number of players · {playerCount}
+            </p>
+            <div className="flex items-center justify-center gap-4">
+              <button onClick={() => setPlayerCount((c) => Math.max(MIN_PLAYERS, c - 1))} disabled={playerCount <= MIN_PLAYERS} className="step-btn">
+                <Icon name="minus" size={18} />
+              </button>
+              <span className="display min-w-[40px] text-center text-[40px]" style={{ color: "var(--brand-2)" }}>{playerCount}</span>
+              <button onClick={() => setPlayerCount((c) => Math.min(MAX_PLAYERS, c + 1))} disabled={playerCount >= MAX_PLAYERS} className="step-btn">
+                <Icon name="plus" size={18} />
+              </button>
+            </div>
+          </div>
 
           {/* Player names */}
-          <motion.div
-            initial={{ opacity: 0, y: 14 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.18, duration: 0.5 }}
-          >
-            <Card padding="lg" className="mb-5">
-              <label className="block text-sm font-semibold text-foreground mb-3">
-                Player Names
-              </label>
-              <div className="space-y-2.5">
-                {Array.from({ length: playerCount }).map((_, i) => (
-                  <Input
-                    key={i}
-                    placeholder={`Player ${i + 1}`}
-                    value={names[i]}
-                    onChange={(e) => updateName(i, e.target.value)}
-                    className="bg-background"
-                  />
-                ))}
-              </div>
-            </Card>
-          </motion.div>
+          <div className="card card-pad">
+            <p className="mb-3 text-[13px] font-semibold uppercase" style={{ fontFamily: "var(--font-head)", color: "var(--muted)", letterSpacing: ".06em" }}>
+              Player names
+            </p>
+            <div className="flex flex-col gap-2.5">
+              {Array.from({ length: playerCount }).map((_, i) => (
+                <Input key={i} placeholder={`Player ${i + 1}`} value={names[i]} onChange={(e) => updateName(i, e.target.value)} />
+              ))}
+            </div>
+          </div>
 
           {/* Category */}
-          <motion.div
-            initial={{ opacity: 0, y: 14 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.26, duration: 0.5 }}
-          >
-            <Card padding="lg" className="mb-8">
-              <label className="block text-sm font-semibold text-foreground mb-3">
-                Category{" "}
-                <span className="text-muted font-normal">(optional)</span>
-              </label>
-              <div className="flex flex-wrap gap-2">
-                <button
-                  onClick={() => setSelectedCategory(null)}
-                  className={cn(
-                    "rounded-full border px-4 py-1.5 text-sm transition-all duration-200 cursor-pointer",
-                    !selectedCategory
-                      ? "border-purple/40 bg-purple/12 text-purple"
-                      : "border-border text-muted hover:border-purple/25 hover:text-foreground",
-                  )}
-                >
-                  Random
-                </button>
-                {categories.map((cat) => {
-                  const isPremium = premiumCats.has(cat);
-                  const isLocked = isPremium && isGuest;
-                  const isSelected = selectedCategory === cat;
-
-                  return (
-                    <button
-                      key={cat}
-                      onClick={() => handleCategoryClick(cat)}
-                      className={cn(
-                        "rounded-full border px-4 py-1.5 text-sm transition-all duration-200 relative cursor-pointer flex items-center gap-1.5",
-                        isSelected
-                          ? "border-purple/40 bg-purple/12 text-purple"
-                          : isLocked
-                            ? "border-orange/20 text-muted/50 hover:border-orange/35"
-                            : "border-border text-muted hover:border-purple/25 hover:text-foreground",
-                      )}
-                    >
-                      {isLocked && (
-                        <svg className="size-3 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
-                        </svg>
-                      )}
-                      {cat}
-                      {isPremium && !isLocked && (
-                        <span className="text-[10px] bg-orange/15 text-orange px-1.5 py-0.5 rounded-full font-bold">
-                          PRO
-                        </span>
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-              {isGuest && (
-                <p className="text-xs text-muted mt-3 flex items-center gap-1.5">
-                  <svg className="size-3 shrink-0 text-orange/60" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
-                  </svg>
-                  Locked categories require a free account.{" "}
+          <div className="card card-pad">
+            <p className="mb-3 text-[13px] font-semibold uppercase" style={{ fontFamily: "var(--font-head)", color: "var(--muted)", letterSpacing: ".06em" }}>
+              Topic pack <span className="font-normal normal-case tracking-normal" style={{ color: "var(--muted-2)" }}>(optional)</span>
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <button onClick={() => setSelectedCategory(null)} className="chip" style={chipStyle(!selectedCategory)}>
+                <Icon name="dice" size={11} /> Random
+              </button>
+              {categories.map((cat) => {
+                const isPremium = premiumCats.has(cat);
+                const isLocked = isPremium && isGuest;
+                const isSelected = selectedCategory === cat;
+                return (
                   <button
-                    onClick={() => router.push("/signup")}
-                    className="text-purple hover:underline cursor-pointer"
+                    key={cat}
+                    onClick={() => handleCategoryClick(cat)}
+                    className="chip"
+                    style={
+                      isLocked && !isSelected
+                        ? { cursor: "pointer", fontSize: 12.5, padding: "8px 14px", color: "var(--amber)", borderColor: "color-mix(in oklab, var(--amber) 35%, transparent)" }
+                        : chipStyle(isSelected)
+                    }
                   >
-                    Sign up free
+                    {isLocked && <Icon name="lock" size={11} />}
+                    {cat}
+                    {isPremium && !isLocked && <Icon name="crown" size={11} style={{ color: isSelected ? "var(--brand-ink)" : "var(--amber)" }} />}
                   </button>
-                </p>
-              )}
-            </Card>
-          </motion.div>
+                );
+              })}
+            </div>
+            {isGuest && (
+              <p className="mt-3 flex items-center gap-1.5 text-xs text-muted">
+                <Icon name="lock" size={12} style={{ color: "var(--amber)" }} />
+                Locked packs need a free account.{" "}
+                <button onClick={() => router.push(signupWithNext(pathname))} className="cursor-pointer" style={{ color: "var(--brand-2)" }}>
+                  Sign up free
+                </button>
+              </p>
+            )}
+          </div>
 
-          <motion.div
-            initial={{ opacity: 0, y: 14 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.34, duration: 0.5 }}
-          >
-            <Button
-              variant="primary"
-              size="lg"
-              className="w-full"
-              onClick={handleStart}
-            >
-              Start Game
-            </Button>
-          </motion.div>
+          <Button variant="primary" size="lg" className="w-full" onClick={handleStart}>
+            <Icon name="play" size={18} fill /> Start game
+          </Button>
+          <p className="text-center text-[12.5px] text-muted">One impostor will be chosen at random.</p>
         </div>
       </main>
 
-      <Modal open={showAuthModal} onClose={() => setShowAuthModal(false)} title="Premium Category">
-        <div className="text-center space-y-4">
-          <div className="w-16 h-16 rounded-2xl bg-orange/10 border border-orange/25 flex items-center justify-center mx-auto">
-            <svg className="size-8 text-orange" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
-            </svg>
+      <Modal open={showAuthModal} onClose={() => setShowAuthModal(false)} title="Premium topic pack">
+        <div className="space-y-4 text-center">
+          <div className="role-ic mx-auto" style={{ width: 64, height: 64, ["--c" as string]: "var(--amber)", background: "linear-gradient(150deg, var(--amber), color-mix(in oklab, var(--amber) 55%, #000))" }}>
+            <Icon name="crown" size={30} />
           </div>
           <p className="text-foreground">
-            <span className="font-heading text-purple">{blockedCategory}</span> is a premium category.
+            <span className="display" style={{ color: "var(--brand-2)" }}>{blockedCategory}</span> is a premium pack.
           </p>
-          <p className="text-sm text-muted">
-            Create a free account to unlock all premium categories and track your stats.
-          </p>
+          <p className="text-sm text-muted">Create a free account to unlock premium packs and track your stats.</p>
           <div className="flex gap-3">
-            <Button
-              variant="secondary"
-              className="flex-1"
-              onClick={() => router.push(loginWithNext(pathname))}
-            >
-              Log In
-            </Button>
-            <Button
-              variant="primary"
-              className="flex-1"
-              onClick={() => router.push(signupWithNext(pathname))}
-            >
-              Sign Up Free
-            </Button>
+            <Button variant="secondary" className="flex-1" onClick={() => router.push(loginWithNext(pathname))}>Log in</Button>
+            <Button variant="primary" className="flex-1" onClick={() => router.push(signupWithNext(pathname))}>Sign up free</Button>
           </div>
-          <button
-            onClick={() => setShowAuthModal(false)}
-            className="text-sm text-muted hover:text-foreground transition-colors cursor-pointer"
-          >
+          <button onClick={() => setShowAuthModal(false)} className="cursor-pointer text-sm text-muted transition-colors hover:text-foreground">
             Maybe later
           </button>
         </div>

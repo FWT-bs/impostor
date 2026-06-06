@@ -68,76 +68,82 @@ export function usePlayerSecret(roundId: string | null) {
   return { secret, loading };
 }
 
-export function useVoteCount(roundId: string | null, totalPlayers: number) {
-  const supabase = useMemo(() => createClient(), []);
-  const [myVote, setMyVote] = useState<string | null>(null);
-  const [voteCount, setVoteCount] = useState(0);
+type ChatRow = Database["public"]["Tables"]["chat_messages"]["Row"];
 
-  const checkVote = useCallback(async () => {
-    if (!roundId) return;
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) return;
-
-    const { data } = await supabase
-      .from("votes")
-      .select("voted_for_id")
-      .eq("round_id", roundId)
-      .eq("voter_id", user.id)
-      .maybeSingle();
-
-    setMyVote(data?.voted_for_id ?? null);
-  }, [roundId, supabase]);
-
-  useEffect(() => {
-    checkVote();
-  }, [checkVote]);
-
-  return { myVote, voteCount, checkVote };
+function rowToMessage(row: ChatRow): ChatMessage {
+  return {
+    id: row.id,
+    userId: row.user_id ?? "system",
+    displayName: row.display_name,
+    text: row.text,
+    timestamp: Date.parse(row.created_at) || Date.now(),
+  };
 }
 
+/**
+ * Persistent table chat for an online room. Loads history from
+ * `chat_messages`, streams new rows via realtime, and writes on send.
+ * System lines (userId === "system") are stored with a NULL user_id.
+ */
 export function useChat(roomId: string | null) {
   const supabase = useMemo(() => createClient(), []);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+
+  // De-dupe helper: realtime echoes our own INSERTs, so merge by id.
+  const merge = useCallback((incoming: ChatMessage) => {
+    setMessages((prev) =>
+      prev.some((m) => m.id === incoming.id) ? prev : [...prev, incoming],
+    );
+  }, []);
 
   useEffect(() => {
-    if (!roomId) return;
+    if (!roomId) {
+      setMessages([]);
+      return;
+    }
+    let cancelled = false;
 
-    const channel = supabase.channel(`chat-${roomId}`);
-    channelRef.current = channel;
+    async function loadHistory() {
+      const { data } = await supabase
+        .from("chat_messages")
+        .select("*")
+        .eq("room_id", roomId as string)
+        .order("created_at", { ascending: true });
+      if (!cancelled && data) setMessages(data.map(rowToMessage));
+    }
+    void loadHistory();
 
-    channel
-      .on("broadcast", { event: "chat_message" }, (payload) => {
-        const msg = payload.payload as ChatMessage;
-        setMessages((prev) => [...prev, msg]);
-      })
+    const channel = supabase
+      .channel(`chat-${roomId}`)
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "chat_messages", filter: `room_id=eq.${roomId}` },
+        (payload) => merge(rowToMessage(payload.new as ChatRow)),
+      )
       .subscribe();
 
     return () => {
+      cancelled = true;
       supabase.removeChannel(channel);
     };
-  }, [roomId, supabase]);
+  }, [roomId, supabase, merge]);
 
   const sendMessage = useCallback(
     async (text: string, userId: string, displayName: string) => {
-      if (!channelRef.current) return;
-      const msg: ChatMessage = {
-        id: crypto.randomUUID(),
-        userId,
-        displayName,
+      if (!roomId) return;
+      const id = crypto.randomUUID();
+      const isSystem = userId === "system";
+      // Optimistic — realtime echo is de-duped by id.
+      merge({ id, userId, displayName, text, timestamp: Date.now() });
+      await supabase.from("chat_messages").insert({
+        id,
+        room_id: roomId,
+        user_id: isSystem ? null : userId,
+        display_name: displayName,
         text,
-        timestamp: Date.now(),
-      };
-      await channelRef.current.send({
-        type: "broadcast",
-        event: "chat_message",
-        payload: msg,
       });
-      setMessages((prev) => [...prev, msg]);
     },
-    []
+    [roomId, supabase, merge],
   );
 
   return { messages, sendMessage };

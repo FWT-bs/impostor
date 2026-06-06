@@ -1,141 +1,44 @@
 "use client";
 
-import { use, useEffect, useState, useCallback, useRef } from "react";
+import { use, useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/Button";
-import { Card } from "@/components/ui/Card";
 import { Avatar } from "@/components/ui/Avatar";
-import { Timer } from "@/components/ui/Timer";
+import { Chip } from "@/components/ui/Chip";
+import { Icon, type IconName } from "@/components/ui/Icon";
+import { Logo } from "@/components/ui/Logo";
 import { useAuth } from "@/lib/hooks/use-auth";
 import { useRoom } from "@/lib/hooks/use-room";
 import { usePlayerSecret, useChat } from "@/lib/hooks/use-game";
 import { createClient } from "@/lib/supabase/client";
-import { cn } from "@/lib/utils";
+import { tokenColor } from "@/lib/utils";
 import type { Database } from "@/lib/supabase/types";
-
-const AVATAR_COLORS = [
-  "#ef4444", "#f97316", "#f59e0b", "#22c55e", "#14b8a6",
-  "#06b6d4", "#3b82f6", "#6366f1", "#8b5cf6", "#ec4899",
-];
+import type { ChatMessage } from "@/types/game";
 
 type GameRound = Database["public"]["Tables"]["game_rounds"]["Row"];
 type RoomPlayer = Database["public"]["Tables"]["room_players"]["Row"];
+type PlayerSecret = Database["public"]["Tables"]["player_secrets"]["Row"];
+type Room = Database["public"]["Tables"]["rooms"]["Row"];
 
-/** Persistent chat sidebar shown during all game phases */
-function ChatPanel({
-  messages,
-  sendMessage,
-  userId,
-  myDisplayName,
-  collapsed,
-  onToggle,
-}: {
-  messages: { id: string; userId: string; displayName: string; text: string; timestamp: number }[];
-  sendMessage: (text: string, userId: string, displayName: string) => void;
-  userId: string;
-  myDisplayName: string;
-  collapsed: boolean;
-  onToggle: () => void;
-}) {
-  const [chatInput, setChatInput] = useState("");
-  const chatEndRef = useRef<HTMLDivElement>(null);
+type SendMessage = (text: string, userId: string, displayName: string) => void;
 
-  useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+const PHASE_META: Record<string, { label: string; tone: "brand" | "aqua" | "heat"; icon: IconName }> = {
+  role_reveal: { label: "Role reveal", tone: "brand", icon: "eye" },
+  clue_phase: { label: "Clue phase", tone: "aqua", icon: "chat" },
+  discussion: { label: "Discussion", tone: "brand", icon: "users" },
+  voting: { label: "Voting", tone: "heat", icon: "vote" },
+  results: { label: "Results", tone: "brand", icon: "trophy" },
+};
 
-  function handleSend() {
-    if (!chatInput.trim()) return;
-    sendMessage(chatInput.trim(), userId, myDisplayName);
-    setChatInput("");
-  }
-
-  return (
-    <div className="w-full lg:w-72 flex-shrink-0 flex flex-col">
-      {/* Header with toggle */}
-      <button
-        type="button"
-        onClick={onToggle}
-        className="flex items-center justify-between w-full rounded-t-2xl border-2 border-border bg-card px-4 py-2.5 text-sm font-semibold text-foreground lg:rounded-2xl lg:rounded-b-none hover:bg-card-hover transition-colors"
-      >
-        <span>💬 Chat</span>
-        <span className="text-muted text-xs">{collapsed ? "▲ show" : "▼ hide"}</span>
-      </button>
-
-      <AnimatePresence initial={false}>
-        {!collapsed && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            className="overflow-hidden border-2 border-t-0 border-border rounded-b-2xl bg-card flex flex-col"
-          >
-            <div className="h-56 lg:h-[calc(100vh-280px)] lg:min-h-48 overflow-y-auto space-y-2 p-3 pr-1">
-              {messages.length === 0 && (
-                <p className="text-xs text-muted text-center py-4">No messages yet 🤔</p>
-              )}
-              {messages.map((msg) => {
-                const isSystem = msg.userId === "system";
-                return (
-                  <div
-                    key={msg.id}
-                    className={cn(
-                      "text-sm rounded-2xl px-3 py-1.5",
-                      isSystem
-                        ? "bg-purple/5 text-muted italic text-center text-xs"
-                        : msg.userId === userId
-                        ? "bg-purple/10 text-foreground ml-6"
-                        : "bg-card-hover text-foreground mr-6"
-                    )}
-                  >
-                    {!isSystem && (
-                      <span className="font-medium text-purple text-xs block">
-                        {msg.displayName}
-                      </span>
-                    )}
-                    <p>{msg.text}</p>
-                  </div>
-                );
-              })}
-              <div ref={chatEndRef} />
-            </div>
-            <div className="flex gap-2 p-3 pt-2 border-t border-border">
-              <input
-                type="text"
-                value={chatInput}
-                onChange={(e) => setChatInput(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handleSend()}
-                placeholder="Type a message..."
-                className="flex-1 min-w-0 rounded-xl border-2 border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-purple transition-all duration-200"
-              />
-              <Button variant="primary" size="sm" onClick={handleSend}>
-                ↑
-              </Button>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
-  );
-}
-
-export default function OnlinePlayPage({
-  params,
-}: {
-  params: Promise<{ code: string }>;
-}) {
+export default function OnlinePlayPage({ params }: { params: Promise<{ code: string }> }) {
   const { code } = use(params);
   const router = useRouter();
   const { user } = useAuth();
   const { room, players, loading, refetch } = useRoom(code);
-  const { secret, loading: secretLoading } = usePlayerSecret(
-    room?.current_round_id ?? null
-  );
+  const { secret, loading: secretLoading } = usePlayerSecret(room?.current_round_id ?? null);
   const { messages, sendMessage } = useChat(room?.id ?? null);
-  const [chatCollapsed, setChatCollapsed] = useState(false);
   const [loadingTooLong, setLoadingTooLong] = useState(false);
 
   useEffect(() => {
@@ -144,7 +47,6 @@ export default function OnlinePlayPage({
     }
   }, [room, loading, code, router]);
 
-  // Show retry button if stuck loading > 5 seconds
   useEffect(() => {
     if (!loading) { setLoadingTooLong(false); return; }
     const t = setTimeout(() => setLoadingTooLong(true), 5000);
@@ -153,33 +55,80 @@ export default function OnlinePlayPage({
 
   if (loading || !room || !user) {
     return (
-      <main className="min-h-screen bg-background flex items-center justify-center flex-col gap-4">
-        <motion.div
-          className="size-10 rounded-full border-4 border-purple/20 border-t-purple"
-          animate={{ rotate: 360 }}
-          transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
-        />
-        <p className="text-muted text-sm">Loading game…</p>
-        {loadingTooLong && (
-          <Button variant="secondary" size="sm" onClick={() => refetch()}>
-            Retry
-          </Button>
-        )}
+      <main className="reveal-wrap">
+        <div className="flex flex-col items-center gap-4">
+          <span className="livedot" />
+          <p className="text-sm text-muted">Loading game…</p>
+          {loadingTooLong && (
+            <Button variant="secondary" size="sm" onClick={() => refetch()}>Retry</Button>
+          )}
+        </div>
       </main>
     );
   }
 
   const myPlayer = players.find((p) => p.user_id === user.id);
   const isHost = room.host_id === user.id;
+  const meta = PHASE_META[room.phase] ?? PHASE_META.clue_phase;
+  const settings = (room.settings ?? {}) as { category?: string };
+  const topic = secret?.topic ?? settings.category ?? "Mixed";
+
+  async function handleLeave() {
+    router.push("/rooms");
+  }
 
   return (
-    <main className="min-h-screen bg-background px-4 py-6 pt-8 relative overflow-hidden">
-      <div className="absolute top-20 left-10 w-[300px] h-[300px] rounded-full bg-purple/5 blur-3xl pointer-events-none" aria-hidden />
-      <div className="absolute bottom-10 right-10 w-[250px] h-[250px] rounded-full bg-cyan/5 blur-3xl pointer-events-none" aria-hidden />
+    <main className="mx-auto max-w-[1180px] px-5 pt-24 pb-10">
+      {/* round header */}
+      <div className="card mb-3.5" style={{ padding: "12px 16px" }}>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-wrap items-center gap-3">
+            <Logo size={24} showWord={false} />
+            <Chip tone="brand" icon="globe">Room {room.code}</Chip>
+            <Chip icon="dice">{topic}</Chip>
+            <Chip tone={meta.tone} icon={meta.icon}>{meta.label}</Chip>
+          </div>
+          <Button variant="secondary" size="sm" onClick={handleLeave}>Leave</Button>
+        </div>
+      </div>
 
-      <div className="relative z-10 mx-auto max-w-5xl flex flex-col lg:flex-row gap-4 items-start justify-center">
-        {/* ── Game phase panel ── */}
-        <div className="w-full max-w-lg mx-auto lg:mx-0 lg:flex-1">
+      {/* player rail */}
+      <div className="card mb-3.5 overflow-x-auto" style={{ padding: "12px 14px" }}>
+        <div className="flex gap-4" style={{ width: "max-content" }}>
+          {players.map((p, i) => {
+            const isTurn = room.phase === "clue_phase" && i === room.current_turn_index;
+            const hasClue = Boolean(p.clue_text);
+            return (
+              <div key={p.id} className="flex min-w-[64px] flex-col items-center gap-2">
+                <div className="relative">
+                  <Avatar name={p.display_name} color={tokenColor(p.user_id)} size="md" you={p.user_id === user.id} />
+                  {room.phase === "clue_phase" && hasClue && (
+                    <span className="token-badge" style={{ color: "var(--emerald)" }}>
+                      <Icon name="check" size={11} stroke={3} />
+                    </span>
+                  )}
+                  {isTurn && (
+                    <span
+                      className="absolute rounded-2xl"
+                      style={{ inset: -4, border: "2px solid var(--aqua)", animation: "ping 1.6s infinite" }}
+                    />
+                  )}
+                </div>
+                <span
+                  className="max-w-[72px] truncate text-[11.5px] font-semibold"
+                  style={{ fontFamily: "var(--font-head)", color: p.user_id === user.id ? "var(--brand-2)" : "var(--muted)" }}
+                >
+                  {p.display_name}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* stage + chat */}
+      <div className="chatroom-grid">
+        <div>
           <AnimatePresence mode="wait">
             {room.phase === "role_reveal" && (
               <motion.div key="role_reveal" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
@@ -189,75 +138,50 @@ export default function OnlinePlayPage({
                   roomId={room.id}
                   isHost={isHost}
                   sendMessage={sendMessage}
-                  myDisplayName={myPlayer?.display_name ?? ""}
-                  userId={user.id}
                 />
               </motion.div>
             )}
             {room.phase === "clue_phase" && (
               <motion.div key="clue_phase" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
-                <OnlineCluePhase
-                  code={code}
-                  room={room}
-                  players={players}
-                  userId={user.id}
-                  secret={secret}
-                  sendMessage={sendMessage}
-                  myDisplayName={myPlayer?.display_name ?? ""}
-                />
+                <OnlineCluePhase code={code} room={room} players={players} userId={user.id} secret={secret} sendMessage={sendMessage} myDisplayName={myPlayer?.display_name ?? ""} />
               </motion.div>
             )}
             {room.phase === "discussion" && (
               <motion.div key="discussion" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
-                <OnlineDiscussionPhase
-                  room={room}
-                  players={players}
-                  userId={user.id}
-                  isHost={isHost}
-                  sendMessage={sendMessage}
-                  myDisplayName={myPlayer?.display_name ?? ""}
-                />
+                <OnlineDiscussionPhase room={room} players={players} isHost={isHost} sendMessage={sendMessage} />
               </motion.div>
             )}
             {room.phase === "voting" && (
               <motion.div key="voting" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
-                <OnlineVotingPhase
-                  code={code}
-                  room={room}
-                  players={players}
-                  userId={user.id}
-                />
+                <OnlineVotingPhase code={code} room={room} players={players} userId={user.id} isHost={isHost} />
               </motion.div>
             )}
             {room.phase === "results" && (
               <motion.div key="results" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
-                <OnlineResultsPhase
-                  code={code}
-                  room={room}
-                  players={players}
-                  isHost={isHost}
-                />
+                <OnlineResultsPhase code={code} room={room} players={players} userId={user.id} isHost={isHost} />
               </motion.div>
             )}
           </AnimatePresence>
         </div>
 
-        {/* ── Persistent chat panel ── */}
         <ChatPanel
           messages={messages}
           sendMessage={sendMessage}
           userId={user.id}
           myDisplayName={myPlayer?.display_name ?? "Me"}
-          collapsed={chatCollapsed}
-          onToggle={() => setChatCollapsed((c) => !c)}
         />
       </div>
     </main>
   );
 }
 
+/* Wrapper for the non-reveal phase panels — the design's "stage" card. */
+function Stage({ children }: { children: React.ReactNode }) {
+  return <div className="card card-pad" style={{ minHeight: 420 }}>{children}</div>;
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
-// Role Reveal — auto-reveals, then 10-second countdown → auto-starts clue phase
+// Role Reveal
 // ─────────────────────────────────────────────────────────────────────────────
 function OnlineRoleReveal({
   secret,
@@ -265,29 +189,23 @@ function OnlineRoleReveal({
   roomId,
   isHost,
   sendMessage,
-  myDisplayName,
-  userId,
 }: {
-  secret: Database["public"]["Tables"]["player_secrets"]["Row"] | null;
+  secret: PlayerSecret | null;
   loading: boolean;
   roomId: string;
   isHost: boolean;
-  sendMessage: (text: string, userId: string, displayName: string) => void;
-  myDisplayName: string;
-  userId: string;
+  sendMessage: SendMessage;
 }) {
   const [revealed, setRevealed] = useState(false);
   const [countdown, setCountdown] = useState<number | null>(null);
   const advancedRef = useRef(false);
 
-  // Auto-reveal after 1.5 s (player can tap early too)
   useEffect(() => {
     if (loading) return;
     const t = setTimeout(() => setRevealed(true), 1500);
     return () => clearTimeout(t);
   }, [loading]);
 
-  // Start countdown once revealed
   useEffect(() => {
     if (!revealed) return;
     setCountdown(10);
@@ -300,28 +218,28 @@ function OnlineRoleReveal({
     return () => clearInterval(interval);
   }, [revealed]);
 
-  // Host auto-advances when countdown hits 0
   useEffect(() => {
-    if (countdown !== 0 || !isHost || advancedRef.current) return;
+    if (countdown !== 0 || advancedRef.current) return;
     advancedRef.current = true;
-    const supabase = createClient();
-    supabase
-      .from("rooms")
-      .update({ phase: "clue_phase", current_turn_index: 0 })
-      .eq("id", roomId)
-      .then();
-    // Announce in chat
-    sendMessage("🎮 Clue phase is starting — give hints that prove you know the word!", "system", "Game");
+    const delay = isHost ? 0 : 2000 + Math.random() * 2500;
+    const t = setTimeout(() => {
+      const supabase = createClient();
+      void supabase
+        .from("rooms")
+        .update({ phase: "clue_phase", current_turn_index: 0 })
+        .eq("id", roomId)
+        .eq("phase", "role_reveal");
+    }, delay);
+    if (isHost) {
+      sendMessage("🎮 Clue phase is starting — give hints that prove you know the word!", "system", "Game");
+    }
+    return () => clearTimeout(t);
   }, [countdown, isHost, roomId, sendMessage]);
 
   if (loading) {
     return (
-      <div className="text-center py-16">
-        <motion.div
-          className="size-8 rounded-full border-4 border-purple/20 border-t-purple mx-auto mb-4"
-          animate={{ rotate: 360 }}
-          transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
-        />
+      <div className="flex flex-col items-center gap-3 py-16 text-center">
+        <span className="livedot" />
         <p className="text-muted">Getting your role…</p>
       </div>
     );
@@ -329,113 +247,85 @@ function OnlineRoleReveal({
 
   const isImpostor = secret?.role === "impostor";
 
-  return (
-    <div className="text-center">
-      <h2 className="font-heading text-2xl text-foreground mb-6">Your Role</h2>
-
-      {/* 3D card flip */}
-      <div
-        style={{ perspective: "800px" }}
-        className="mx-auto w-full max-w-sm cursor-pointer"
-        onClick={() => !revealed && setRevealed(true)}
-      >
-        <div
-          className="relative w-full min-h-[260px]"
-          style={{
-            transformStyle: "preserve-3d",
-            transition: "transform 0.6s cubic-bezier(0.4, 0.0, 0.2, 1)",
-            transform: revealed ? "rotateY(180deg)" : "rotateY(0deg)",
-          }}
+  if (!revealed) {
+    return (
+      <div className="flex flex-col items-center gap-5 py-10 text-center">
+        <p className="kicker">Your role is hidden</p>
+        <button
+          type="button"
+          onClick={() => setRevealed(true)}
+          className="role-ic float cursor-pointer"
+          style={{ width: 96, height: 96, ["--c" as string]: "var(--brand)", background: "linear-gradient(150deg, var(--brand), color-mix(in oklab, var(--brand) 55%, #000))" }}
+          aria-label="Reveal your role"
         >
-          {/* Front */}
-          <div className="absolute inset-0" style={{ backfaceVisibility: "hidden", WebkitBackfaceVisibility: "hidden" }}>
-            <Card glow padding="lg" className="h-full flex flex-col items-center justify-center">
-              <motion.div className="text-6xl mb-4" animate={{ scale: [1, 1.1, 1] }} transition={{ repeat: Infinity, duration: 2 }}>
-                🔒
-              </motion.div>
-              <p className="font-heading text-xl text-foreground">Tap to Reveal</p>
-              <p className="text-sm text-muted mt-2">Your role is hidden</p>
-            </Card>
-          </div>
+          <Icon name="lock" size={44} />
+        </button>
+        <h2 className="display text-[40px]">TAP TO REVEAL</h2>
+        <p className="max-w-[300px] text-sm text-muted">Make sure nobody else is peeking — your role is for your eyes only.</p>
+      </div>
+    );
+  }
 
-          {/* Back */}
-          <div
-            className="absolute inset-0"
-            style={{ backfaceVisibility: "hidden", WebkitBackfaceVisibility: "hidden", transform: "rotateY(180deg)" }}
-          >
-            <Card
-              padding="lg"
-              className={cn(
-                "h-full flex flex-col items-center justify-center",
-                isImpostor
-                  ? "border-rose/50 shadow-[0_0_30px_rgba(244,63,94,0.15)]"
-                  : "border-purple/50 shadow-[0_0_30px_rgba(168,85,247,0.15)]"
-              )}
-            >
-              {isImpostor ? (
-                <>
-                  <div className="text-6xl mb-4">🕵️</div>
-                  <p className="font-heading text-2xl text-rose mb-2">You are the IMPOSTOR</p>
-                  <p className="text-muted">Topic: <span className="text-orange font-medium">{secret?.topic}</span></p>
-                  <p className="text-sm text-rose/70 mt-2">You do NOT know the secret word</p>
-                </>
-              ) : (
-                <>
-                  <div className="text-6xl mb-4">✅</div>
-                  <p className="font-heading text-2xl text-purple mb-2">Regular Player</p>
-                  <p className="text-muted">Topic: <span className="text-orange font-medium">{secret?.topic}</span></p>
-                  <p className="text-foreground mt-2">
-                    Secret Word: <span className="text-purple font-bold text-xl">{secret?.secret_word}</span>
-                  </p>
-                </>
-              )}
-            </Card>
-          </div>
+  const c = isImpostor ? "var(--heat)" : "var(--aqua)";
+  return (
+    <div className="flex flex-col items-center gap-6 py-2">
+      <div
+        className="role-card pop-in"
+        style={{
+          ["--c" as string]: c,
+          borderColor: `color-mix(in oklab, ${c} 50%, transparent)`,
+          boxShadow: `0 0 60px -16px ${c}, inset 0 1px 0 rgba(255,255,255,.08)`,
+        }}
+      >
+        <div className="role-ic" style={{ background: `linear-gradient(150deg, ${c}, color-mix(in oklab, ${c} 55%, #000))` }}>
+          <Icon name={isImpostor ? "mask" : "shield"} size={40} />
         </div>
+        {isImpostor ? (
+          <>
+            <p className="kicker" style={{ color: "var(--heat-2)" }}>You are the</p>
+            <h2 className="display" style={{ fontSize: 58, color: "var(--heat)" }}>IMPOSTER</h2>
+            <p className="mx-auto mt-1 max-w-[320px] text-[14.5px] text-muted">
+              You don&apos;t know the secret word. Blend in, fake a clue, and survive the vote.
+            </p>
+            <div className="role-chip">
+              <span className="kicker" style={{ fontSize: 10 }}>Your only hint — the topic</span>
+              <span className="display" style={{ fontSize: 34, color: "var(--amber)" }}>{secret?.topic}</span>
+            </div>
+          </>
+        ) : (
+          <>
+            <p className="kicker" style={{ color: "var(--aqua-2)" }}>You are</p>
+            <h2 className="display" style={{ fontSize: 58, color: "var(--aqua)" }}>CREW</h2>
+            <p className="mx-auto mt-1 max-w-[320px] text-[14.5px] text-muted">
+              You know the word. Prove it with a clue — but don&apos;t make it too easy for the faker.
+            </p>
+            <div className="role-chip">
+              <span className="kicker" style={{ fontSize: 10 }}>The secret word</span>
+              <span className="display" style={{ fontSize: 38, color: "var(--text)" }}>{secret?.secret_word}</span>
+              <span className="text-[12px] text-muted">Topic · {secret?.topic}</span>
+            </div>
+          </>
+        )}
       </div>
 
-      {/* Countdown after reveal */}
-      <AnimatePresence>
-        {revealed && countdown !== null && (
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0 }}
-            transition={{ delay: 0.3 }}
-            className="mt-6"
-          >
-            {countdown > 0 ? (
-              <>
-                <p className="text-sm text-muted mb-2">Starting clue phase in…</p>
-                <div className="relative mx-auto size-16 flex items-center justify-center">
-                  <svg className="absolute inset-0 size-16 -rotate-90" viewBox="0 0 64 64">
-                    <circle cx="32" cy="32" r="28" fill="none" stroke="currentColor" strokeWidth="4" className="text-border" />
-                    <motion.circle
-                      cx="32" cy="32" r="28" fill="none" stroke="currentColor" strokeWidth="4"
-                      className="text-purple"
-                      strokeDasharray={2 * Math.PI * 28}
-                      strokeDashoffset={2 * Math.PI * 28 * (1 - countdown / 10)}
-                      strokeLinecap="round"
-                      transition={{ duration: 0.5 }}
-                    />
-                  </svg>
-                  <span className="font-heading text-2xl text-purple">{countdown}</span>
-                </div>
-                {isHost && <p className="text-xs text-muted mt-2">You will start automatically</p>}
-                {!isHost && <p className="text-xs text-muted mt-2">Waiting for clue phase to begin…</p>}
-              </>
-            ) : (
-              <p className="text-sm text-purple font-semibold">Starting…</p>
-            )}
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {countdown !== null && (
+        <div className="flex flex-col items-center gap-1.5">
+          {countdown > 0 ? (
+            <>
+              <p className="text-sm text-muted">Clue phase starts in…</p>
+              <span className="display text-[40px]" style={{ color: "var(--brand-2)" }}>{countdown}</span>
+            </>
+          ) : (
+            <p className="text-sm font-semibold" style={{ color: "var(--brand-2)" }}>Starting…</p>
+          )}
+        </div>
+      )}
     </div>
   );
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Clue Phase — popup modal when it's your turn
+// Clue Phase — inline answer bar (the design's clue board)
 // ─────────────────────────────────────────────────────────────────────────────
 function OnlineCluePhase({
   code,
@@ -447,37 +337,26 @@ function OnlineCluePhase({
   myDisplayName,
 }: {
   code: string;
-  room: Database["public"]["Tables"]["rooms"]["Row"];
+  room: Room;
   players: RoomPlayer[];
   userId: string;
-  secret: Database["public"]["Tables"]["player_secrets"]["Row"] | null;
-  sendMessage: (text: string, userId: string, displayName: string) => void;
+  secret: PlayerSecret | null;
+  sendMessage: SendMessage;
   myDisplayName: string;
 }) {
   const [clue, setClue] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const [showPopup, setShowPopup] = useState(false);
   const currentPlayer = players[room.current_turn_index];
   const isMyTurn = currentPlayer?.user_id === userId;
+  const myClue = players.find((p) => p.user_id === userId)?.clue_text;
   const announcedRef = useRef<number>(-1);
 
-  // Show popup when it becomes my turn
-  useEffect(() => {
-    if (isMyTurn) {
-      setShowPopup(true);
-    } else {
-      setShowPopup(false);
-    }
-  }, [isMyTurn]);
-
-  // Announce next player in chat (only the player whose turn just started)
   useEffect(() => {
     const idx = room.current_turn_index;
     if (idx === announcedRef.current) return;
     const player = players[idx];
     if (!player) return;
     announcedRef.current = idx;
-    // Every client does this but we deduplicate by only the CURRENT player sending
     if (player.user_id === userId) {
       sendMessage(`⏳ ${player.display_name} is choosing their hint…`, "system", "Game");
     }
@@ -499,179 +378,117 @@ function OnlineCluePhase({
       toast.error((data as { error?: string }).error || "Failed to submit clue");
       return;
     }
-
-    // Announce hint in chat
     sendMessage(`🎤 ${myDisplayName} gave the hint "${submittedClue}"!`, "system", "Game");
     if ((data as { allDone?: boolean }).allDone) {
       sendMessage("✅ All hints given — discussion starting!", "system", "Game");
     }
-
     setClue("");
-    setShowPopup(false);
   }
 
+  const isImpostor = secret?.role === "impostor";
+  const reminder = isImpostor ? secret?.topic : secret?.secret_word;
+
   return (
-    <div className="text-center">
-      <h2 className="font-heading text-2xl text-foreground mb-1">🎤 Clue Phase</h2>
-      <p className="text-sm text-muted mb-6">
-        Turn {Math.min(room.current_turn_index + 1, players.length)} of {players.length}
-      </p>
-
-      {/* Player turn track */}
-      <div className="flex gap-2 justify-center flex-wrap mb-6">
-        {players.map((p, i) => (
-          <motion.div
-            key={p.id}
-            className={cn(
-              "flex flex-col items-center gap-1 transition-all px-2 py-1 rounded-xl",
-              i === room.current_turn_index && "bg-purple/10 ring-2 ring-purple/40",
-              i < room.current_turn_index && "opacity-50"
-            )}
-            animate={i === room.current_turn_index ? { scale: [1, 1.05, 1] } : {}}
-            transition={{ repeat: Infinity, duration: 2 }}
-          >
-            <Avatar name={p.display_name} color={AVATAR_COLORS[i % AVATAR_COLORS.length]} size="sm" />
-            <span className="text-xs text-muted truncate max-w-[60px]">{p.display_name}</span>
-            {p.clue_text && <span className="text-xs text-purple">✓</span>}
-          </motion.div>
-        ))}
-      </div>
-
-      {/* Waiting card */}
-      <Card padding="lg">
-        {isMyTurn ? (
-          <>
-            <p className="font-heading text-xl text-purple mb-2">Your Turn! 🎯</p>
-            <p className="text-sm text-muted">Click the button below to enter your hint</p>
-            <Button
-              variant="primary"
-              size="lg"
-              className="mt-4 w-full"
-              onClick={() => setShowPopup(true)}
-            >
-              Enter My Hint
-            </Button>
-          </>
-        ) : (
-          <>
-            <p className="text-muted mb-2">Waiting for</p>
-            <p className="font-heading text-xl text-purple">{currentPlayer?.display_name || "…"}</p>
-            <p className="text-sm text-muted mt-2">to give their hint ⏳</p>
-          </>
-        )}
-      </Card>
-
-      {/* Clues given so far */}
-      {players.some((p) => p.clue_text) && (
-        <div className="mt-6">
-          <h3 className="text-sm font-semibold text-muted mb-3">💬 Hints Given</h3>
-          <div className="space-y-2">
-            {players
-              .filter((p) => p.clue_text)
-              .map((p) => (
-                <div key={p.id} className="flex items-center gap-3 rounded-2xl border-2 border-border bg-card px-3 py-2">
-                  <Avatar name={p.display_name} color={AVATAR_COLORS[players.indexOf(p) % AVATAR_COLORS.length]} size="sm" />
-                  <span className="text-sm text-foreground font-medium">{p.display_name}</span>
-                  <span className="text-sm text-purple ml-auto">&quot;{p.clue_text}&quot;</span>
-                </div>
-              ))}
+    <Stage>
+      <div className="flex h-full flex-col gap-[18px]">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <h3 className="text-[19px]">Clue board</h3>
+            <p className="text-[13px] text-muted">One word each. Prove you know it — don&apos;t give it away.</p>
           </div>
-        </div>
-      )}
-
-      {/* Hint input popup/modal */}
-      <AnimatePresence>
-        {showPopup && isMyTurn && (
-          <>
-            {/* Backdrop */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50"
-              onClick={() => setShowPopup(false)}
-            />
-            {/* Modal */}
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              transition={{ type: "spring", stiffness: 300, damping: 25 }}
-              className="fixed inset-x-4 top-1/2 -translate-y-1/2 z-50 max-w-md mx-auto"
+          {reminder && (
+            <div
+              className="rounded-xl px-3 py-2 text-right leading-none"
+              style={{
+                border: `1px solid color-mix(in oklab, ${isImpostor ? "var(--amber)" : "var(--aqua)"} 35%, transparent)`,
+                background: `color-mix(in oklab, ${isImpostor ? "var(--amber)" : "var(--aqua)"} 8%, transparent)`,
+              }}
             >
-              <Card padding="lg" glow className="border-2 border-purple/50 shadow-[0_0_40px_rgba(168,85,247,0.2)]">
-                <div className="mb-4">
-                  <p className="font-heading text-2xl text-purple mb-1">🎯 Your Turn!</p>
-                  {secret && (
-                    <div className="rounded-xl bg-purple/5 border border-purple/20 px-4 py-3 mt-3 text-left">
-                      {secret.role === "impostor" ? (
-                        <>
-                          <p className="text-xs text-muted uppercase tracking-wider mb-1">Topic</p>
-                          <p className="font-semibold text-orange">{secret.topic}</p>
-                          <p className="text-xs text-rose/70 mt-2">You don't know the secret word — blend in!</p>
-                        </>
-                      ) : (
-                        <>
-                          <p className="text-xs text-muted uppercase tracking-wider mb-1">Your word</p>
-                          <p className="font-bold text-purple text-xl">{secret.secret_word}</p>
-                          <p className="text-xs text-muted mt-1">Topic: <span className="text-orange">{secret.topic}</span></p>
-                        </>
-                      )}
-                    </div>
-                  )}
-                </div>
-                <p className="text-sm text-muted mb-3">Give a one-word clue that proves you know the word without giving it away</p>
-                <input
-                  type="text"
-                  value={clue}
-                  onChange={(e) => setClue(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && !submitting && handleSubmitClue()}
-                  placeholder="Enter your hint…"
-                  maxLength={200}
-                  className="w-full rounded-xl border-2 border-border bg-background px-4 py-3 text-foreground outline-none focus:border-purple focus:ring-2 focus:ring-purple/30 mb-4 transition-all duration-200"
-                  autoFocus
-                />
-                <div className="flex gap-3">
-                  <Button variant="secondary" size="md" className="flex-1" onClick={() => setShowPopup(false)}>
-                    Cancel
-                  </Button>
-                  <Button
-                    variant="primary"
-                    size="md"
-                    className="flex-1"
-                    onClick={handleSubmitClue}
-                    disabled={!clue.trim()}
-                    isLoading={submitting}
-                  >
-                    Submit Hint
-                  </Button>
-                </div>
-              </Card>
-            </motion.div>
-          </>
+              <div className="kicker" style={{ fontSize: 9, marginBottom: 5, whiteSpace: "nowrap", color: isImpostor ? "var(--amber)" : "var(--aqua-2)" }}>
+                {isImpostor ? "Your topic" : "Your word"}
+              </div>
+              <div className="display" style={{ fontSize: 22, color: "var(--text)", lineHeight: 1 }}>{reminder}</div>
+            </div>
+          )}
+        </div>
+
+        <div className="flex flex-col gap-2">
+          {players.map((p) => {
+            const clueText = p.clue_text;
+            const isTurn = p.user_id === currentPlayer?.user_id;
+            return (
+              <div
+                key={p.id}
+                className="flex items-center gap-3 rounded-[14px] px-3.5 py-2.5"
+                style={{
+                  border: "1px solid var(--border)",
+                  background: isTurn && !clueText ? "color-mix(in oklab, var(--aqua) 10%, transparent)" : "rgba(255,255,255,.015)",
+                }}
+              >
+                <Avatar name={p.display_name} color={tokenColor(p.user_id)} size="sm" you={p.user_id === userId} />
+                <span className="text-[14px] font-semibold" style={{ fontFamily: "var(--font-head)", color: p.user_id === userId ? "var(--brand-2)" : "var(--text)" }}>
+                  {p.display_name}
+                </span>
+                <span className="flex-1" />
+                {clueText ? (
+                  <span className="display text-[20px]" style={{ color: "var(--aqua-2)" }}>{clueText}</span>
+                ) : isTurn ? (
+                  <span className="chip chip-aqua" style={{ fontSize: 10 }}>thinking…</span>
+                ) : (
+                  <span className="text-[12.5px] text-muted">waiting</span>
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        <div className="flex-1" />
+
+        {isMyTurn && !myClue ? (
+          <div className="answer-bar pop-in">
+            <p className="kicker mb-2" style={{ color: "var(--aqua-2)" }}>Your turn — type your clue</p>
+            <div className="flex gap-2">
+              <input
+                autoFocus
+                value={clue}
+                onChange={(e) => setClue(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && !submitting && handleSubmitClue()}
+                placeholder="One word…"
+                maxLength={40}
+                className="field"
+              />
+              <Button variant="primary" onClick={handleSubmitClue} disabled={!clue.trim()} isLoading={submitting}>
+                <Icon name="send" size={17} /> Send
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <div className="flex items-center justify-center gap-2 p-3.5 text-[13.5px] text-muted">
+            {myClue ? (
+              <><Icon name="check" size={15} style={{ color: "var(--emerald)" }} /> Clue locked in — waiting for the table</>
+            ) : (
+              <><span className="typing"><i /><i /><i /></span> Waiting for {currentPlayer?.display_name ?? "…"}…</>
+            )}
+          </div>
         )}
-      </AnimatePresence>
-    </div>
+      </div>
+    </Stage>
   );
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Discussion Phase — timer auto-advances to voting (no host button needed)
+// Discussion Phase
 // ─────────────────────────────────────────────────────────────────────────────
 function OnlineDiscussionPhase({
   room,
   players,
-  userId,
   isHost,
   sendMessage,
-  myDisplayName,
 }: {
-  room: Database["public"]["Tables"]["rooms"]["Row"];
+  room: Room;
   players: RoomPlayer[];
-  userId: string;
   isHost: boolean;
-  sendMessage: (text: string, userId: string, displayName: string) => void;
-  myDisplayName: string;
+  sendMessage: SendMessage;
 }) {
   const settings = room.settings as { discussionTimer?: number } | null;
   const timerDuration = settings?.discussionTimer ?? 60;
@@ -679,48 +496,52 @@ function OnlineDiscussionPhase({
   const advancedRef = useRef(false);
 
   useEffect(() => {
-    const interval = setInterval(() => {
-      setSeconds((s) => Math.max(0, s - 1));
-    }, 1000);
+    const interval = setInterval(() => setSeconds((s) => Math.max(0, s - 1)), 1000);
     return () => clearInterval(interval);
   }, []);
 
-  // Host auto-advances when timer expires
   useEffect(() => {
-    if (seconds > 0 || !isHost || advancedRef.current) return;
+    if (seconds > 0 || advancedRef.current) return;
     advancedRef.current = true;
-    const supabase = createClient();
-    supabase.from("rooms").update({ phase: "voting" }).eq("id", room.id).then();
-    sendMessage("⏰ Time's up — voting has started!", "system", "Game");
+    const delay = isHost ? 0 : 2000 + Math.random() * 2500;
+    const t = setTimeout(() => {
+      const supabase = createClient();
+      void supabase.from("rooms").update({ phase: "voting" }).eq("id", room.id).eq("phase", "discussion");
+    }, delay);
+    if (isHost) sendMessage("⏰ Time's up — voting has started!", "system", "Game");
+    return () => clearTimeout(t);
   }, [seconds, isHost, room.id, sendMessage]);
 
   return (
-    <div>
-      <div className="text-center mb-4">
-        <h2 className="font-heading text-2xl text-foreground mb-2">💬 Discussion</h2>
-        <Timer seconds={seconds} total={timerDuration} size={80} className="mx-auto" />
-        {seconds <= 0 && (
-          <p className="text-sm text-purple mt-2 font-semibold">Moving to vote…</p>
-        )}
-      </div>
+    <Stage>
+      <div className="flex flex-col gap-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-[19px]">Discussion</h3>
+            <p className="text-[13px] text-muted">Read the clues. Who&apos;s faking it?</p>
+          </div>
+          <div className="flex items-center gap-2" style={{ color: seconds < 15 ? "var(--heat)" : "var(--text)" }}>
+            <Icon name="clock" size={16} />
+            <span className="display text-[22px]">0:{String(seconds).padStart(2, "0")}</span>
+          </div>
+        </div>
 
-      <Card padding="md" className="mb-4">
-        <h3 className="text-sm font-semibold text-muted mb-3">📝 Hints</h3>
-        <div className="space-y-2">
-          {players.map((p, i) => (
-            <div key={p.id} className="flex items-center gap-3 rounded-xl px-2 py-1.5">
-              <Avatar name={p.display_name} color={AVATAR_COLORS[i % AVATAR_COLORS.length]} size="sm" />
-              <span className="text-sm text-foreground">{p.display_name}</span>
-              <span className="text-sm text-purple ml-auto">&quot;{p.clue_text || "—"}&quot;</span>
+        <div className="flex flex-col gap-2">
+          {players.map((p) => (
+            <div key={p.id} className="flex items-center gap-3 rounded-[14px] px-3.5 py-2.5" style={{ border: "1px solid var(--border)", background: "rgba(255,255,255,.015)" }}>
+              <Avatar name={p.display_name} color={tokenColor(p.user_id)} size="sm" />
+              <span className="text-[14px] font-semibold" style={{ fontFamily: "var(--font-head)" }}>{p.display_name}</span>
+              <span className="flex-1" />
+              <span className="display text-[20px]" style={{ color: "var(--aqua-2)" }}>{p.clue_text || "—"}</span>
             </div>
           ))}
         </div>
-      </Card>
 
-      <p className="text-center text-sm text-muted">
-        {seconds > 0 ? "🤔 Discuss who the impostor might be" : "⏳ Advancing to voting…"}
-      </p>
-    </div>
+        <p className="text-center text-[13px] text-muted">
+          {seconds > 0 ? "Discuss who the impostor might be in chat →" : "Advancing to voting…"}
+        </p>
+      </div>
+    </Stage>
   );
 }
 
@@ -732,23 +553,51 @@ function OnlineVotingPhase({
   room,
   players,
   userId,
+  isHost,
 }: {
   code: string;
-  room: Database["public"]["Tables"]["rooms"]["Row"];
+  room: Room;
   players: RoomPlayer[];
   userId: string;
+  isHost: boolean;
 }) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [hasVoted, setHasVoted] = useState(false);
   const [seconds, setSeconds] = useState(30);
+  const resolveTriggered = useRef(false);
 
   useEffect(() => {
-    const interval = setInterval(() => {
-      setSeconds((s) => Math.max(0, s - 1));
-    }, 1000);
+    const interval = setInterval(() => setSeconds((s) => Math.max(0, s - 1)), 1000);
     return () => clearInterval(interval);
   }, []);
+
+  useEffect(() => {
+    const roundId = room.current_round_id;
+    if (!roundId) return;
+    let cancelled = false;
+    const supabase = createClient();
+    supabase
+      .from("votes")
+      .select("id")
+      .eq("round_id", roundId)
+      .eq("voter_id", userId)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (!cancelled && data) setHasVoted(true);
+      });
+    return () => { cancelled = true; };
+  }, [room.current_round_id, userId]);
+
+  useEffect(() => {
+    if (seconds > 0 || resolveTriggered.current) return;
+    resolveTriggered.current = true;
+    const delay = isHost ? 0 : 1500 + Math.random() * 2000;
+    const t = setTimeout(() => {
+      void fetch(`/api/rooms/${code}/resolve`, { method: "POST", credentials: "include" }).catch(() => {});
+    }, delay);
+    return () => clearTimeout(t);
+  }, [seconds, code, isHost]);
 
   async function handleVote() {
     if (!selectedId) return;
@@ -772,60 +621,61 @@ function OnlineVotingPhase({
   const otherPlayers = players.filter((p) => p.user_id !== userId);
 
   if (hasVoted) {
+    const timeUp = seconds <= 0;
     return (
-      <div className="text-center">
-        <h2 className="font-heading text-2xl text-foreground mb-4">Vote Submitted ✓</h2>
-        <Card padding="lg">
-          <motion.div className="text-5xl mb-4" animate={{ rotate: [0, 10, -10, 0] }} transition={{ repeat: Infinity, duration: 2 }}>
-            ⏳
-          </motion.div>
-          <p className="text-muted">Waiting for other players to vote…</p>
-        </Card>
-      </div>
+      <Stage>
+        <div className="flex flex-col items-center gap-4 py-10 text-center">
+          <Chip tone="heat" icon="vote">Vote submitted</Chip>
+          <div className="role-ic" style={{ width: 84, height: 84, background: "linear-gradient(150deg, var(--heat), color-mix(in oklab, var(--heat) 55%, #000))" }}>
+            <Icon name={timeUp ? "target" : "clock"} size={40} />
+          </div>
+          <p className="text-muted">{timeUp ? "Time's up — tallying the votes…" : "Waiting for other players to vote…"}</p>
+        </div>
+      </Stage>
     );
   }
 
   return (
-    <div className="text-center">
-      <h2 className="font-heading text-2xl text-foreground mb-2">🗳️ Cast Your Vote</h2>
-      <Timer seconds={seconds} total={30} size={70} className="mx-auto mb-4" />
-      <p className="text-sm text-muted mb-6">Who is the impostor? 🕵️</p>
+    <Stage>
+      <div className="flex flex-col gap-[18px]">
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-[19px]">Who&apos;s the impostor?</h3>
+            <p className="text-[13px] text-muted">Tap a player to cast your vote.</p>
+          </div>
+          <div className="flex items-center gap-2" style={{ color: seconds < 10 ? "var(--heat)" : "var(--text)" }}>
+            <Icon name="clock" size={16} />
+            <span className="display text-[22px]">0:{String(seconds).padStart(2, "0")}</span>
+          </div>
+        </div>
 
-      <div className="space-y-3 mb-6">
-        {otherPlayers.map((p) => {
-          const pIdx = players.indexOf(p);
-          return (
-            <motion.button
-              key={p.id}
-              onClick={() => setSelectedId(p.user_id)}
-              className={cn(
-                "w-full flex items-center gap-3 rounded-2xl border-2 px-4 py-3 transition-all duration-200 cursor-pointer",
-                selectedId === p.user_id
-                  ? "border-purple bg-purple/10 ring-1 ring-purple/30 shadow-[0_0_16px_rgba(168,85,247,0.15)]"
-                  : "border-border bg-card hover:border-purple/30"
-              )}
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-            >
-              <Avatar name={p.display_name} color={AVATAR_COLORS[pIdx % AVATAR_COLORS.length]} size="sm" />
-              <span className="text-foreground font-medium">{p.display_name}</span>
-              {selectedId === p.user_id && <span className="ml-auto text-purple text-lg">✓</span>}
-            </motion.button>
-          );
-        })}
+        <div className="grid grid-cols-[repeat(auto-fill,minmax(130px,1fr))] gap-3">
+          {otherPlayers.map((p) => {
+            const picked = selectedId === p.user_id;
+            return (
+              <button
+                key={p.id}
+                type="button"
+                onClick={() => setSelectedId(p.user_id)}
+                className="vote-card"
+                style={{
+                  borderColor: picked ? "var(--heat)" : "var(--border)",
+                  background: picked ? "color-mix(in oklab, var(--heat) 12%, transparent)" : "var(--surface)",
+                }}
+              >
+                <Avatar name={p.display_name} color={tokenColor(p.user_id)} size="md" />
+                <span className="text-[14px] font-bold" style={{ fontFamily: "var(--font-head)" }}>{p.display_name}</span>
+                {picked && <span className="chip chip-heat absolute right-2 top-2" style={{ fontSize: 9 }}>Your vote</span>}
+              </button>
+            );
+          })}
+        </div>
+
+        <Button variant="heat" size="lg" className="w-full" disabled={!selectedId || seconds <= 0} onClick={handleVote} isLoading={submitting}>
+          <Icon name="target" size={18} /> {seconds <= 0 ? "Tallying votes…" : selectedId ? `Lock vote — ${players.find((p) => p.user_id === selectedId)?.display_name}` : "Pick someone to vote"}
+        </Button>
       </div>
-
-      <Button
-        variant="primary"
-        size="lg"
-        className="w-full"
-        onClick={handleVote}
-        disabled={!selectedId}
-        isLoading={submitting}
-      >
-        Submit Vote
-      </Button>
-    </div>
+    </Stage>
   );
 }
 
@@ -836,11 +686,13 @@ function OnlineResultsPhase({
   code,
   room,
   players,
+  userId,
   isHost,
 }: {
   code: string;
-  room: Database["public"]["Tables"]["rooms"]["Row"];
+  room: Room;
   players: RoomPlayer[];
+  userId: string;
   isHost: boolean;
 }) {
   const supabase = createClient();
@@ -852,38 +704,23 @@ function OnlineResultsPhase({
   useEffect(() => {
     async function fetchResults() {
       if (!room.current_round_id) return;
-      const { data: roundData } = await supabase
-        .from("game_rounds")
-        .select("*")
-        .eq("id", room.current_round_id)
-        .single();
+      const { data: roundData } = await supabase.from("game_rounds").select("*").eq("id", room.current_round_id).single();
       setRound(roundData);
-
-      const { data: voteData } = await supabase
-        .from("votes")
-        .select("voter_id, voted_for_id")
-        .eq("round_id", room.current_round_id);
+      const { data: voteData } = await supabase.from("votes").select("voter_id, voted_for_id").eq("round_id", room.current_round_id);
       setVotes(voteData ?? []);
       setLoading(false);
     }
     fetchResults();
     const interval = setInterval(fetchResults, 2000);
     return () => clearInterval(interval);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [room.current_round_id]);
 
   async function handlePlayAgain() {
-    const res = await fetch(`/api/rooms/${code}/start`, {
-      method: "POST",
-      credentials: "include",
-    });
+    const res = await fetch(`/api/rooms/${code}/start`, { method: "POST", credentials: "include" });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
-      toast.error(
-        typeof data === "object" && data && "error" in data
-          ? String((data as { error: unknown }).error)
-          : "Failed to start new round",
-      );
+      toast.error(typeof data === "object" && data && "error" in data ? String((data as { error: unknown }).error) : "Failed to start new round");
       return;
     }
     router.replace(`/rooms/${code}/play`);
@@ -891,107 +728,191 @@ function OnlineResultsPhase({
   }
 
   async function handleBackToLobby() {
-    await supabase
-      .from("rooms")
-      .update({ status: "waiting", phase: "lobby" })
-      .eq("id", room.id);
+    await supabase.from("rooms").update({ status: "waiting", phase: "lobby" }).eq("id", room.id);
     router.push(`/rooms/${code}`);
   }
 
   if (loading || !round) {
     return (
-      <div className="text-center py-12">
-        <p className="text-muted">Loading results…</p>
-      </div>
+      <Stage>
+        <div className="flex flex-col items-center gap-3 py-12 text-center">
+          <span className="livedot" />
+          <p className="text-muted">Loading results…</p>
+        </div>
+      </Stage>
     );
   }
 
   const impostorIdSet = new Set(
-    [round.impostor_id, round.second_impostor_id].filter(
-      (id): id is string => typeof id === "string" && id.length > 0
-    )
+    [round.impostor_id, round.second_impostor_id].filter((id): id is string => typeof id === "string" && id.length > 0),
   );
   const impostors = players.filter((p) => impostorIdSet.has(p.user_id));
   const groupWon = round.winner === "group";
 
   const voteCounts: Record<string, number> = {};
-  for (const v of votes) {
-    voteCounts[v.voted_for_id] = (voteCounts[v.voted_for_id] || 0) + 1;
-  }
+  for (const v of votes) voteCounts[v.voted_for_id] = (voteCounts[v.voted_for_id] || 0) + 1;
+  const myVote = votes.find((v) => v.voter_id === userId);
+  const myVotedName = myVote ? players.find((p) => p.user_id === myVote.voted_for_id)?.display_name : null;
 
   return (
-    <div className="text-center">
-      <motion.div
-        initial={{ scale: 0.5, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        transition={{ type: "spring", stiffness: 200, damping: 15 }}
-      >
-        <div className="text-7xl mb-4">{groupWon ? "🎉" : "🕵️"}</div>
-        <h2 className={cn("font-heading text-3xl mb-2", groupWon ? "text-emerald" : "text-rose")}>
-          {groupWon ? "Impostor Caught!" : "Impostor Wins!"}
-        </h2>
-      </motion.div>
+    <Stage>
+      <div className="pop-in flex flex-col items-center gap-4 text-center">
+        <Chip tone={groupWon ? "aqua" : "heat"} icon={groupWon ? "trophy" : "flame"}>
+          {groupWon ? "Crew wins" : "Impostor escapes"}
+        </Chip>
 
-      <Card padding="lg" className="mb-6 mt-4">
-        <div className="flex flex-col items-center justify-center gap-4 mb-4">
-          <p className="text-sm text-muted">{impostors.length > 1 ? "The impostors were" : "The impostor was"}</p>
-          <div className="flex flex-wrap items-center justify-center gap-4">
-            {impostors.map((imp) => {
-              const idx = players.indexOf(imp);
+        <div className="role-ic" style={{ width: 84, height: 84, background: "linear-gradient(150deg, var(--heat), color-mix(in oklab, var(--heat) 55%, #000))" }}>
+          <Icon name="mask" size={42} />
+        </div>
+        <div>
+          <p className="kicker" style={{ color: "var(--heat-2)" }}>{impostors.length > 1 ? "The impostors were" : "The impostor was"}</p>
+          <h2 className="display" style={{ fontSize: 48, color: "var(--heat)" }}>
+            {impostors.map((p) => p.display_name).join(" & ") || "—"}
+          </h2>
+        </div>
+
+        <div className="flex flex-wrap items-center justify-center gap-3">
+          <div className="result-stat">
+            <span className="kicker" style={{ fontSize: 9 }}>Secret word</span>
+            <span className="display text-[26px]" style={{ color: "var(--aqua-2)" }}>{round.secret_word}</span>
+          </div>
+          <div className="result-stat">
+            <span className="kicker" style={{ fontSize: 9 }}>Topic</span>
+            <span className="display text-[26px]" style={{ color: "var(--amber)" }}>{round.topic}</span>
+          </div>
+          <div className="result-stat">
+            <span className="kicker" style={{ fontSize: 9 }}>Your vote</span>
+            <span className="display text-[26px]" style={{ color: groupWon ? "var(--emerald)" : "var(--heat)" }}>{myVotedName || "—"}</span>
+          </div>
+        </div>
+
+        {/* vote breakdown */}
+        <div className="mt-2 w-full">
+          <p className="kicker mb-3 text-center">Votes</p>
+          <div className="flex flex-col gap-2">
+            {players.map((p) => {
+              const isImp = impostorIdSet.has(p.user_id);
+              const count = voteCounts[p.user_id] || 0;
               return (
-                <div key={imp.id} className="flex items-center gap-3">
-                  <Avatar name={imp.display_name} color={AVATAR_COLORS[idx % AVATAR_COLORS.length] || "#666"} size="lg" />
-                  <p className="font-heading text-xl text-rose">{imp.display_name}</p>
+                <div
+                  key={p.id}
+                  className="flex items-center gap-3 rounded-[14px] px-3.5 py-2.5"
+                  style={{
+                    border: isImp ? "1px solid color-mix(in oklab, var(--heat) 40%, transparent)" : "1px solid var(--border)",
+                    background: isImp ? "color-mix(in oklab, var(--heat) 10%, transparent)" : "rgba(255,255,255,.015)",
+                  }}
+                >
+                  <Avatar name={p.display_name} color={tokenColor(p.user_id)} size="sm" role={isImp ? "impostor" : undefined} />
+                  <span className="text-[14px] font-semibold" style={{ fontFamily: "var(--font-head)" }}>{p.display_name}</span>
+                  <span className="flex-1" />
+                  <span className="text-[13px] text-muted">{count} vote{count !== 1 ? "s" : ""}</span>
+                  {isImp && <span className="chip chip-heat" style={{ fontSize: 9 }}>Impostor</span>}
                 </div>
               );
             })}
           </div>
         </div>
-        <div className="border-t-2 border-border pt-4 mt-4">
-          <p className="text-sm text-muted">Topic: <span className="text-orange">{round.topic}</span></p>
-          <p className="text-sm text-muted mt-1">
-            Secret Word: <span className="text-purple font-bold">{round.secret_word}</span>
-          </p>
-        </div>
-      </Card>
 
-      <Card padding="md" className="mb-6">
-        <h3 className="font-heading text-lg text-foreground mb-3">🗳️ Votes</h3>
-        <div className="space-y-2">
-          {players.map((p, i) => (
-            <div
-              key={p.id}
-              className={cn(
-                "flex items-center gap-3 rounded-2xl px-3 py-2",
-                impostorIdSet.has(p.user_id) && "bg-rose/10 border-2 border-rose/30"
-              )}
-            >
-              <Avatar name={p.display_name} color={AVATAR_COLORS[i % AVATAR_COLORS.length]} size="sm" />
-              <span className="text-sm text-foreground font-medium">{p.display_name}</span>
-              <span className="ml-auto text-sm text-muted">
-                {voteCounts[p.user_id] || 0} vote{(voteCounts[p.user_id] || 0) !== 1 ? "s" : ""}
-              </span>
-              {impostorIdSet.has(p.user_id) && (
-                <span className="text-xs bg-rose/20 text-rose px-2 py-0.5 rounded-full font-bold">IMPOSTOR</span>
-              )}
+        {isHost ? (
+          <div className="mt-2 flex w-full flex-wrap justify-center gap-2">
+            <Button variant="primary" size="lg" onClick={handlePlayAgain}>
+              <Icon name="play" size={17} fill /> Play again
+            </Button>
+            <Button variant="secondary" size="lg" onClick={handleBackToLobby}>Back to lobby</Button>
+          </div>
+        ) : (
+          <p className="text-sm text-muted">Waiting for the host to continue…</p>
+        )}
+      </div>
+    </Stage>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Chat panel — the persistent table chat
+// ─────────────────────────────────────────────────────────────────────────────
+function ChatPanel({
+  messages,
+  sendMessage,
+  userId,
+  myDisplayName,
+}: {
+  messages: ChatMessage[];
+  sendMessage: SendMessage;
+  userId: string;
+  myDisplayName: string;
+}) {
+  const [input, setInput] = useState("");
+  const endRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    endRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages.length]);
+
+  function send() {
+    const v = input.trim();
+    if (!v) return;
+    sendMessage(v, userId, myDisplayName);
+    setInput("");
+  }
+
+  return (
+    <div className="card flex flex-col overflow-hidden">
+      <div className="flex items-center justify-between gap-2 px-3.5 py-3" style={{ borderBottom: "1px solid var(--border)" }}>
+        <span className="flex items-center gap-2 text-[14px] font-bold" style={{ fontFamily: "var(--font-head)" }}>
+          <Icon name="chat" size={16} /> Table chat
+        </span>
+        <span className="chip"><span className="livedot" style={{ width: 6, height: 6 }} /> live</span>
+      </div>
+
+      <div className="chat-scroll">
+        {messages.length === 0 && <p className="py-4 text-center text-xs text-muted">No messages yet</p>}
+        {messages.map((m) => {
+          const isSystem = m.userId === "system";
+          const isYou = m.userId === userId;
+          if (isSystem) {
+            return (
+              <div key={m.id} className="chat-sys"><Icon name="bolt" size={12} fill /> {m.text}</div>
+            );
+          }
+          return (
+            <div key={m.id} className="flex items-start gap-2" style={{ flexDirection: isYou ? "row-reverse" : "row" }}>
+              <Avatar name={m.displayName} color={tokenColor(m.userId)} size="xs" you={isYou} />
+              <div style={{ maxWidth: "78%" }}>
+                <div className="mb-0.5 text-[10.5px] font-semibold" style={{ color: "var(--muted-2)", fontFamily: "var(--font-head)", textAlign: isYou ? "right" : "left" }}>
+                  {m.displayName}
+                </div>
+                <div
+                  className="chat-bubble"
+                  style={{
+                    background: isYou ? "var(--brand)" : "var(--surface-2)",
+                    color: isYou ? "var(--brand-ink)" : "var(--text)",
+                    borderTopRightRadius: isYou ? 4 : 14,
+                    borderTopLeftRadius: isYou ? 14 : 4,
+                  }}
+                >
+                  {m.text}
+                </div>
+              </div>
             </div>
-          ))}
-        </div>
-      </Card>
+          );
+        })}
+        <div ref={endRef} />
+      </div>
 
-      {isHost && (
-        <div className="flex gap-3">
-          <Button variant="secondary" size="lg" className="flex-1" onClick={handleBackToLobby}>
-            Back to Lobby
-          </Button>
-          <Button variant="primary" size="lg" className="flex-1" onClick={handlePlayAgain}>
-            🔁 Play Again
-          </Button>
-        </div>
-      )}
-      {!isHost && (
-        <p className="text-sm text-muted">⏳ Waiting for the host to continue…</p>
-      )}
+      <div className="flex gap-2 p-3" style={{ borderTop: "1px solid var(--border)" }}>
+        <input
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && send()}
+          placeholder="Say something…"
+          maxLength={500}
+          className="field"
+        />
+        <button onClick={send} className="btn btn-primary btn-sm" style={{ padding: "0 12px", height: 38 }} aria-label="Send message">
+          <Icon name="send" size={16} />
+        </button>
+      </div>
     </div>
   );
 }

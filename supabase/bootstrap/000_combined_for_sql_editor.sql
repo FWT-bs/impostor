@@ -232,3 +232,29 @@ ALTER PUBLICATION supabase_realtime ADD TABLE public.room_players;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.game_rounds;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.votes;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.profiles;
+
+-- ===================== CHAT MESSAGES (persistent table chat) =====================
+
+CREATE TABLE IF NOT EXISTS public.chat_messages (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  room_id uuid NOT NULL REFERENCES public.rooms(id) ON DELETE CASCADE,
+  user_id uuid REFERENCES public.profiles(id) ON DELETE SET NULL,
+  display_name text NOT NULL,
+  text text NOT NULL CHECK (char_length(text) <= 500),
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_chat_messages_room ON public.chat_messages(room_id, created_at);
+
+ALTER TABLE public.chat_messages ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Room members can read chat" ON public.chat_messages
+  FOR SELECT USING (room_id IN (SELECT public.user_room_ids()));
+
+CREATE POLICY "Room members can post chat" ON public.chat_messages
+  FOR INSERT WITH CHECK (
+    room_id IN (SELECT public.user_room_ids())
+    AND (user_id = auth.uid() OR user_id IS NULL)
+  );
+
+ALTER PUBLICATION supabase_realtime ADD TABLE public.chat_messages;

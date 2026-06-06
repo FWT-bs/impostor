@@ -1,115 +1,478 @@
 @import "tailwindcss";
 
+/* ============================================================
+   IMPOSTER — "Live" design system
+   An electric, high-energy evolution of the original dark-purple.
+   More saturation, more contrast, a hot accent for tension,
+   bold display type, and motion that makes the room feel alive.
+   ============================================================ */
+
+:root,
+[data-theme="voltage"] {
+  /* surfaces */
+  --bg:        #08070f;
+  --bg-2:      #0c0a18;
+  --grid:      rgba(139, 92, 255, 0.07);
+  --surface:   rgba(22, 18, 38, 0.72);
+  --surface-2: #181430;
+  --surface-3: #211b3e;
+  --border:    #2a2350;
+  --border-2:  #3a3070;
+  --text:      #f3f1ff;
+  --muted:     #8b86b8;
+  --muted-2:   #6a6594;
+
+  /* brand / accents */
+  --brand:     #8b5cff;   /* electric violet — primary */
+  --brand-2:   #b79bff;   /* glow */
+  --brand-ink: #ffffff;
+
+  --heat:      #ff2e7e;   /* hot magenta — impostor / danger / tension */
+  --heat-2:    #ff6aa6;
+  --aqua:      #1fe5d8;   /* crew / online / clue energy */
+  --aqua-2:    #6ff3ec;
+  --lime:      #c6f94e;   /* "live" pop — accents only */
+  --amber:     #ffb23d;   /* topic */
+  --emerald:   #2be0a0;   /* success / win */
+
+  --halo-a:    rgba(139, 92, 255, 0.20);
+  --halo-b:    rgba(31, 229, 216, 0.12);
+
+  /* ---- compatibility aliases (old token names → new palette) ---- */
+  --background:  var(--bg);
+  --foreground:  var(--text);
+  --card:        #161226;
+  --card-hover:  #1d1838;
+  --purple:      var(--brand);
+  --purple-dim:  #6b46d9;
+  --purple-glow: var(--brand-2);
+  --cyan:        var(--aqua);
+  --cyan-dim:    #16b7ac;
+  --orange:      var(--amber);
+  --orange-dim:  #d99224;
+  --rose:        var(--heat);
+
+  /* font fallbacks so any un-migrated reference still resolves to the new type */
+  --font-bebas:    var(--font-anton);
+  --font-rajdhani: var(--font-space);
+  --font-inter:    var(--font-space);
+}
+
+/* ---- Font presets ---- */
 :root {
-  --background: #08091a;
-  --foreground: #dde0f0;
-  --card: #0e1024;
-  --card-hover: #131528;
-  --border: #1c1f3a;
-  --muted: #58607e;
-  --purple: #8070d4;
-  --purple-dim: #5e52a8;
-  --purple-glow: #a090e8;
-  --cyan: #4d94b8;
-  --cyan-dim: #3a7a9c;
-  --orange: #c9956a;
-  --orange-dim: #b07e55;
-  --rose: #c0566a;
-  --emerald: #4aab8a;
+  --font-display: var(--font-anton), system-ui, sans-serif; /* big punchy moments */
+  --font-head:    var(--font-space), system-ui, sans-serif;
+  --font-body:    var(--font-space), system-ui, sans-serif;
+  --display-track: 0.02em;
 }
 
 @theme inline {
+  /* animations */
   --animate-glow-pulse: glow-pulse 3s ease-in-out infinite;
   --animate-float: float 6s ease-in-out infinite;
-  --animate-shimmer: shimmer 2.4s linear infinite;
+  --animate-shimmer: shimmer 2.6s linear infinite;
   --animate-draw-line: draw-line 0.9s ease-out forwards;
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+  --animate-ping-ring: ping 1.8s ease-out infinite;
+
+  /* colors — new semantic names */
+  --color-background: var(--bg);
+  --color-foreground: var(--text);
+  --color-surface: var(--surface-2);
+  --color-surface-2: var(--surface-3);
   --color-card: var(--card);
   --color-card-hover: var(--card-hover);
   --color-border: var(--border);
+  --color-border-2: var(--border-2);
   --color-muted: var(--muted);
-  --color-purple: var(--purple);
-  --color-purple-dim: var(--purple-dim);
-  --color-purple-glow: var(--purple-glow);
-  --color-cyan: var(--cyan);
-  --color-cyan-dim: var(--cyan-dim);
-  --color-orange: var(--orange);
-  --color-orange-dim: var(--orange-dim);
-  --color-rose: var(--rose);
+  --color-muted-2: var(--muted-2);
+
+  --color-brand: var(--brand);
+  --color-brand-2: var(--brand-2);
+  --color-heat: var(--heat);
+  --color-heat-2: var(--heat-2);
+  --color-aqua: var(--aqua);
+  --color-aqua-2: var(--aqua-2);
+  --color-lime: var(--lime);
+  --color-amber: var(--amber);
   --color-emerald: var(--emerald);
-  /* keep old aliases for compat */
-  --color-teal: var(--cyan);
+
+  /* legacy aliases kept so existing markup keeps working */
+  --color-purple: var(--brand);
+  --color-purple-dim: var(--purple-dim);
+  --color-purple-glow: var(--brand-2);
+  --color-cyan: var(--aqua);
+  --color-cyan-dim: var(--cyan-dim);
+  --color-orange: var(--amber);
+  --color-orange-dim: var(--orange-dim);
+  --color-rose: var(--heat);
+  --color-teal: var(--aqua);
   --color-teal-dim: var(--cyan-dim);
-  --color-amber: var(--orange);
-  --color-amber-dim: var(--orange-dim);
-  --color-danger: var(--rose);
+  --color-danger: var(--heat);
   --color-success: var(--emerald);
-  --font-heading: var(--font-rajdhani);
-  --font-sans: var(--font-inter);
-  --font-display: var(--font-bebas);
+
+  --font-heading: var(--font-space);
+  --font-sans: var(--font-space);
+  --font-display: var(--font-anton);
+}
+
+* { box-sizing: border-box; }
+
+html {
+  scroll-behavior: smooth;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: var(--font-sans), system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-body);
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
 }
 
 h1, h2, h3, h4, h5, h6 {
-  font-family: var(--font-heading), system-ui, sans-serif;
+  font-family: var(--font-head);
   font-weight: 700;
-  letter-spacing: 0.025em;
+  letter-spacing: -0.01em;
+  margin: 0;
 }
 
 ::selection {
-  background: rgba(128, 112, 212, 0.3);
+  background: color-mix(in oklab, var(--brand) 40%, transparent);
   color: #fff;
 }
 
-::-webkit-scrollbar {
-  width: 5px;
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border-2); border-radius: 8px; }
+::-webkit-scrollbar-thumb:hover { background: var(--brand); }
+
+/* ============================================================
+   Ambient background — drifting grid + dual halos
+   ============================================================ */
+.bg-field {
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 60% 45% at 18% -8%, var(--halo-a), transparent 60%),
+    radial-gradient(ellipse 55% 50% at 88% 8%, var(--halo-b), transparent 60%),
+    linear-gradient(180deg, var(--bg-2), var(--bg) 60%);
 }
-::-webkit-scrollbar-track {
-  background: var(--background);
-}
-::-webkit-scrollbar-thumb {
-  background: var(--border);
-  border-radius: 3px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: var(--muted);
+.bg-grid {
+  position: fixed;
+  inset: -2px;
+  z-index: -1;
+  pointer-events: none;
+  background-image:
+    linear-gradient(var(--grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+  background-size: 64px 64px;
+  mask-image: radial-gradient(ellipse 100% 80% at 50% 30%, #000 30%, transparent 78%);
+  animation: grid-drift 24s linear infinite;
 }
 
-/* ── Keyframes ─────────────────────────────────────────────────────────── */
+/* ============================================================
+   Display + label type
+   ============================================================ */
+.display {
+  font-family: var(--font-display);
+  letter-spacing: var(--display-track);
+  line-height: 0.92;
+}
+.kicker {
+  font-family: var(--font-head);
+  font-size: 11px;
+  letter-spacing: 0.34em;
+  text-transform: uppercase;
+  color: var(--muted);
+  font-weight: 600;
+}
 
+/* ============================================================
+   Buttons
+   ============================================================ */
+.btn {
+  font-family: var(--font-head);
+  font-weight: 600;
+  font-size: 14px;
+  letter-spacing: 0.01em;
+  border: 0;
+  border-radius: 999px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 22px;
+  height: 46px;
+  transition: transform 0.15s cubic-bezier(0.2, 0.9, 0.3, 1.3), box-shadow 0.2s ease, filter 0.2s ease, background 0.2s ease;
+  white-space: nowrap;
+  text-decoration: none;
+}
+.btn:active { transform: scale(0.96); }
+.btn-lg { height: 54px; padding: 0 30px; font-size: 16px; }
+.btn-sm { height: 38px; padding: 0 16px; font-size: 13px; }
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--brand), color-mix(in oklab, var(--brand) 70%, #000));
+  color: var(--brand-ink);
+  box-shadow: 0 6px 24px -8px var(--brand), inset 0 1px 0 rgba(255, 255, 255, 0.18);
+}
+.btn-primary:hover { filter: brightness(1.12); box-shadow: 0 10px 34px -8px var(--brand), inset 0 1px 0 rgba(255, 255, 255, 0.22); transform: translateY(-2px); }
+
+.btn-heat {
+  background: linear-gradient(135deg, var(--heat), color-mix(in oklab, var(--heat) 65%, #000));
+  color: #fff;
+  box-shadow: 0 6px 24px -8px var(--heat), inset 0 1px 0 rgba(255, 255, 255, 0.18);
+}
+.btn-heat:hover { filter: brightness(1.1); transform: translateY(-2px); }
+
+.btn-ghost {
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+  backdrop-filter: blur(10px);
+}
+.btn-ghost:hover { border-color: var(--border-2); background: var(--surface-2); transform: translateY(-2px); }
+
+.btn-line {
+  background: transparent;
+  color: var(--muted);
+}
+.btn-line:hover { color: var(--text); }
+
+.btn:disabled { opacity: 0.4; pointer-events: none; }
+
+/* ============================================================
+   Cards & surfaces
+   ============================================================ */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+.card-pad { padding: 22px; }
+.glow-ring {
+  box-shadow:
+    0 0 0 1px color-mix(in oklab, var(--brand) 35%, transparent),
+    0 0 40px -10px var(--brand);
+}
+
+/* ============================================================
+   Chips / pill labels
+   ============================================================ */
+.chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-family: var(--font-head); font-weight: 600; font-size: 11px;
+  letter-spacing: 0.06em; text-transform: uppercase;
+  padding: 5px 11px; border-radius: 999px;
+  border: 1px solid var(--border); color: var(--muted);
+  background: rgba(255, 255, 255, 0.02);
+  white-space: nowrap;
+}
+.chip-live  { color: var(--lime); border-color: color-mix(in oklab, var(--lime) 40%, transparent); }
+.chip-heat  { color: var(--heat-2); border-color: color-mix(in oklab, var(--heat) 45%, transparent); background: color-mix(in oklab, var(--heat) 10%, transparent); }
+.chip-aqua  { color: var(--aqua-2); border-color: color-mix(in oklab, var(--aqua) 45%, transparent); }
+.chip-brand { color: var(--brand-2); border-color: color-mix(in oklab, var(--brand) 45%, transparent); }
+
+/* ============================================================
+   Player tokens (replaces the SVG character cast)
+   ============================================================ */
+.token {
+  position: relative;
+  display: grid;
+  place-items: center;
+  border-radius: 14px;
+  font-family: var(--font-head);
+  font-weight: 700;
+  color: #fff;
+  flex: none;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25), 0 6px 16px -8px rgba(0, 0, 0, 0.7);
+}
+.token::after {
+  content: "";
+  position: absolute; inset: 0; border-radius: inherit;
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.28), transparent 45%);
+  pointer-events: none;
+}
+.token-xs { width: 30px; height: 30px; font-size: 12px; border-radius: 9px; }
+.token-sm { width: 40px; height: 40px; font-size: 15px; border-radius: 11px; }
+.token-md { width: 52px; height: 52px; font-size: 19px; }
+.token-lg { width: 72px; height: 72px; font-size: 26px; border-radius: 18px; }
+.token-xl { width: 96px; height: 96px; font-size: 34px; border-radius: 22px; }
+
+.token-badge {
+  position: absolute; bottom: -5px; right: -5px;
+  width: 20px; height: 20px; border-radius: 7px;
+  display: grid; place-items: center;
+  background: var(--surface-2); border: 1px solid var(--border-2);
+  z-index: 2;
+}
+
+/* ============================================================
+   Live signals & motion
+   ============================================================ */
+.livedot {
+  width: 8px; height: 8px; border-radius: 999px; background: var(--lime);
+  box-shadow: 0 0 0 0 color-mix(in oklab, var(--lime) 70%, transparent);
+  animation: ping 1.8s ease-out infinite;
+}
+@keyframes ping {
+  0%   { box-shadow: 0 0 0 0 color-mix(in oklab, var(--lime) 60%, transparent); }
+  70%  { box-shadow: 0 0 0 9px transparent; }
+  100% { box-shadow: 0 0 0 0 transparent; }
+}
+
+.float { animation: float 6s ease-in-out infinite; }
+
+.shimmer {
+  background: linear-gradient(110deg, transparent 20%, color-mix(in oklab, var(--brand) 40%, transparent) 50%, transparent 80%);
+  background-size: 250% 100%;
+  animation: shimmer 2.6s linear infinite;
+}
+
+@keyframes pop-in {
+  from { transform: translateY(14px) scale(0.97); }
+  to   { transform: none; }
+}
+.pop-in { opacity: 1; }
+
+@keyframes rise {
+  from { transform: translateY(26px); }
+  to   { transform: none; }
+}
+.rise { opacity: 1; }
+
+@media (prefers-reduced-motion: no-preference) {
+  .pop-in { animation: pop-in 0.5s cubic-bezier(0.2, 0.9, 0.3, 1.2) both; }
+  .rise   { animation: rise 0.6s cubic-bezier(0.16, 1, 0.3, 1) both; }
+}
+
+@keyframes shake {
+  10%, 90% { transform: translateX(-1px); }
+  20%, 80% { transform: translateX(2px); }
+  30%, 50%, 70% { transform: translateX(-4px); }
+  40%, 60% { transform: translateX(4px); }
+}
+.shake { animation: shake 0.5s both; }
+
+.marquee-track { display: flex; gap: 14px; width: max-content; animation: marquee 26s linear infinite; }
+.marquee:hover .marquee-track { animation-play-state: paused; }
+
+/* typing dots */
+.typing { display: inline-flex; gap: 4px; align-items: center; }
+.typing i { width: 5px; height: 5px; border-radius: 999px; background: var(--muted); animation: typing 1.2s infinite; }
+.typing i:nth-child(2) { animation-delay: 0.15s; }
+.typing i:nth-child(3) { animation-delay: 0.3s; }
+
+/* ============================================================
+   Lobby + steppers
+   ============================================================ */
+.step-btn {
+  width: 42px; height: 42px; border-radius: 12px; display: grid; place-items: center;
+  background: var(--surface-2); border: 1px solid var(--border); color: var(--text); cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+}
+.step-btn:hover:not(:disabled) { border-color: var(--brand); }
+.step-btn:disabled { opacity: 0.4; cursor: default; }
+
+/* ============================================================
+   Mode portals (home)
+   ============================================================ */
+.mode-card {
+  position: relative; overflow: hidden; text-align: left; cursor: pointer;
+  padding: 30px; border-radius: 22px;
+  background: var(--surface); border: 1px solid var(--border);
+  backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+  transition: transform 0.25s cubic-bezier(0.2, 0.9, 0.3, 1.1), border-color 0.25s, box-shadow 0.25s;
+}
+.mode-card:hover { transform: translateY(-5px); border-color: color-mix(in oklab, var(--c) 45%, transparent); box-shadow: 0 26px 60px -24px var(--c); }
+.mode-card .mode-no { position: absolute; top: -14px; right: 6px; font-size: 130px; line-height: 1; pointer-events: none; }
+.mode-ic { width: 56px; height: 56px; border-radius: 16px; display: grid; place-items: center; margin-bottom: 20px; }
+.mode-card:hover .mode-cta { gap: 12px; }
+.mode-cta { transition: gap 0.2s; }
+
+/* ============================================================
+   Reveal / matchmaking full stage
+   ============================================================ */
+.reveal-wrap {
+  min-height: calc(100vh - 64px); display: grid; place-items: center; position: relative; padding: 30px 20px;
+}
+.reveal-inner { width: 100%; max-width: 560px; position: relative; }
+.role-card {
+  width: 100%; max-width: 420px; margin: 0 auto; text-align: center;
+  background: var(--surface); border: 1.5px solid; border-radius: 26px; padding: 38px 28px 30px;
+  position: relative; backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+}
+.role-ic { width: 78px; height: 78px; border-radius: 22px; display: grid; place-items: center; color: #fff; margin: 0 auto 18px; box-shadow: 0 10px 30px -10px var(--c, var(--brand)); }
+.role-chip { margin-top: 22px; padding: 16px; border-radius: 16px; background: rgba(0, 0, 0, 0.25); border: 1px solid var(--border); display: flex; flex-direction: column; gap: 4px; }
+
+.radar-ring {
+  position: absolute; inset: 0; border-radius: 999px; border: 2px solid var(--heat);
+  animation: radar 2s ease-out infinite; opacity: 0;
+}
+@keyframes radar { 0% { transform: scale(0.4); opacity: 0.8; } 100% { transform: scale(1.1); opacity: 0; } }
+
+/* ============================================================
+   Chatroom — clue board, voting, results, chat panel
+   ============================================================ */
+.answer-bar { padding: 16px; border-radius: 16px; background: color-mix(in oklab, var(--aqua) 8%, transparent); border: 1px solid color-mix(in oklab, var(--aqua) 30%, transparent); }
+.field {
+  flex: 1; height: 44px; border-radius: 12px; padding: 0 14px;
+  background: var(--bg-2); border: 1px solid var(--border); color: var(--text);
+  font-family: var(--font-body); font-size: 14px; outline: none; transition: border-color 0.2s;
+}
+.field:focus { border-color: var(--brand); }
+.field::placeholder { color: var(--muted-2); }
+
+.vote-card {
+  position: relative; display: flex; flex-direction: column; align-items: center; gap: 8px;
+  padding: 18px 12px 14px; border-radius: 16px; border: 1px solid; cursor: pointer;
+  transition: transform 0.15s, border-color 0.2s, background 0.2s;
+}
+.vote-card:hover { transform: translateY(-3px); }
+.vote-bar { width: 100%; height: 6px; border-radius: 999px; background: var(--surface-3); overflow: hidden; }
+.vote-bar > span { display: block; height: 100%; border-radius: 999px; transition: width 0.5s cubic-bezier(0.2, 0.9, 0.3, 1); }
+
+.result-stat { display: flex; flex-direction: column; gap: 2px; align-items: center; padding: 12px 18px; border-radius: 14px; background: var(--surface-2); border: 1px solid var(--border); min-width: 96px; }
+
+.chat-scroll { flex: 1; overflow-y: auto; padding: 14px; display: flex; flex-direction: column; gap: 12px; }
+.chat-bubble { padding: 8px 12px; border-radius: 14px; font-size: 13.5px; line-height: 1.45; }
+.chat-sys {
+  align-self: center; text-align: center; font-size: 11.5px; color: var(--muted);
+  background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border); border-radius: 999px;
+  padding: 5px 12px; display: inline-flex; gap: 6px; align-items: center; max-width: 92%;
+}
+
+/* ============================================================
+   Keyframes
+   ============================================================ */
 @keyframes glow-pulse {
-  0%, 100% { box-shadow: 0 0 16px rgba(128, 112, 212, 0.12), 0 0 40px rgba(128, 112, 212, 0.04); }
-  50% { box-shadow: 0 0 28px rgba(128, 112, 212, 0.24), 0 0 60px rgba(128, 112, 212, 0.08); }
+  0%, 100% { box-shadow: 0 0 16px rgba(139, 92, 255, 0.12), 0 0 40px rgba(139, 92, 255, 0.04); }
+  50% { box-shadow: 0 0 28px rgba(139, 92, 255, 0.26), 0 0 60px rgba(139, 92, 255, 0.10); }
 }
+@keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+@keyframes shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+@keyframes draw-line { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+@keyframes grid-drift { from { background-position: 0 0, 0 0; } to { background-position: 64px 64px, 64px 64px; } }
+@keyframes marquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+@keyframes typing { 0%, 60%, 100% { opacity: 0.25; transform: translateY(0); } 30% { opacity: 1; transform: translateY(-3px); } }
+@keyframes pulse-dot { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.5; transform: scale(0.85); } }
 
-@keyframes float {
-  0%, 100% { transform: translateY(0px) rotate(0deg); }
-  33% { transform: translateY(-12px) rotate(1deg); }
-  66% { transform: translateY(6px) rotate(-1deg); }
-}
-
-@keyframes shimmer {
-  0% { background-position: -300% 0; }
-  100% { background-position: 300% 0; }
-}
-
-@keyframes draw-line {
-  from { transform: scaleX(0); }
-  to { transform: scaleX(1); }
-}
-
-@keyframes pulse-dot {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.5; transform: scale(0.85); }
-}
-
-@keyframes scroll-fade {
-  0%, 100% { opacity: 0.2; transform: scaleY(0.3) translateY(-50%); }
-  50% { opacity: 0.6; transform: scaleY(1) translateY(0); }
+/* ============================================================
+   Reduced motion — neutralize ambient loops, snap transitions.
+   Framer Motion handled via <MotionConfig reducedMotion="user">.
+   ============================================================ */
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .float, .shimmer, .marquee-track, .bg-grid, .livedot, .typing i, .radar-ring { animation: none !important; }
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
 }

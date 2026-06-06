@@ -10,7 +10,7 @@ import {
   type ReactElement,
 } from "react";
 
-export type ButtonVariant = "primary" | "secondary" | "danger" | "ghost";
+export type ButtonVariant = "primary" | "secondary" | "danger" | "ghost" | "heat";
 export type ButtonSize = "sm" | "md" | "lg";
 
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
@@ -21,28 +21,19 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   asChild?: boolean;
 }
 
+/* Maps onto the "Live" design-system .btn-* classes in globals.css. */
 const variantClasses: Record<ButtonVariant, string> = {
-  primary:
-    "bg-gradient-to-br from-purple to-purple-dim text-white font-semibold " +
-    "shadow-[0_1px_3px_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.08)] " +
-    "hover:shadow-[0_6px_22px_rgba(128,112,212,0.38)] hover:brightness-110 " +
-    "active:scale-[0.97] disabled:shadow-none",
-  secondary:
-    "bg-card border border-border text-foreground font-medium " +
-    "hover:bg-card-hover hover:border-purple/25 " +
-    "hover:shadow-[0_2px_14px_rgba(128,112,212,0.1)] active:scale-[0.97]",
-  danger:
-    "bg-gradient-to-br from-rose to-rose/75 text-white font-semibold " +
-    "hover:shadow-[0_6px_22px_rgba(192,86,106,0.32)] hover:brightness-110 " +
-    "active:scale-[0.97]",
-  ghost:
-    "bg-transparent text-foreground hover:bg-white/[0.05] hover:text-purple active:scale-[0.97]",
+  primary: "btn-primary",
+  secondary: "btn-ghost",
+  danger: "btn-heat",
+  heat: "btn-heat",
+  ghost: "btn-line",
 };
 
 const sizeClasses: Record<ButtonSize, string> = {
-  sm: "h-9 px-5 text-[13px] rounded-full gap-2",
-  md: "h-11 px-6 text-[13px] rounded-full gap-2",
-  lg: "h-12 px-8 text-[14px] rounded-full gap-2.5",
+  sm: "btn-sm",
+  md: "",
+  lg: "btn-lg",
 };
 
 function buttonClassName(
@@ -51,10 +42,8 @@ function buttonClassName(
   className?: string,
 ) {
   return cn(
-    "inline-flex items-center justify-center font-medium cursor-pointer",
-    "transition-all duration-200 ease-out",
-    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple focus-visible:ring-offset-2 focus-visible:ring-offset-background",
-    "disabled:pointer-events-none disabled:opacity-45",
+    "btn",
+    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-background",
     variantClasses[variant],
     sizeClasses[size],
     className,

@@ -37,15 +37,10 @@ export function Card({
         className,
       )}
       style={{
-        background: "rgba(14,16,36,0.75)",
-        border: `1px solid ${glow ? "rgba(128,112,212,0.3)" : "rgba(28,31,58,1)"}`,
-        backdropFilter: "blur(12px)",
-        WebkitBackdropFilter: "blur(12px)",
-        ...(hover
-          ? {
-              ["--card-hover-border" as string]: "rgba(128,112,212,0.2)",
-            }
-          : {}),
+        background: "var(--surface)",
+        border: `1px solid ${glow ? "color-mix(in oklab, var(--brand) 30%, transparent)" : "var(--border)"}`,
+        backdropFilter: "blur(14px)",
+        WebkitBackdropFilter: "blur(14px)",
         ...style,
       }}
       {...props}

@@ -25,7 +25,21 @@
       "Bash(npm install:*)",
       "Bash(node -e \"const s = require\\('stripe'\\); console.log\\(Object.keys\\(s.Stripe.prototype\\).slice\\(0,5\\)\\)\")",
       "mcp__supabase__list_extensions",
-      "mcp__supabase__deploy_edge_function"
+      "mcp__supabase__deploy_edge_function",
+      "Bash(echo \"EXIT: $?\")",
+      "Bash(grep -E \"^\\(next|tsc|eslint\\)$\")",
+      "Bash(node -e \"console.log\\(require\\('./node_modules/next/package.json'\\).version\\)\")",
+      "Bash(PORT=3099 npm run dev)",
+      "Bash(echo \"started dev \\(pid $!\\)\")",
+      "Bash(curl *)",
+      "Bash(lsof -iTCP:3099 -sTCP:LISTEN -n)",
+      "WebFetch(domain:api.anthropic.com)",
+      "Bash(cp design_index.html design_index.gz)",
+      "Bash(gunzip -f design_index.gz)",
+      "Bash(rm -rf design_bundle)",
+      "Bash(mkdir design_bundle)",
+      "Bash(tar -xf design_index -C design_bundle)",
+      "Bash(npx eslint *)"
     ]
   },
   "enableAllProjectMcpServers": true,

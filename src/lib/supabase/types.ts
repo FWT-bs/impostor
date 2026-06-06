@@ -229,6 +229,33 @@ export interface Database {
           created_at?: string;
         };
       };
+      chat_messages: {
+        Relationships: [];
+        Row: {
+          id: string;
+          room_id: string;
+          user_id: string | null;
+          display_name: string;
+          text: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          room_id: string;
+          user_id?: string | null;
+          display_name: string;
+          text: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          room_id?: string;
+          user_id?: string | null;
+          display_name?: string;
+          text?: string;
+          created_at?: string;
+        };
+      };
     };
     Views: {
       game_rounds_public: {

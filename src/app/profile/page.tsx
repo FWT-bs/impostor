@@ -9,8 +9,7 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { Avatar } from "@/components/ui/Avatar";
-import { FloatingCharacter } from "@/components/ui/FloatingCharacter";
-import { ImpostorMini, GhostMini, DetectiveMini, SpectatorFull } from "@/components/ui/Characters";
+import { Chip } from "@/components/ui/Chip";
 import { useAuth } from "@/lib/hooks/use-auth";
 import { createClient } from "@/lib/supabase/client";
 import { loginWithNext } from "@/lib/auth-path";
@@ -303,42 +302,17 @@ export default function ProfilePage() {
           avatarColor: activeProfile.avatar_color,
         }}
       />
-      <main className="min-h-screen bg-background pt-20 pb-16 px-4 relative overflow-hidden">
-        <div className="absolute top-20 -left-20 w-72 h-72 rounded-full bg-purple/5 blur-3xl pointer-events-none" aria-hidden />
-        <div className="absolute bottom-10 -right-20 w-64 h-64 rounded-full bg-cyan/5 blur-3xl pointer-events-none" aria-hidden />
-
-        <FloatingCharacter
-          from="left"
-          delay={0.25}
-          floatAmplitude={10}
-          floatDuration={5}
-          sway
-          className="absolute left-4 bottom-16 hidden xl:block"
-        >
-          <SpectatorFull className="w-28 opacity-18" />
-        </FloatingCharacter>
-        <FloatingCharacter from="right" delay={0.55} floatAmplitude={12} floatDuration={5.2} className="absolute right-8 top-28 hidden lg:block">
-          <DetectiveMini className="w-10 opacity-15" />
-        </FloatingCharacter>
-        <FloatingCharacter from="left" delay={0.8} floatAmplitude={10} floatDuration={4.5} className="absolute left-10 top-36 hidden lg:block">
-          <GhostMini className="w-9 opacity-15" />
-        </FloatingCharacter>
-        <FloatingCharacter from="right" delay={0.4} floatAmplitude={11} floatDuration={5.5} className="absolute right-6 bottom-24 hidden xl:block">
-          <ImpostorMini className="w-12 opacity-18" />
-        </FloatingCharacter>
-
-        <div className="mx-auto max-w-2xl relative z-10">
+      <main className="mx-auto max-w-2xl px-5 pt-28 pb-16">
+        <div className="mx-auto max-w-2xl">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
             className="mb-8 text-center"
           >
-            <p className="text-[10px] uppercase tracking-[0.5em] text-muted/60 mb-3">
-              Agent record
-            </p>
-            <h1 className="font-heading text-4xl text-foreground mb-2">Profile</h1>
-            <p className="text-sm text-muted max-w-md mx-auto">
+            <div className="mb-3 flex justify-center"><Chip tone="brand" icon="users">Your record</Chip></div>
+            <h1 className="display mb-2" style={{ fontSize: "clamp(40px,8vw,72px)" }}>PROFILE</h1>
+            <p className="mx-auto max-w-md text-sm text-muted">
               Your alias, colors, and stats carry into online matches and the leaderboard.
             </p>
           </motion.div>

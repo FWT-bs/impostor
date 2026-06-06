@@ -2,57 +2,40 @@
 
 import { Header } from "@/components/layout/Header";
 import { Button } from "@/components/ui/Button";
-import {
-  ImpostorFull,
-  InnocentFull,
-  DetectiveFull,
-  GhostFull,
-  SpectatorFull,
-  ImpostorMini,
-  InnocentMini,
-  GhostMini,
-  DetectiveMini,
-} from "@/components/ui/Characters";
-import { FloatingCharacter } from "@/components/ui/FloatingCharacter";
+import { Chip } from "@/components/ui/Chip";
+import { Icon, type IconName } from "@/components/ui/Icon";
+import { Logo } from "@/components/ui/Logo";
 import { useAuth } from "@/lib/hooks/use-auth";
 import Link from "next/link";
-import { motion, useScroll, useTransform, AnimatePresence } from "framer-motion";
-import { useRef, useState, useEffect } from "react";
+import { motion } from "framer-motion";
+import { useState, useEffect, type ReactNode } from "react";
 import { usePathname } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { loginWithNext, signupWithNext } from "@/lib/auth-path";
 import { getAuthAvatarColor, getAuthDisplayName } from "@/lib/auth-display-name";
 
-const TITLE = "IMPOSTOR";
+type LiveRoom = { id: string; code: string; max_players: number; status: string; room_players: { id: string }[] };
 
-const steps = [
-  {
-    step: "01",
-    title: "Get Roles",
-    desc: "Everyone gets the secret word — except the impostor, who only knows the topic.",
-  },
-  {
-    step: "02",
-    title: "Give Clues",
-    desc: "Take turns with a one-word clue. Prove you know the word without giving it away.",
-  },
-  {
-    step: "03",
-    title: "Vote",
-    desc: "Discuss and vote. Catch the impostor and the group wins — or let them slip away.",
-  },
+/* Sample rooms keep the marquee alive before the DB has live games. */
+const SAMPLE_ROOMS = [
+  { code: "VXQR", players: 6, max: 8, status: "playing" },
+  { code: "MZ7K", players: 4, max: 6, status: "waiting" },
+  { code: "BQ29", players: 8, max: 8, status: "playing" },
+  { code: "TLP4", players: 3, max: 10, status: "waiting" },
+  { code: "K8WD", players: 5, max: 6, status: "playing" },
+  { code: "RJ6N", players: 7, max: 8, status: "waiting" },
 ];
 
-type LiveRoom = { id: string; code: string; max_players: number; status: string; room_players: { id: string }[] };
+const HOW_STEPS: { ic: IconName; n: string; t: string; d: string }[] = [
+  { ic: "dice", n: "01", t: "Get your role", d: "The crew sees the secret word. The impostor sees only the topic — and has to fake it." },
+  { ic: "chat", n: "02", t: "Drop a clue", d: "Take turns giving a one-word hint. Prove you know the word without handing it over." },
+  { ic: "vote", n: "03", t: "Vote it out", d: "Read the table, argue, and vote. Catch the impostor and the crew wins the round." },
+];
 
 export default function HomePage() {
   const pathname = usePathname();
   const { user, profile } = useAuth();
-  const heroRef = useRef<HTMLElement>(null);
-
-  // Live rooms carousel state
   const [liveRooms, setLiveRooms] = useState<LiveRoom[]>([]);
-  const [carouselIdx, setCarouselIdx] = useState(0);
 
   useEffect(() => {
     const supabase = createClient();
@@ -71,20 +54,14 @@ export default function HomePage() {
     return () => clearInterval(poll);
   }, []);
 
-  // Auto-rotate carousel
-  useEffect(() => {
-    if (liveRooms.length < 2) return;
-    const t = setInterval(() => setCarouselIdx((i) => (i + 1) % liveRooms.length), 4000);
-    return () => clearInterval(t);
-  }, [liveRooms.length]);
-  const { scrollYProgress } = useScroll({
-    target: heroRef,
-    offset: ["start start", "end start"],
-  });
-  const heroOpacity = useTransform(scrollYProgress, [0, 0.7], [1, 0]);
-  const heroY = useTransform(scrollYProgress, [0, 0.7], [0, -50]);
-  const charLeftX = useTransform(scrollYProgress, [0, 0.6], [0, -60]);
-  const charRightX = useTransform(scrollYProgress, [0, 0.6], [0, 60]);
+  const realRooms = liveRooms.map((r) => ({
+    code: r.code,
+    players: r.room_players.length,
+    max: r.max_players,
+    status: r.status,
+  }));
+  const marqueeRooms = realRooms.length >= 4 ? realRooms : [...realRooms, ...SAMPLE_ROOMS].slice(0, 6);
+  const playingNow = realRooms.reduce((a, r) => a + r.players, 0);
 
   return (
     <>
@@ -100,738 +77,328 @@ export default function HomePage() {
       />
 
       {/* ── HERO ─────────────────────────────────────────────────────────────── */}
-      <section
-        ref={heroRef}
-        className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden"
-      >
-        {/* Radial purple glow at top */}
+      <Section className="relative pt-28 pb-10">
+        {/* floating role markers */}
+        <div className="float absolute left-1 top-64 z-[2] hidden opacity-90 lg:block">
+          <RoleFloat role="impostor" label="The Impostor" sub="knows the topic only" />
+        </div>
         <div
-          className="absolute inset-0 pointer-events-none"
-          aria-hidden
-          style={{
-            background:
-              "radial-gradient(ellipse 75% 55% at 50% -5%, rgba(128,112,212,0.16) 0%, transparent 65%)",
-          }}
-        />
-        {/* Subtle grid lines */}
-        <div
-          className="absolute inset-0 pointer-events-none"
-          aria-hidden
-          style={{
-            backgroundImage:
-              "linear-gradient(rgba(128,112,212,0.06) 1px, transparent 1px), linear-gradient(90deg, rgba(128,112,212,0.06) 1px, transparent 1px)",
-            backgroundSize: "88px 88px",
-          }}
-        />
-        {/* Vignette over grid */}
-        <div
-          className="absolute inset-0 pointer-events-none"
-          aria-hidden
-          style={{
-            background:
-              "radial-gradient(ellipse 90% 80% at 50% 50%, transparent 40%, rgba(8,9,26,0.85) 100%)",
-          }}
-        />
-
-        {/* Hero character — Impostor on left */}
-        <motion.div
-          className="absolute left-[2%] sm:left-[5%] lg:left-[10%] bottom-14 hidden sm:block"
-          style={{ x: charLeftX }}
-          initial={{ opacity: 0, x: -120 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 1.6, duration: 1.0, ease: [0.16, 1, 0.3, 1] }}
+          className="float absolute right-1 top-80 z-[2] hidden opacity-90 lg:block"
+          style={{ animationDelay: "1.2s" }}
         >
-          <motion.div
-            animate={{ y: [0, -14, 0] }}
-            transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
-            className="opacity-60"
-          >
-            <ImpostorFull className="w-28 sm:w-36 lg:w-44" />
-          </motion.div>
-        </motion.div>
+          <RoleFloat role="crew" label="The Crew" sub="knows the secret word" />
+        </div>
 
-        {/* Hero character — Innocent on right */}
-        <motion.div
-          className="absolute right-[2%] sm:right-[5%] lg:right-[10%] bottom-14 hidden sm:block"
-          style={{ x: charRightX }}
-          initial={{ opacity: 0, x: 120 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 1.8, duration: 1.0, ease: [0.16, 1, 0.3, 1] }}
-        >
-          <motion.div
-            animate={{ y: [0, -10, 0], rotate: [-1.5, 1.5, -1.5] }}
-            transition={{ duration: 4, repeat: Infinity, ease: "easeInOut", delay: 0.7 }}
-            className="opacity-60"
-          >
-            <InnocentFull className="w-28 sm:w-36 lg:w-44" />
-          </motion.div>
-        </motion.div>
+        <div className="flex flex-col items-center gap-6 px-0 pt-10 pb-2 text-center">
+          <div className="rise flex items-center justify-center gap-3">
+            <span className="livedot" />
+            <span className="kicker">Social deduction · played live</span>
+          </div>
 
-        {/* Ghost mini — decorative top-right */}
-        <motion.div
-          className="absolute top-24 right-8 hidden lg:block"
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 2.2, duration: 0.7 }}
-        >
-          <motion.div
-            animate={{ y: [0, -8, 0] }}
-            transition={{ duration: 3.2, repeat: Infinity, ease: "easeInOut" }}
-          >
-            <GhostMini className="w-10 opacity-30" />
-          </motion.div>
-        </motion.div>
-
-        {/* Detective mini — decorative top-left */}
-        <motion.div
-          className="absolute top-28 left-8 hidden lg:block"
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 2.4, duration: 0.7 }}
-        >
-          <motion.div
-            animate={{ y: [0, -6, 0] }}
-            transition={{ duration: 4.1, repeat: Infinity, ease: "easeInOut", delay: 1 }}
-          >
-            <DetectiveMini className="w-10 opacity-25" />
-          </motion.div>
-        </motion.div>
-
-        <motion.div
-          className="relative z-10 flex flex-col items-center text-center px-4"
-          style={{ opacity: heroOpacity, y: heroY }}
-        >
-          {/* Label */}
-          <motion.p
-            className="mb-8 text-[10px] uppercase tracking-[0.55em] text-muted font-medium"
-            initial={{ opacity: 0, y: 14 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
-          >
-            Social Deduction Game
-          </motion.p>
-
-          {/* Main title — letter-by-letter */}
           <h1
-            className="mb-8 leading-none select-none"
-            style={{ perspective: "800px" }}
+            className="display rise"
+            style={{ fontSize: "clamp(68px, 13vw, 168px)", color: "var(--text)", animationDelay: ".05s" }}
           >
-            {TITLE.split("").map((letter, i) => (
-              <motion.span
-                key={i}
-                initial={{ opacity: 0, y: 80, rotateX: -40 }}
-                animate={{ opacity: 1, y: 0, rotateX: 0 }}
-                transition={{
-                  delay: 0.3 + i * 0.055,
-                  duration: 0.75,
-                  ease: [0.16, 1, 0.3, 1] as [number, number, number, number],
-                }}
-                className="inline-block cursor-default"
-                style={{
-                  fontFamily: "var(--font-bebas), sans-serif",
-                  fontSize: "clamp(72px, 17vw, 148px)",
-                  letterSpacing: "0.08em",
-                  color: "var(--foreground)",
-                  display: "inline-block",
-                }}
-                whileHover={{
-                  color: "var(--purple-glow)",
-                  y: -6,
-                  transition: { duration: 0.2 },
-                }}
-              >
-                {letter}
-              </motion.span>
-            ))}
+            IMP<span style={{ color: "var(--brand)" }}>O</span>STER
           </h1>
 
-          {/* Animated divider line */}
-          <motion.div
-            className="mb-8 h-px origin-left"
-            initial={{ scaleX: 0 }}
-            animate={{ scaleX: 1 }}
-            transition={{ delay: 1.0, duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
-            style={{
-              width: "260px",
-              background:
-                "linear-gradient(to right, transparent, rgba(128,112,212,0.5), transparent)",
-            }}
-          />
-
-          {/* Tagline */}
-          <motion.p
-            className="mb-12 max-w-[340px] text-[15px] leading-relaxed text-muted"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 1.1, duration: 0.7 }}
+          <p
+            className="rise max-w-[540px] text-[18px] leading-relaxed text-muted"
+            style={{ animationDelay: ".12s" }}
           >
-            One player doesn&apos;t know the secret word.
-            <br />
-            Find them before they blend in.
-          </motion.p>
+            Everyone gets the secret word — except one faker, who only knows the topic. Trade clues,
+            read the room, and drag the impostor into the light.
+          </p>
 
-          {/* CTAs */}
-          <motion.div
-            className="flex flex-col sm:flex-row gap-3"
-            initial={{ opacity: 0, y: 18 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 1.3, duration: 0.65, ease: [0.16, 1, 0.3, 1] }}
-          >
-            <Button variant="primary" size="lg" asChild>
-              <Link href="/local/setup">Play Local</Link>
+          <div className="rise flex flex-wrap items-center justify-center gap-3" style={{ animationDelay: ".18s" }}>
+            <Button variant="heat" size="lg" asChild>
+              <Link href="/rooms">
+                <Icon name="globe" size={19} /> Play with strangers
+              </Link>
             </Button>
             <Button variant="secondary" size="lg" asChild>
-              <Link href="/rooms">Play Online</Link>
+              <Link href="/local/setup">
+                <Icon name="users" size={19} /> Play with friends
+              </Link>
             </Button>
-          </motion.div>
-        </motion.div>
-
-        {/* Scroll indicator */}
-        <motion.div
-          className="absolute bottom-10 flex flex-col items-center gap-3"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 2.0, duration: 0.6 }}
-        >
-          <span
-            className="text-[9px] uppercase tracking-[0.4em]"
-            style={{ color: "rgba(88,96,126,0.5)" }}
-          >
-            Scroll
-          </span>
-          <div className="relative h-10 w-px overflow-hidden">
-            <motion.div
-              className="absolute inset-0 w-full"
-              style={{
-                background:
-                  "linear-gradient(to bottom, transparent, rgba(88,96,126,0.4), transparent)",
-              }}
-              animate={{ y: ["-100%", "100%"] }}
-              transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut" }}
-            />
           </div>
-        </motion.div>
-      </section>
 
-      {/* ── CHARACTERS SHOWCASE ──────────────────────────────────────────────── */}
-      <section className="relative overflow-hidden px-4 py-16 sm:py-24">
-        <div
-          className="absolute top-0 left-0 right-0 h-px"
-          style={{
-            background:
-              "linear-gradient(to right, transparent, rgba(28,31,58,0.9) 20%, rgba(28,31,58,0.9) 80%, transparent)",
-          }}
-        />
-        <div
-          className="absolute inset-0 pointer-events-none"
-          aria-hidden
-          style={{
-            background:
-              "radial-gradient(ellipse 50% 70% at 18% 55%, rgba(128,112,212,0.07) 0%, transparent 65%), radial-gradient(ellipse 50% 70% at 82% 55%, rgba(77,148,184,0.07) 0%, transparent 65%)",
-          }}
-        />
-
-        <div className="mx-auto max-w-5xl relative z-10">
-          <motion.div
-            className="mb-10 text-center"
-            initial={{ opacity: 0, y: 22 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: "-80px" }}
-            transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-          >
-            <p className="mb-3 text-[10px] uppercase tracking-[0.5em] text-muted/60">The cast</p>
-            <h2 className="font-heading text-[clamp(26px,4vw,38px)] text-foreground">
-              Who&apos;s in the room?
-            </h2>
-            <p className="mt-3 text-sm text-muted max-w-xs mx-auto leading-relaxed">
-              Every game has its characters. Only one is hiding in plain sight.
-            </p>
-          </motion.div>
-
-          {/* 5-character lineup */}
-          <div className="flex items-end justify-center gap-3 sm:gap-6 flex-wrap">
-            {/* Detective */}
-            <FloatingCharacter from="left" delay={0} floatAmplitude={10} floatDuration={4.8} sway>
-              <div className="flex flex-col items-center">
-                <DetectiveFull className="w-24 sm:w-32" />
-                <p className="mt-3 text-[9px] uppercase tracking-[0.35em] text-muted/50">The Detective</p>
-              </div>
-            </FloatingCharacter>
-
-            {/* Innocent */}
-            <FloatingCharacter from="left" delay={0.12} floatAmplitude={9} floatDuration={3.8} sway>
-              <div className="flex flex-col items-center">
-                <InnocentFull className="w-28 sm:w-36" />
-                <p className="mt-3 text-[9px] uppercase tracking-[0.35em] text-cyan/50">The Innocent</p>
-                <p className="text-[10px] text-muted italic mt-0.5">&ldquo;I swear I know!&rdquo;</p>
-              </div>
-            </FloatingCharacter>
-
-            {/* Impostor — center, tallest */}
-            <FloatingCharacter from="bottom" delay={0.05} floatAmplitude={14} floatDuration={5.2}>
-              <div className="flex flex-col items-center">
-                <ImpostorFull className="w-32 sm:w-44" />
-                <p className="mt-3 text-[9px] uppercase tracking-[0.35em] text-purple/60">The Impostor</p>
-                <p className="text-[10px] text-muted italic mt-0.5">&ldquo;Shh&hellip;&rdquo;</p>
-              </div>
-            </FloatingCharacter>
-
-            {/* Spectator */}
-            <FloatingCharacter from="right" delay={0.12} floatAmplitude={8} floatDuration={4.2} sway>
-              <div className="flex flex-col items-center">
-                <SpectatorFull className="w-28 sm:w-36" />
-                <p className="mt-3 text-[9px] uppercase tracking-[0.35em] text-muted/50">The Watcher</p>
-                <p className="text-[10px] text-muted italic mt-0.5">&ldquo;I&apos;m just observing.&rdquo;</p>
-              </div>
-            </FloatingCharacter>
-
-            {/* Ghost */}
-            <FloatingCharacter from="right" delay={0} floatAmplitude={16} floatDuration={6} sway>
-              <div className="flex flex-col items-center">
-                <GhostFull className="w-24 sm:w-32" />
-                <p className="mt-3 text-[9px] uppercase tracking-[0.35em] text-muted/50">The Ghost</p>
-              </div>
-            </FloatingCharacter>
+          <div className="rise mt-1.5 flex flex-wrap items-center justify-center gap-4" style={{ animationDelay: ".24s" }}>
+            <Stat n={playingNow > 0 ? String(playingNow) : "New"} l="playing now" live />
+            <Divider />
+            <Stat n={realRooms.length > 0 ? String(realRooms.length) : "Open"} l="live rooms" />
+            <Divider />
+            <Stat n="3–10" l="players / room" />
           </div>
         </div>
-      </section>
+      </Section>
 
-      {/* ── MODES ────────────────────────────────────────────────────────────── */}
-      <section className="relative px-4 py-24 sm:py-32">
-        <div
-          className="absolute top-0 left-0 right-0 h-px"
-          style={{
-            background:
-              "linear-gradient(to right, transparent, rgba(28,31,58,0.9) 20%, rgba(28,31,58,0.9) 80%, transparent)",
-          }}
-        />
-
-        {/* Detective decoration — corner */}
-        <FloatingCharacter
-          from="left"
-          delay={0.2}
-          floatAmplitude={10}
-          floatDuration={5}
-          className="absolute left-4 top-16 hidden xl:block"
-        >
-          <DetectiveMini className="w-14 opacity-20" />
-        </FloatingCharacter>
-
-        <div className="mx-auto max-w-5xl">
-          <motion.div
-            className="mb-14 text-center"
-            initial={{ opacity: 0, y: 22 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: "-80px" }}
-            transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-          >
-            <p className="mb-3 text-[10px] uppercase tracking-[0.5em] text-muted/60">
-              Choose your mode
-            </p>
-            <h2 className="font-heading text-[clamp(28px,4vw,38px)] text-foreground">
-              How do you want to play?
-            </h2>
-          </motion.div>
-
-          <div className="grid gap-4 sm:grid-cols-2 lg:gap-6">
-            {/* Local */}
-            <motion.div
-              initial={{ opacity: 0, x: -28 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true, margin: "-60px" }}
-              transition={{ delay: 0.1, duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-            >
-              <Link
-                href="/local/setup"
-                className="group relative block overflow-hidden rounded-2xl p-8 transition-all duration-500"
-                style={{
-                  background: "rgba(14,16,36,0.7)",
-                  border: "1px solid rgba(28,31,58,1)",
-                  backdropFilter: "blur(12px)",
-                }}
-                onMouseEnter={(e) => {
-                  (e.currentTarget as HTMLElement).style.borderColor = "rgba(128,112,212,0.3)";
-                  (e.currentTarget as HTMLElement).style.transform = "translateY(-4px)";
-                  (e.currentTarget as HTMLElement).style.boxShadow = "0 24px 64px rgba(0,0,0,0.45)";
-                }}
-                onMouseLeave={(e) => {
-                  (e.currentTarget as HTMLElement).style.borderColor = "rgba(28,31,58,1)";
-                  (e.currentTarget as HTMLElement).style.transform = "translateY(0)";
-                  (e.currentTarget as HTMLElement).style.boxShadow = "none";
-                }}
-              >
-                <span
-                  className="absolute -right-3 -top-5 leading-none select-none transition-all duration-500 group-hover:opacity-100"
-                  style={{
-                    fontFamily: "var(--font-bebas), sans-serif",
-                    fontSize: "9rem",
-                    color: "rgba(128,112,212,0.055)",
-                    opacity: 1,
-                  }}
-                >
-                  01
-                </span>
-                <div className="relative">
-                  <div
-                    className="mb-7 flex size-12 items-center justify-center rounded-xl transition-all duration-300"
-                    style={{
-                      background: "rgba(128,112,212,0.1)",
-                      border: "1px solid rgba(128,112,212,0.2)",
-                    }}
-                  >
-                    <svg
-                      className="size-5"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="rgba(128,112,212,0.9)"
-                      strokeWidth={1.5}
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d="M10.5 1.5H8.25A2.25 2.25 0 006 3.75v16.5a2.25 2.25 0 002.25 2.25h7.5A2.25 2.25 0 0018 20.25V3.75a2.25 2.25 0 00-2.25-2.25H13.5m-3 0V3h3V1.5m-3 0h3m-3 8.25h3m-3 3h3m-3 3h.008v.008H10.5v-.008z"
-                      />
-                    </svg>
-                  </div>
-                  <h3 className="font-heading mb-3 text-2xl text-foreground">Local Party</h3>
-                  <p className="mb-9 text-sm leading-relaxed text-muted">
-                    Pass one device around the table. Perfect for game night. Supports 3–10 players.
-                  </p>
-                  <div className="flex items-center gap-2 text-sm font-medium" style={{ color: "var(--purple)" }}>
-                    <span>Start playing</span>
-                    <motion.svg
-                      className="size-4"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                      strokeWidth={2}
-                      whileHover={{ x: 4 }}
-                    >
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
-                    </motion.svg>
-                  </div>
-                </div>
-              </Link>
-            </motion.div>
-
-            {/* Online */}
-            <motion.div
-              initial={{ opacity: 0, x: 28 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true, margin: "-60px" }}
-              transition={{ delay: 0.2, duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-            >
-              <Link
-                href="/rooms"
-                className="group relative block overflow-hidden rounded-2xl p-8 transition-all duration-500"
-                style={{
-                  background: "rgba(14,16,36,0.7)",
-                  border: "1px solid rgba(28,31,58,1)",
-                  backdropFilter: "blur(12px)",
-                }}
-                onMouseEnter={(e) => {
-                  (e.currentTarget as HTMLElement).style.borderColor = "rgba(77,148,184,0.3)";
-                  (e.currentTarget as HTMLElement).style.transform = "translateY(-4px)";
-                  (e.currentTarget as HTMLElement).style.boxShadow = "0 24px 64px rgba(0,0,0,0.45)";
-                }}
-                onMouseLeave={(e) => {
-                  (e.currentTarget as HTMLElement).style.borderColor = "rgba(28,31,58,1)";
-                  (e.currentTarget as HTMLElement).style.transform = "translateY(0)";
-                  (e.currentTarget as HTMLElement).style.boxShadow = "none";
-                }}
-              >
-                <span
-                  className="absolute -right-3 -top-5 leading-none select-none"
-                  style={{
-                    fontFamily: "var(--font-bebas), sans-serif",
-                    fontSize: "9rem",
-                    color: "rgba(77,148,184,0.055)",
-                  }}
-                >
-                  02
-                </span>
-                <div className="relative">
-                  <div
-                    className="mb-7 flex size-12 items-center justify-center rounded-xl transition-all duration-300"
-                    style={{
-                      background: "rgba(77,148,184,0.1)",
-                      border: "1px solid rgba(77,148,184,0.2)",
-                    }}
-                  >
-                    <svg
-                      className="size-5"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="rgba(77,148,184,0.9)"
-                      strokeWidth={1.5}
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.038 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.038-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582m15.686 0A11.953 11.953 0 0112 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0121 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0112 16.5c-3.162 0-6.133-.815-8.716-2.247m0 0A9.015 9.015 0 013 12c0-1.605.42-3.113 1.157-4.418"
-                      />
-                    </svg>
-                  </div>
-                  <h3 className="font-heading mb-3 text-2xl text-foreground">Online Multiplayer</h3>
-                  <p className="mb-9 text-sm leading-relaxed text-muted">
-                    Create or join a room. Everyone uses their own device with real-time sync.
-                  </p>
-                  <div className="flex items-center gap-2 text-sm font-medium" style={{ color: "var(--cyan)" }}>
-                    <span>Browse rooms</span>
-                    <svg
-                      className="size-4 transition-transform duration-300 group-hover:translate-x-1"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                      strokeWidth={2}
-                    >
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
-                    </svg>
-                  </div>
-                </div>
-              </Link>
-            </motion.div>
-          </div>
+      {/* ── MODE PORTALS ─────────────────────────────────────────────────────── */}
+      <Section className="pt-8 pb-8">
+        <div className="grid gap-[18px] sm:grid-cols-2">
+          <ModePortal
+            tone="brand" icon="users" no="01" title="With Friends" href="/local/setup"
+            desc="Spin up a private game in one tap. Everyone gets the real word; the impostor only sees the topic. Pass one phone around the table."
+            bullets={["Pass-and-play on one device", "You pick the topic pack", "3–10 players per round"]}
+            cta="Start a room"
+          />
+          <ModePortal
+            tone="heat" icon="globe" no="02" title="With Strangers" href="/rooms"
+            desc="Drop into a live room with players worldwide. Type your clues, watch the table react in real time, and vote out the faker before they slip away."
+            bullets={["Instant online rooms", "Live chat + clue board", "Climb the global ladder"]}
+            cta="Find a match"
+          />
         </div>
-      </section>
+      </Section>
 
       {/* ── HOW IT WORKS ─────────────────────────────────────────────────────── */}
-      <section className="relative px-4 py-24 sm:py-32">
-        <div
-          className="absolute top-0 left-0 right-0 h-px"
-          style={{
-            background:
-              "linear-gradient(to right, transparent, rgba(28,31,58,0.9) 20%, rgba(28,31,58,0.9) 80%, transparent)",
-          }}
-        />
-
-        {/* Ambient character decorations */}
-        <FloatingCharacter
-          from="right"
-          delay={0.3}
-          floatAmplitude={12}
-          floatDuration={5.5}
-          className="absolute right-6 top-20 hidden xl:block"
-        >
-          <ImpostorMini className="w-14 opacity-20" />
-        </FloatingCharacter>
-        <FloatingCharacter
-          from="left"
-          delay={0.5}
-          floatAmplitude={9}
-          floatDuration={4.8}
-          className="absolute left-6 bottom-20 hidden xl:block"
-        >
-          <InnocentMini className="w-12 opacity-20" />
-        </FloatingCharacter>
-
-        <div className="mx-auto max-w-5xl">
-          <motion.div
-            className="mb-14 text-center"
-            initial={{ opacity: 0, y: 22 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: "-80px" }}
-            transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-          >
-            <p className="mb-3 text-[10px] uppercase tracking-[0.5em] text-muted/60">The process</p>
-            <h2 className="font-heading text-[clamp(28px,4vw,38px)] text-foreground">
-              How it works
-            </h2>
-          </motion.div>
-
-          <div className="grid gap-10 sm:grid-cols-3 sm:gap-6">
-            {steps.map((s, i) => (
-              <motion.div
-                key={s.step}
-                initial={{ opacity: 0, y: 28 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, margin: "-60px" }}
-                transition={{
-                  delay: i * 0.14,
-                  duration: 0.6,
-                  ease: [0.16, 1, 0.3, 1],
-                }}
-                className="relative"
-              >
-                {i < steps.length - 1 && (
-                  <div
-                    className="absolute hidden sm:block top-7 left-full w-full h-px -translate-x-1/2"
-                    style={{
-                      background:
-                        "linear-gradient(to right, rgba(28,31,58,0.8), rgba(28,31,58,0.2))",
-                      width: "calc(100% - 32px)",
-                      left: "calc(50% + 16px)",
-                    }}
-                  />
-                )}
-
-                <div className="flex items-start gap-5 sm:flex-col sm:gap-0">
-                  <div
-                    className="shrink-0 flex size-14 items-center justify-center rounded-xl sm:mb-6"
-                    style={{
-                      background: "rgba(14,16,36,0.8)",
-                      border: "1px solid rgba(28,31,58,1)",
-                    }}
-                  >
-                    <span
-                      style={{
-                        fontFamily: "var(--font-bebas), sans-serif",
-                        fontSize: "1.35rem",
-                        color: "rgba(128,112,212,0.65)",
-                        letterSpacing: "0.04em",
-                      }}
-                    >
-                      {s.step}
-                    </span>
-                  </div>
-                  <div>
-                    <h3 className="font-heading mb-2 text-[17px] text-foreground sm:mb-2">{s.title}</h3>
-                    <p className="text-sm leading-relaxed text-muted">{s.desc}</p>
-                  </div>
+      <Section className="pt-16 pb-10 text-center">
+        <p className="kicker mb-2.5">The loop</p>
+        <h2 className="mb-9" style={{ fontSize: "clamp(28px,4vw,40px)" }}>Three minutes. One faker.</h2>
+        <div className="grid gap-4 sm:grid-cols-3">
+          {HOW_STEPS.map((s, i) => (
+            <motion.div
+              key={s.n}
+              initial={{ opacity: 0, y: 24 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-60px" }}
+              transition={{ delay: i * 0.08, duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+              className="card card-pad text-left"
+            >
+              <div className="mb-[18px] flex items-center justify-between">
+                <div
+                  className="grid size-[46px] place-items-center rounded-[13px]"
+                  style={{
+                    background: "color-mix(in oklab, var(--brand) 14%, transparent)",
+                    color: "var(--brand-2)",
+                    border: "1px solid color-mix(in oklab, var(--brand) 30%, transparent)",
+                  }}
+                >
+                  <Icon name={s.ic} size={22} />
                 </div>
-              </motion.div>
-            ))}
+                <span className="display" style={{ fontSize: 40, color: "color-mix(in oklab, var(--text) 12%, transparent)" }}>
+                  {s.n}
+                </span>
+              </div>
+              <h3 className="mb-2 text-[19px]">{s.t}</h3>
+              <p className="text-[14.5px] leading-relaxed text-muted">{s.d}</p>
+            </motion.div>
+          ))}
+        </div>
+      </Section>
+
+      {/* ── LIVE MARQUEE ─────────────────────────────────────────────────────── */}
+      <Section className="pt-8 pb-10">
+        <div className="mb-4 flex items-center justify-between px-1">
+          <div className="flex items-center gap-2">
+            <span className="livedot" />
+            <span className="kicker">Rooms open right now</span>
+          </div>
+          <Link
+            href="/rooms"
+            className="flex items-center gap-2 text-[13px] font-semibold text-muted transition-colors hover:text-foreground"
+            style={{ fontFamily: "var(--font-head)" }}
+          >
+            Browse all <Icon name="arrow" size={15} />
+          </Link>
+        </div>
+        <div
+          className="marquee overflow-hidden"
+          style={{ maskImage: "linear-gradient(90deg, transparent, #000 5%, #000 95%, transparent)" }}
+        >
+          <div className="marquee-track">
+            {[...marqueeRooms, ...marqueeRooms].map((r, i) => {
+              const open = r.status === "waiting" || r.status === "open";
+              return (
+                <Link
+                  key={i}
+                  href="/rooms"
+                  className="card min-w-[230px] px-[18px] py-3.5 text-left"
+                >
+                  <div className="flex items-center justify-between gap-4">
+                    <div>
+                      <div className="display text-[26px] tracking-[.14em]" style={{ color: "var(--brand-2)" }}>
+                        {r.code}
+                      </div>
+                      <div className="mt-0.5 text-[12.5px] text-muted">{r.players}/{r.max} players</div>
+                    </div>
+                    <Chip tone={open ? "live" : "aqua"}>{open ? "Open" : "In round"}</Chip>
+                  </div>
+                </Link>
+              );
+            })}
           </div>
         </div>
-      </section>
+      </Section>
 
-      {/* ── LIVE ROOMS CAROUSEL ──────────────────────────────────────────────── */}
-      {liveRooms.length > 0 && (
-        <motion.section
-          className="relative px-4 py-16"
-          initial={{ opacity: 0 }}
-          whileInView={{ opacity: 1 }}
-          viewport={{ once: true, margin: "-60px" }}
-          transition={{ duration: 0.6 }}
-        >
-          <div
-            className="absolute top-0 left-0 right-0 h-px"
-            style={{ background: "linear-gradient(to right, transparent, rgba(28,31,58,0.9) 20%, rgba(28,31,58,0.9) 80%, transparent)" }}
-          />
-          <div className="mx-auto max-w-xl text-center">
-            <p className="mb-2 text-[10px] uppercase tracking-[0.5em] text-muted/60">Now live</p>
-            <h2 className="font-heading text-[clamp(22px,3.5vw,30px)] text-foreground mb-6">
-              Rooms Online
-            </h2>
-
-            <div className="relative h-[88px] overflow-hidden">
-              <AnimatePresence mode="wait">
-                {liveRooms[carouselIdx] && (
-                  <motion.div
-                    key={liveRooms[carouselIdx].id}
-                    initial={{ opacity: 0, y: 16 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -16 }}
-                    transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-                    className="absolute inset-0 flex items-center justify-center"
-                  >
-                    <div className="flex items-center gap-4 rounded-2xl border-2 border-border bg-card px-6 py-4 shadow-md w-full max-w-sm">
-                      <div>
-                        <p className="font-heading text-2xl text-purple tracking-widest">
-                          {liveRooms[carouselIdx].code}
-                        </p>
-                        <p className="text-xs text-muted mt-0.5">
-                          {liveRooms[carouselIdx].room_players.length}/{liveRooms[carouselIdx].max_players} players
-                        </p>
-                      </div>
-                      <span
-                        className={`ml-auto text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border ${
-                          liveRooms[carouselIdx].status === "playing"
-                            ? "border-orange/30 text-orange bg-orange/10"
-                            : "border-emerald/30 text-emerald bg-emerald/10"
-                        }`}
-                      >
-                        {liveRooms[carouselIdx].status === "playing" ? "In game" : "Open"}
-                      </span>
-                      <Link href="/rooms">
-                        <motion.span
-                          className="text-xs text-purple underline underline-offset-2 cursor-pointer"
-                          whileHover={{ opacity: 0.7 }}
-                        >
-                          Join →
-                        </motion.span>
-                      </Link>
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
+      {/* ── PREMIUM TEASER ───────────────────────────────────────────────────── */}
+      <Section className="pt-8 pb-[70px]">
+        <div className="card card-pad glow-ring relative overflow-hidden">
+          <div className="relative z-[1] flex flex-wrap items-center justify-between gap-6">
+            <div className="max-w-[560px]">
+              <Chip tone="brand" icon="crown" className="mb-3.5">Imposter+</Chip>
+              <h2 className="mb-2.5" style={{ fontSize: "clamp(24px,3.4vw,34px)" }}>Run out of words? Never.</h2>
+              <p className="text-[15.5px] leading-relaxed text-muted">
+                Unlock 40+ premium topic packs, priority rooms, and a glowing profile badge — for the
+                price of one coffee a month.
+              </p>
             </div>
-
-            {/* Dots */}
-            {liveRooms.length > 1 && (
-              <div className="flex justify-center gap-1.5 mt-4">
-                {liveRooms.map((_, i) => (
-                  <button
-                    key={i}
-                    type="button"
-                    onClick={() => setCarouselIdx(i)}
-                    className={`size-1.5 rounded-full transition-all duration-300 ${
-                      i === carouselIdx ? "bg-purple w-4" : "bg-border"
-                    }`}
-                  />
-                ))}
+            <div className="flex min-w-[200px] flex-col gap-3">
+              <div className="flex items-baseline gap-2">
+                <span className="display text-[56px]" style={{ color: "var(--text)" }}>$3</span>
+                <span className="text-[16px] text-muted">/ month</span>
               </div>
-            )}
-
-            <Link href="/rooms">
-              <motion.p
-                className="mt-5 text-sm text-muted underline underline-offset-2 cursor-pointer"
-                whileHover={{ color: "var(--foreground)" }}
-              >
-                Browse all rooms →
-              </motion.p>
-            </Link>
+              <Button variant="primary" size="lg" asChild>
+                <Link href="/pricing">See what&apos;s inside <Icon name="arrow" size={18} /></Link>
+              </Button>
+            </div>
           </div>
-        </motion.section>
-      )}
+          <div className="shimmer absolute inset-0 opacity-50" />
+        </div>
+      </Section>
 
-      {/* ── AUTH CTA ─────────────────────────────────────────────────────────── */}
+      {/* ── AUTH CTA (signed out) ─────────────────────────────────────────────── */}
       {!user && (
-        <motion.section
-          className="relative px-4 py-24 sm:py-32"
-          initial={{ opacity: 0 }}
-          whileInView={{ opacity: 1 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.7 }}
-        >
-          <div
-            className="absolute top-0 left-0 right-0 h-px"
-            style={{
-              background:
-                "linear-gradient(to right, transparent, rgba(28,31,58,0.9) 20%, rgba(28,31,58,0.9) 80%, transparent)",
-            }}
-          />
-
-          {/* Ghost decoration */}
-          <FloatingCharacter
-            from="left"
-            delay={0.2}
-            floatAmplitude={14}
-            floatDuration={5.5}
-            sway
-            className="absolute left-8 bottom-10 hidden lg:block"
-          >
-            <GhostMini className="w-16 opacity-25" />
-          </FloatingCharacter>
-
+        <Section className="border-t pb-[70px] pt-12" style={{ borderColor: "var(--border)" }}>
           <div className="mx-auto max-w-sm text-center">
-            <h2 className="font-heading mb-3 text-[clamp(22px,3.5vw,30px)] text-foreground">
-              Track your progress
-            </h2>
-            <p className="mb-8 text-sm leading-relaxed text-muted">
-              Create an account to save stats, climb the leaderboard, and unlock premium word categories.
+            <h2 className="mb-3" style={{ fontSize: "clamp(22px,3.5vw,30px)" }}>Track your progress</h2>
+            <p className="mb-8 text-[14.5px] leading-relaxed text-muted">
+              Create an account to save stats, climb the leaderboard, and unlock premium topic packs.
             </p>
             <div className="flex items-center justify-center gap-3">
               <Button variant="secondary" size="md" asChild>
-                <Link href={loginWithNext(pathname)}>Sign In</Link>
+                <Link href={loginWithNext(pathname)}>Sign in</Link>
               </Button>
               <Button variant="primary" size="md" asChild>
-                <Link href={signupWithNext(pathname)}>Create Account</Link>
+                <Link href={signupWithNext(pathname)}>Create account</Link>
               </Button>
             </div>
           </div>
-        </motion.section>
+        </Section>
       )}
+
+      <Footer />
     </>
+  );
+}
+
+/* ── Local building blocks ──────────────────────────────────────────────────── */
+
+function Section({
+  children,
+  className = "",
+  style,
+}: {
+  children: ReactNode;
+  className?: string;
+  style?: React.CSSProperties;
+}) {
+  return (
+    <section className={`mx-auto max-w-[1180px] px-5 ${className}`} style={style}>
+      {children}
+    </section>
+  );
+}
+
+function RoleFloat({ role, label, sub }: { role: "impostor" | "crew"; label: string; sub: string }) {
+  const c = role === "impostor" ? "var(--heat)" : "var(--aqua)";
+  return (
+    <div className="card flex items-center gap-2.5 px-3.5 py-2.5">
+      <div
+        className="grid size-[38px] place-items-center rounded-[11px] text-white"
+        style={{ background: `linear-gradient(150deg, ${c}, color-mix(in oklab, ${c} 55%, #000))` }}
+      >
+        <Icon name={role === "impostor" ? "mask" : "shield"} size={20} />
+      </div>
+      <div>
+        <div className="text-[13.5px] font-bold" style={{ fontFamily: "var(--font-head)" }}>{label}</div>
+        <div className="text-[11.5px] text-muted">{sub}</div>
+      </div>
+    </div>
+  );
+}
+
+function Stat({ n, l, live }: { n: string; l: string; live?: boolean }) {
+  return (
+    <div className="flex items-center gap-2">
+      {live && <span className="livedot" />}
+      <span className="display text-[22px]" style={{ color: "var(--text)" }}>{n}</span>
+      <span className="text-[13px] text-muted">{l}</span>
+    </div>
+  );
+}
+
+function Divider() {
+  return <span className="h-4 w-px" style={{ background: "var(--border-2)" }} />;
+}
+
+function ModePortal({
+  tone,
+  icon,
+  no,
+  title,
+  desc,
+  bullets,
+  cta,
+  href,
+}: {
+  tone: "brand" | "heat";
+  icon: IconName;
+  no: string;
+  title: string;
+  desc: string;
+  bullets: string[];
+  cta: string;
+  href: string;
+}) {
+  const c = tone === "heat" ? "var(--heat)" : "var(--brand)";
+  return (
+    <Link href={href} className="mode-card rise block" style={{ ["--c" as string]: c }}>
+      <span className="display mode-no" style={{ color: `color-mix(in oklab, ${c} 14%, transparent)` }}>{no}</span>
+      <div
+        className="mode-ic"
+        style={{
+          background: `color-mix(in oklab, ${c} 16%, transparent)`,
+          color: c,
+          border: `1px solid color-mix(in oklab, ${c} 35%, transparent)`,
+        }}
+      >
+        <Icon name={icon} size={26} />
+      </div>
+      <h3 className="mb-2.5 text-[27px]">{title}</h3>
+      <p className="mb-[18px] text-[15px] leading-relaxed text-muted">{desc}</p>
+      <div className="mb-[22px] flex flex-col gap-2">
+        {bullets.map((b) => (
+          <div key={b} className="flex items-center gap-2 text-[13.5px]" style={{ color: "var(--text)" }}>
+            <Icon name="check" size={15} stroke={2.4} style={{ color: c }} /> {b}
+          </div>
+        ))}
+      </div>
+      <span className="mode-cta flex items-center gap-2 text-[15px] font-bold" style={{ color: c, fontFamily: "var(--font-head)" }}>
+        {cta} <Icon name="arrow" size={18} />
+      </span>
+    </Link>
+  );
+}
+
+function Footer() {
+  return (
+    <footer className="mt-5 border-t" style={{ borderColor: "var(--border)" }}>
+      <Section className="py-[30px]">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <Logo size={26} />
+          <div
+            className="flex flex-wrap gap-4 text-[13px] font-medium text-muted"
+            style={{ fontFamily: "var(--font-head)" }}
+          >
+            <Link href="/local/setup" className="transition-colors hover:text-foreground">Friends</Link>
+            <Link href="/rooms" className="transition-colors hover:text-foreground">Online</Link>
+            <Link href="/leaderboard" className="transition-colors hover:text-foreground">Leaderboard</Link>
+            <Link href="/pricing" className="transition-colors hover:text-foreground">Premium</Link>
+          </div>
+          <span className="text-[12.5px] text-muted">© 2026 Imposter</span>
+        </div>
+      </Section>
+    </footer>
   );
 }

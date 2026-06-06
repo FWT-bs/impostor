@@ -1,47 +1,72 @@
 "use client";
 
 import { cn, getInitials } from "@/lib/utils";
+import { Icon } from "@/components/ui/Icon";
 import { type HTMLAttributes } from "react";
 
-export type AvatarSize = "sm" | "md" | "lg";
+export type AvatarSize = "xs" | "sm" | "md" | "lg" | "xl";
+export type PlayerRole = "impostor" | "crew";
 
 export interface AvatarProps extends HTMLAttributes<HTMLDivElement> {
   name: string;
   color: string;
   size?: AvatarSize;
   imageUrl?: string | null;
+  /** Show a role badge in the corner (mask = impostor, shield = crew). */
+  role?: PlayerRole;
+  /** Outline the token to mark "you". */
+  you?: boolean;
+  /** Dim un-joined / inactive players. */
+  dim?: boolean;
 }
 
-const sizeClasses: Record<AvatarSize, string> = {
-  sm: "size-9 text-xs",
-  md: "size-11 text-sm",
-  lg: "size-14 text-base",
+const sizeClass: Record<AvatarSize, string> = {
+  xs: "token-xs",
+  sm: "token-sm",
+  md: "token-md",
+  lg: "token-lg",
+  xl: "token-xl",
 };
 
+const badgeIconSize: Record<AvatarSize, number> = {
+  xs: 9,
+  sm: 10,
+  md: 11,
+  lg: 13,
+  xl: 16,
+};
+
+/**
+ * Geometric player token — replaces the generated SVG character cast.
+ * A bold gradient square with initials, an optional role badge, and an
+ * optional "you" outline. Keeps the original Avatar prop surface.
+ */
 export function Avatar({
   name,
   color,
   size = "md",
   imageUrl,
+  role,
+  you = false,
+  dim = false,
   className,
   style,
   ...props
 }: AvatarProps) {
-  const initials = getInitials(name.trim() || "?");
+  const label = name.trim() || "Player";
+  const initials = getInitials(label) || "?";
 
   return (
     <div
       role="img"
-      aria-label={name.trim() || "Player"}
-      className={cn(
-        "flex shrink-0 items-center justify-center rounded-full font-heading font-bold uppercase tracking-wide text-white",
-        "shadow-[0_2px_8px_rgba(0,0,0,0.3)] ring-2 ring-white/10",
-        "transition-transform duration-200 hover:scale-105 overflow-hidden",
-        sizeClasses[size],
-        className,
-      )}
+      aria-label={label}
+      className={cn("token", sizeClass[size], className)}
       style={{
-        backgroundColor: color,
+        background: `linear-gradient(155deg, ${color}, color-mix(in oklab, ${color} 60%, #000))`,
+        opacity: dim ? 0.45 : 1,
+        outline: you ? "2px solid var(--text)" : "none",
+        outlineOffset: 2,
+        overflow: imageUrl ? "hidden" : undefined,
         ...style,
       }}
       {...props}
@@ -49,12 +74,33 @@ export function Avatar({
       {imageUrl ? (
         <img
           src={imageUrl}
-          alt={name.trim() || "Player"}
-          className="w-full h-full object-cover"
+          alt={label}
+          className="h-full w-full object-cover"
+          style={{ borderRadius: "inherit" }}
           draggable={false}
         />
       ) : (
-        initials || "?"
+        <span
+          style={{
+            position: "relative",
+            zIndex: 1,
+            textShadow: "0 1px 2px rgba(0,0,0,.4)",
+          }}
+        >
+          {initials}
+        </span>
+      )}
+      {role && (
+        <span
+          className="token-badge"
+          style={{ color: role === "impostor" ? "var(--heat)" : "var(--aqua)" }}
+        >
+          <Icon
+            name={role === "impostor" ? "mask" : "shield"}
+            size={badgeIconSize[size]}
+            stroke={2}
+          />
+        </span>
       )}
     </div>
   );

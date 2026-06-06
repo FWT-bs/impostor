@@ -2,7 +2,7 @@
 
 import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
-import { ImpostorHead } from "@/components/ui/Characters";
+import { Logo } from "@/components/ui/Logo";
 import { useAuth } from "@/lib/hooks/use-auth";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
@@ -63,28 +63,21 @@ export function Header({ user: userProp, authSlot, className }: HeaderProps) {
         className,
       )}
       style={{
-        borderBottom: "1px solid rgba(28,31,58,0.6)",
-        background: "rgba(8,9,26,0.75)",
+        borderBottom: "1px solid color-mix(in oklab, var(--border) 70%, transparent)",
+        background: "color-mix(in oklab, var(--bg) 72%, transparent)",
         backdropFilter: "blur(20px)",
         WebkitBackdropFilter: "blur(20px)",
       }}
     >
       <div className="mx-auto flex h-14 max-w-6xl items-center justify-between gap-4 px-4 sm:h-16 sm:px-6">
         {/* Logo */}
-        <Link href="/" className="group flex items-center gap-2.5">
+        <Link href="/" className="group flex items-center">
           <motion.div
-            className="relative transition-all duration-300"
-            whileHover={{ scale: 1.08, rotate: -4 }}
+            whileHover={{ scale: 1.04 }}
             transition={{ type: "spring", stiffness: 300, damping: 18 }}
           >
-            <ImpostorHead className="w-8 h-auto drop-shadow-[0_0_6px_rgba(128,112,212,0.4)]" />
+            <Logo size={28} />
           </motion.div>
-          <span
-            className="font-heading text-lg font-bold tracking-[0.18em] transition-colors duration-200 group-hover:text-purple-glow sm:text-xl"
-            style={{ color: "var(--purple)" }}
-          >
-            IMPOSTOR
-          </span>
         </Link>
 
         {/* Desktop nav */}
@@ -107,7 +100,7 @@ export function Header({ user: userProp, authSlot, className }: HeaderProps) {
                   <motion.span
                     layoutId="nav-pill"
                     className="absolute inset-0 rounded-full"
-                    style={{ background: "rgba(128,112,212,0.1)" }}
+                    style={{ background: "color-mix(in oklab, var(--brand) 16%, transparent)" }}
                     transition={{ type: "spring", stiffness: 380, damping: 30 }}
                   />
                 )}
@@ -127,8 +120,8 @@ export function Header({ user: userProp, authSlot, className }: HeaderProps) {
                   className="group flex items-center gap-2 sm:gap-2.5 rounded-full py-1.5 pl-1.5 pr-3 transition-all duration-200"
                   style={{ border: "1px solid transparent" }}
                   onMouseEnter={(e) => {
-                    (e.currentTarget as HTMLElement).style.borderColor = "rgba(28,31,58,1)";
-                    (e.currentTarget as HTMLElement).style.background = "rgba(14,16,36,0.6)";
+                    (e.currentTarget as HTMLElement).style.borderColor = "var(--border)";
+                    (e.currentTarget as HTMLElement).style.background = "var(--surface)";
                   }}
                   onMouseLeave={(e) => {
                     (e.currentTarget as HTMLElement).style.borderColor = "transparent";
@@ -162,9 +155,9 @@ export function Header({ user: userProp, authSlot, className }: HeaderProps) {
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple",
             )}
             style={{
-              background: menuOpen ? "rgba(128,112,212,0.1)" : "rgba(14,16,36,0.6)",
-              border: `1px solid ${menuOpen ? "rgba(128,112,212,0.25)" : "rgba(28,31,58,1)"}`,
-              color: menuOpen ? "var(--purple)" : "var(--foreground)",
+              background: menuOpen ? "color-mix(in oklab, var(--brand) 14%, transparent)" : "var(--surface)",
+              border: `1px solid ${menuOpen ? "color-mix(in oklab, var(--brand) 35%, transparent)" : "var(--border)"}`,
+              color: menuOpen ? "var(--brand)" : "var(--foreground)",
             }}
             aria-expanded={menuOpen}
             aria-controls="mobile-nav"
@@ -214,8 +207,8 @@ export function Header({ user: userProp, authSlot, className }: HeaderProps) {
             transition={{ type: "spring", stiffness: 320, damping: 32 }}
             className="overflow-hidden md:hidden"
             style={{
-              borderTop: "1px solid rgba(28,31,58,0.6)",
-              background: "rgba(8,9,26,0.92)",
+              borderTop: "1px solid color-mix(in oklab, var(--border) 70%, transparent)",
+              background: "color-mix(in oklab, var(--bg) 92%, transparent)",
               backdropFilter: "blur(20px)",
             }}
           >
@@ -250,7 +243,7 @@ export function Header({ user: userProp, authSlot, className }: HeaderProps) {
               {showLoginSignup && !authSlot && (
                 <motion.div
                   className="mt-2 flex flex-col gap-2 border-t pt-3 sm:hidden"
-                  style={{ borderColor: "rgba(28,31,58,0.8)" }}
+                  style={{ borderColor: "var(--border)" }}
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ delay: 0.2 }}

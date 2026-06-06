@@ -3,32 +3,21 @@
 import { use, useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { toast } from "sonner";
-import { motion } from "framer-motion";
 import { Header } from "@/components/layout/Header";
 import { Button } from "@/components/ui/Button";
-import { Card } from "@/components/ui/Card";
 import { Avatar } from "@/components/ui/Avatar";
-import { FloatingCharacter } from "@/components/ui/FloatingCharacter";
-import { GhostMini, DetectiveMini, SpectatorFull } from "@/components/ui/Characters";
+import { Chip } from "@/components/ui/Chip";
+import { Icon } from "@/components/ui/Icon";
 import { useAuth } from "@/lib/hooks/use-auth";
 import { useRoom } from "@/lib/hooks/use-room";
 import { createClient } from "@/lib/supabase/client";
-import { cn } from "@/lib/utils";
+import { cn, tokenColor } from "@/lib/utils";
 import { postJson } from "@/lib/api-fetch";
 import { getAuthAvatarColor, getAuthDisplayName } from "@/lib/auth-display-name";
 import { loginWithNext, signupWithNext } from "@/lib/auth-path";
 import Link from "next/link";
 
-const AVATAR_COLORS = [
-  "#ef4444", "#f97316", "#f59e0b", "#22c55e", "#14b8a6",
-  "#06b6d4", "#3b82f6", "#6366f1", "#8b5cf6", "#ec4899",
-];
-
-export default function LobbyPage({
-  params,
-}: {
-  params: Promise<{ code: string }>;
-}) {
+export default function LobbyPage({ params }: { params: Promise<{ code: string }> }) {
   const { code } = use(params);
   const router = useRouter();
   const pathname = usePathname();
@@ -36,6 +25,7 @@ export default function LobbyPage({
   const { room, players, loading } = useRoom(code);
   const [starting, setStarting] = useState(false);
   const [joiningRoom, setJoiningRoom] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   const isHost = Boolean(user && room?.host_id === user.id);
   const myPlayer = players.find((p) => p.user_id === user?.id);
@@ -50,22 +40,14 @@ export default function LobbyPage({
 
   async function handleToggleReady() {
     if (!myPlayer) return;
-    const result = await postJson<{ ok: boolean; is_ready: boolean }>(
-      `/api/rooms/${code}/ready`,
-      {}
-    );
-    if (!result.ok) {
-      toast.error(result.errorMessage);
-    }
+    const result = await postJson<{ ok: boolean; is_ready: boolean }>(`/api/rooms/${code}/ready`, {});
+    if (!result.ok) toast.error(result.errorMessage);
   }
 
   async function handleStart() {
     setStarting(true);
     try {
-      const res = await fetch(`/api/rooms/${code}/start`, {
-        method: "POST",
-        credentials: "include",
-      });
+      const res = await fetch(`/api/rooms/${code}/start`, { method: "POST", credentials: "include" });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
         toast.error(
@@ -91,9 +73,7 @@ export default function LobbyPage({
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
       toast.error(
-        typeof data === "object" && data && "error" in data
-          ? String((data as { error: unknown }).error)
-          : "Failed to kick",
+        typeof data === "object" && data && "error" in data ? String((data as { error: unknown }).error) : "Failed to kick",
       );
     }
   }
@@ -110,13 +90,11 @@ export default function LobbyPage({
     setJoiningRoom(true);
     try {
       const displayName =
-        profile?.username?.trim() ||
-        getAuthDisplayName(user, profile) ||
-        `Player_${user.id.slice(0, 6)}`;
-      const result = await postJson<{ room: { code: string } }>(
-        "/api/rooms/join",
-        { code: code.toUpperCase(), displayName },
-      );
+        profile?.username?.trim() || getAuthDisplayName(user, profile) || `Player_${user.id.slice(0, 6)}`;
+      const result = await postJson<{ room: { code: string } }>("/api/rooms/join", {
+        code: code.toUpperCase(),
+        displayName,
+      });
       if (!result.ok) {
         toast.error(result.errorMessage);
         return;
@@ -127,26 +105,30 @@ export default function LobbyPage({
     }
   }
 
+  function copyCode() {
+    if (!room) return;
+    void navigator.clipboard.writeText(room.code);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1400);
+  }
+  function copyLink() {
+    if (!room) return;
+    void navigator.clipboard.writeText(`${window.location.origin}/rooms/${room.code}`);
+    toast.success("Invite link copied");
+  }
+
   const headerUser = user
-    ? {
-        username: getAuthDisplayName(user, profile),
-        avatarColor: getAuthAvatarColor(user, profile),
-      }
+    ? { username: getAuthDisplayName(user, profile), avatarColor: getAuthAvatarColor(user, profile) }
     : null;
 
   if (loading) {
     return (
       <>
         <Header user={headerUser} />
-        <main className="min-h-screen bg-background pt-20 pb-16 px-4 relative overflow-hidden flex flex-col items-center justify-center">
-          <div className="absolute top-20 -left-20 w-72 h-72 rounded-full bg-purple/5 blur-3xl pointer-events-none" aria-hidden />
-          <div className="absolute bottom-10 -right-20 w-64 h-64 rounded-full bg-cyan/5 blur-3xl pointer-events-none" aria-hidden />
-          <div className="flex flex-col items-center gap-4 relative z-10">
-            <svg className="size-8 animate-spin text-purple/50" fill="none" viewBox="0 0 24 24">
-              <circle className="opacity-20" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" />
-              <path className="opacity-80" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-            </svg>
-            <p className="text-sm text-muted">Opening briefing room…</p>
+        <main className="reveal-wrap">
+          <div className="flex flex-col items-center gap-4">
+            <span className="livedot" />
+            <p className="text-sm text-muted">Opening the room…</p>
           </div>
         </main>
       </>
@@ -157,242 +139,210 @@ export default function LobbyPage({
     return (
       <>
         <Header user={headerUser} />
-        <main className="min-h-screen bg-background pt-20 pb-16 px-4 relative overflow-hidden">
-          <div className="absolute top-20 right-10 w-64 h-64 rounded-full bg-purple/5 blur-3xl pointer-events-none" aria-hidden />
-          <div className="mx-auto max-w-lg relative z-10 flex min-h-[60vh] flex-col items-center justify-center">
-            <Card padding="lg" className="w-full text-center border-2 border-border">
-              <div className="text-4xl mb-3" aria-hidden>
-                😵
-              </div>
-              <p className="font-heading text-xl text-foreground mb-2">Room not found</p>
-              <p className="text-sm text-muted mb-6">
-                That code may have expired or the host closed the lobby.
-              </p>
-              <Button variant="primary" className="w-full" onClick={() => router.push("/rooms")}>
-                Back to rooms
-              </Button>
-            </Card>
+        <main className="reveal-wrap">
+          <div className="card card-pad w-full max-w-md text-center">
+            <div className="role-ic mx-auto" style={{ ["--c" as string]: "var(--heat)", background: "linear-gradient(150deg, var(--heat), color-mix(in oklab, var(--heat) 55%, #000))" }}>
+              <Icon name="ghost" size={40} />
+            </div>
+            <h2 className="mb-2 mt-4 text-xl">Room not found</h2>
+            <p className="mb-6 text-sm text-muted">That code may have expired or the host closed the lobby.</p>
+            <Button variant="primary" className="w-full" onClick={() => router.push("/rooms")}>Back to rooms</Button>
           </div>
         </main>
       </>
     );
   }
 
+  const settings = (room.settings ?? {}) as { discussionTimer?: number; category?: string };
+
   return (
     <>
       <Header user={headerUser} />
-      <main className="min-h-screen bg-background pt-20 pb-16 px-4 relative overflow-hidden">
-        <div className="absolute top-20 -left-20 w-72 h-72 rounded-full bg-purple/5 blur-3xl pointer-events-none" aria-hidden />
-        <div className="absolute bottom-10 -right-20 w-64 h-64 rounded-full bg-cyan/5 blur-3xl pointer-events-none" aria-hidden />
+      <main className="mx-auto max-w-[980px] px-5 pt-28 pb-20">
+        <div className="mb-1.5">
+          <Chip icon={room.is_private ? "lock" : "globe"} tone="brand">
+            {room.is_private ? "Private room" : "Public room"}
+          </Chip>
+        </div>
+        <h1 className="mb-7" style={{ fontSize: "clamp(30px,5vw,44px)" }}>Your room is ready</h1>
 
-        <FloatingCharacter
-          from="left"
-          delay={0.3}
-          floatAmplitude={10}
-          floatDuration={4.8}
-          sway
-          className="absolute left-4 bottom-16 hidden xl:block"
-        >
-          <SpectatorFull className="w-28 opacity-18" />
-        </FloatingCharacter>
-        <FloatingCharacter from="right" delay={0.55} floatAmplitude={12} floatDuration={5.5} className="absolute right-8 top-28 hidden lg:block">
-          <DetectiveMini className="w-10 opacity-15" />
-        </FloatingCharacter>
-        <FloatingCharacter from="left" delay={0.85} floatAmplitude={10} floatDuration={4.2} className="absolute left-10 top-40 hidden lg:block">
-          <GhostMini className="w-9 opacity-15" />
-        </FloatingCharacter>
-
-        <div className="mx-auto max-w-2xl relative z-10">
-          <motion.div
-            className="mb-8 text-center"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-          >
-            <p className="text-[10px] uppercase tracking-[0.5em] text-muted/60 mb-3">Briefing room</p>
-            {room.is_private && (
-              <span className="inline-block text-[10px] font-bold uppercase tracking-wider bg-orange/15 text-orange px-3 py-1 rounded-full mb-3 border border-orange/25">
-                Private lobby
-              </span>
-            )}
-            <h1 className="font-heading text-5xl sm:text-6xl text-purple tracking-[0.28em] mb-2">
-              {room.code}
-            </h1>
-            <p className="text-sm text-muted max-w-md mx-auto mb-3">
-              Share this code or copy the invite link so detectives can join.
-            </p>
-            <Button
-              variant="ghost"
-              size="sm"
-              type="button"
-              onClick={() => {
-                void navigator.clipboard.writeText(
-                  `${window.location.origin}/rooms/${room.code}`,
-                );
-                toast.success("Invite link copied");
-              }}
-            >
-              Copy invite link
-            </Button>
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, y: 15 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1, duration: 0.5 }}
-          >
-            <Card padding="lg" className="mb-6 border-2 border-border shadow-[0_0_36px_rgba(168,85,247,0.06)]">
-              <div className="flex items-center justify-between mb-4 gap-3">
-                <h2 className="font-heading text-lg text-foreground">
-                  Players ({players.length}/{room.max_players})
-                </h2>
-                <span className="text-[11px] font-semibold uppercase tracking-wider text-muted">
-                  Min 3 to play
-                </span>
+        <div className="grid items-start gap-[18px] lg:grid-cols-[1.15fr_1fr]">
+          {/* LEFT — code + players */}
+          <div className="flex flex-col gap-4">
+            <div className="card card-pad glow-ring text-center">
+              <p className="kicker mb-2.5">Share this code</p>
+              <div
+                className="display"
+                style={{
+                  fontSize: "clamp(56px,11vw,88px)",
+                  letterSpacing: ".16em",
+                  color: "var(--brand-2)",
+                  textShadow: "0 0 40px color-mix(in oklab, var(--brand) 40%, transparent)",
+                }}
+              >
+                {room.code}
               </div>
-              <div className="space-y-3">
+              <div className="mt-3.5 flex items-center justify-center gap-2">
+                <Button variant="secondary" size="sm" onClick={copyCode}>
+                  <Icon name={copied ? "check" : "copy"} size={15} /> {copied ? "Copied!" : "Copy code"}
+                </Button>
+                <Button variant="secondary" size="sm" onClick={copyLink}>
+                  <Icon name="send" size={15} /> Invite link
+                </Button>
+              </div>
+            </div>
+
+            <div className="card card-pad">
+              <div className="mb-4 flex items-center justify-between">
+                <h3 className="text-base">Players</h3>
+                <span className="chip"><span className="livedot" style={{ width: 7, height: 7 }} /> {players.length}/{room.max_players}</span>
+              </div>
+              <div className="grid grid-cols-[repeat(auto-fill,minmax(80px,1fr))] gap-4">
                 {players.map((p, i) => (
-                  <motion.div
-                    key={p.id}
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.15 + i * 0.04, type: "spring", stiffness: 200 }}
-                    className={cn(
-                      "flex items-center gap-3 rounded-2xl border-2 px-3 py-2.5 transition-all duration-200",
-                      p.is_ready || p.is_host
-                        ? "border-emerald/35 bg-emerald/5"
-                        : "border-border bg-card",
-                    )}
-                  >
-                    <Avatar
-                      name={p.display_name}
-                      color={AVATAR_COLORS[i % AVATAR_COLORS.length]}
-                      size="sm"
-                    />
-                    <span className="text-sm font-medium text-foreground truncate">
+                  <div key={p.id} className="pop-in flex flex-col items-center gap-2" style={{ animationDelay: `${i * 0.06}s` }}>
+                    <div className="relative">
+                      <Avatar name={p.display_name} color={tokenColor(p.user_id)} size="lg" you={p.user_id === user?.id} />
+                      {isHost && !p.is_host && (
+                        <button
+                          type="button"
+                          onClick={() => handleKick(p.user_id)}
+                          aria-label={`Kick ${p.display_name}`}
+                          className="token-badge cursor-pointer"
+                          style={{ color: "var(--heat)" }}
+                        >
+                          <Icon name="x" size={11} stroke={2.6} />
+                        </button>
+                      )}
+                    </div>
+                    <span
+                      className="max-w-[80px] truncate text-center text-[13px] font-semibold"
+                      style={{ fontFamily: "var(--font-head)", color: p.user_id === user?.id ? "var(--brand-2)" : "var(--text)" }}
+                    >
                       {p.display_name}
                     </span>
-                    {p.is_host && (
-                      <span className="text-[10px] shrink-0 bg-orange/20 text-orange px-2 py-0.5 rounded-full font-bold uppercase tracking-wide">
-                        Host
+                    {p.is_host ? (
+                      <span className="chip chip-brand" style={{ fontSize: 9.5, padding: "3px 8px" }}>
+                        <Icon name="crown" size={10} /> Host
+                      </span>
+                    ) : (
+                      <span
+                        className="chip"
+                        style={{
+                          fontSize: 9.5,
+                          padding: "3px 8px",
+                          color: p.is_ready ? "var(--emerald)" : "var(--muted)",
+                          borderColor: p.is_ready ? "color-mix(in oklab, var(--emerald) 40%, transparent)" : "var(--border)",
+                        }}
+                      >
+                        {p.is_ready ? "Ready" : "Waiting"}
                       </span>
                     )}
-                    <span
-                      className={cn(
-                        "ml-auto shrink-0 text-xs font-medium",
-                        p.is_ready || p.is_host ? "text-emerald" : "text-muted",
-                      )}
-                    >
-                      {p.is_host ? "Ready" : p.is_ready ? "Ready" : "Waiting"}
-                    </span>
-                    {isHost && !p.is_host && (
-                      <button
-                        type="button"
-                        onClick={() => handleKick(p.user_id)}
-                        className="text-xs text-rose hover:text-rose/85 ml-1 cursor-pointer shrink-0"
-                      >
-                        Kick
-                      </button>
-                    )}
-                  </motion.div>
+                  </div>
                 ))}
               </div>
-            </Card>
-          </motion.div>
+            </div>
+          </div>
 
-          <motion.div
-            className="space-y-3"
-            initial={{ opacity: 0, y: 15 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-          >
+          {/* RIGHT — round info + action */}
+          <div className="flex flex-col gap-4">
+            <div className="card card-pad">
+              <h3 className="mb-[18px] text-base">Round setup</h3>
+              <Setting label="Topic pack">
+                <Chip tone="brand" icon="dice">{settings.category || "Mixed"}</Chip>
+              </Setting>
+              <Setting label="Discussion timer">
+                <Chip icon="clock">{settings.discussionTimer ? `${settings.discussionTimer}s` : "60s"}</Chip>
+              </Setting>
+              <Setting label="Max players">
+                <span className="display text-[28px]" style={{ color: "var(--brand-2)" }}>{room.max_players}</span>
+              </Setting>
+              <Setting label="Minimum to start" last>
+                <Chip>3 players</Chip>
+              </Setting>
+            </div>
+
             {!user ? (
-              /* ── Not signed in ── */
-              <Card padding="lg" className="text-center border-2 border-border">
-                <p className="text-sm text-muted mb-4">Sign in to join this room</p>
+              <div className="card card-pad text-center">
+                <p className="mb-4 text-sm text-muted">Sign in to join this room</p>
                 <div className="flex gap-3">
                   <Button variant="secondary" size="lg" className="flex-1" asChild>
-                    <Link href={loginWithNext(pathname)}>Sign In</Link>
+                    <Link href={loginWithNext(pathname)}>Sign in</Link>
                   </Button>
                   <Button variant="primary" size="lg" className="flex-1" asChild>
-                    <Link href={signupWithNext(pathname)}>Sign Up</Link>
+                    <Link href={signupWithNext(pathname)}>Sign up</Link>
                   </Button>
                 </div>
-              </Card>
+              </div>
             ) : !myPlayer ? (
-              /* ── Signed in but not in the room ── */
-              <Card padding="lg" className="text-center border-2 border-border">
-                <p className="text-sm text-muted mb-4">
-                  You&apos;re not in this room yet.
-                </p>
-                <Button
-                  variant="primary"
-                  size="lg"
-                  className="w-full"
-                  onClick={handleJoinRoom}
-                  isLoading={joiningRoom}
-                >
-                  Join Room
-                </Button>
-              </Card>
+              <Button variant="primary" size="lg" className="w-full" onClick={handleJoinRoom} isLoading={joiningRoom}>
+                <Icon name="plus" size={18} /> Join room
+              </Button>
             ) : isHost ? (
-              /* ── Host controls ── */
               <>
-                <Button
-                  variant="primary"
-                  size="lg"
-                  className="w-full"
-                  onClick={handleStart}
-                  disabled={!canStartNow}
-                  isLoading={starting}
-                >
-                  {canStartNow ? "Start now" : `Need ${playersNeeded} more`}
+                <Button variant="primary" size="lg" className="w-full" onClick={handleStart} disabled={!canStartNow} isLoading={starting}>
+                  <Icon name="play" size={18} fill /> {canStartNow ? "Start round" : `Need ${playersNeeded} more`}
                 </Button>
-                <p className="text-center text-xs text-muted">
-                  Host can begin as soon as three players are in the lobby.
-                </p>
+                <p className="text-center text-[12.5px] text-muted">One impostor will be chosen at random.</p>
               </>
             ) : (
-              /* ── Regular player — ready toggle ── */
-              <Card padding="md" className="border-2 border-border">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-foreground">Ready status</p>
-                    <p className="text-xs text-muted mt-0.5">
-                      {myPlayer.is_ready ? "You're ready to go" : "Toggle when you're set"}
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    role="switch"
-                    aria-checked={myPlayer.is_ready}
-                    onClick={handleToggleReady}
-                    className={cn(
-                      "relative inline-flex h-7 w-12 shrink-0 cursor-pointer rounded-full border-2 transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple",
-                      myPlayer.is_ready
-                        ? "bg-emerald border-emerald/50"
-                        : "bg-border border-border",
-                    )}
-                  >
-                    <span
-                      className={cn(
-                        "pointer-events-none inline-block size-5 rounded-full bg-white shadow-md ring-0 transition-transform duration-200",
-                        myPlayer.is_ready ? "translate-x-[22px]" : "translate-x-[2px]",
-                      )}
-                      style={{ marginTop: "2px" }}
-                    />
-                  </button>
+              <div className="card card-pad flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium">Ready status</p>
+                  <p className="mt-0.5 text-xs text-muted">
+                    {myPlayer.is_ready ? "You're ready to go" : "Toggle when you're set"}
+                  </p>
                 </div>
-              </Card>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={myPlayer.is_ready}
+                  onClick={handleToggleReady}
+                  className={cn(
+                    "relative inline-flex h-7 w-12 shrink-0 cursor-pointer rounded-full border transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand",
+                  )}
+                  style={{
+                    background: myPlayer.is_ready ? "var(--emerald)" : "var(--surface-3)",
+                    borderColor: myPlayer.is_ready ? "color-mix(in oklab, var(--emerald) 50%, transparent)" : "var(--border)",
+                  }}
+                >
+                  <span
+                    className={cn(
+                      "pointer-events-none mt-[2px] inline-block size-5 rounded-full bg-white shadow-md transition-transform duration-200",
+                      myPlayer.is_ready ? "translate-x-[22px]" : "translate-x-[2px]",
+                    )}
+                  />
+                </button>
+              </div>
             )}
+
             {myPlayer && (
-              <Button variant="ghost" size="md" className="w-full text-muted" onClick={handleLeave}>
+              <Button variant="ghost" size="md" className="w-full" onClick={handleLeave}>
                 Leave room
               </Button>
             )}
-          </motion.div>
+          </div>
         </div>
       </main>
     </>
+  );
+}
+
+function Setting({ label, children, last }: { label: string; children: React.ReactNode; last?: boolean }) {
+  return (
+    <div
+      style={{
+        paddingBottom: last ? 0 : 16,
+        marginBottom: last ? 0 : 16,
+        borderBottom: last ? "none" : "1px solid var(--border)",
+      }}
+    >
+      <p
+        className="mb-2.5 text-[13px] font-semibold uppercase"
+        style={{ fontFamily: "var(--font-head)", color: "var(--muted)", letterSpacing: ".06em" }}
+      >
+        {label}
+      </p>
+      {children}
+    </div>
   );
 }

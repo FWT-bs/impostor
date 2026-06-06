@@ -4,15 +4,11 @@ import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/Button";
-import { Card } from "@/components/ui/Card";
 import { Avatar } from "@/components/ui/Avatar";
+import { Chip } from "@/components/ui/Chip";
+import { Icon } from "@/components/ui/Icon";
 import { useLocalGameStore } from "@/stores/local-game-store";
-import { cn } from "@/lib/utils";
-
-const AVATAR_COLORS = [
-  "#ef4444", "#f97316", "#f59e0b", "#22c55e", "#14b8a6",
-  "#06b6d4", "#3b82f6", "#6366f1", "#8b5cf6", "#ec4899",
-];
+import { tokenColor } from "@/lib/utils";
 
 export default function LocalPlayPage() {
   const router = useRouter();
@@ -27,11 +23,8 @@ export default function LocalPlayPage() {
   if (store.players.length === 0) return null;
 
   return (
-    <main className="min-h-screen bg-background flex items-center justify-center px-4 py-8 relative overflow-hidden">
-      <div className="absolute top-20 left-10 w-[300px] h-[300px] rounded-full bg-purple/5 blur-3xl pointer-events-none" aria-hidden />
-      <div className="absolute bottom-10 right-10 w-[250px] h-[250px] rounded-full bg-cyan/5 blur-3xl pointer-events-none" aria-hidden />
-
-      <div className="w-full max-w-lg relative z-10">
+    <main className="reveal-wrap">
+      <div className="reveal-inner">
         <AnimatePresence mode="wait">
           {store.phase === "role_reveal" && (
             <motion.div key="role_reveal" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
@@ -66,120 +59,77 @@ function RoleRevealPhase() {
 
   const player = players[currentIdx];
   const isImpostor = player.role === "impostor";
+  const last = currentIdx + 1 >= players.length;
 
   function handleNext() {
     setRevealed(false);
-    if (currentIdx + 1 >= players.length) {
-      setPhase("clue_phase");
-    } else {
-      setCurrentIdx(currentIdx + 1);
-    }
+    if (last) setPhase("clue_phase");
+    else setCurrentIdx(currentIdx + 1);
   }
 
   return (
-    <div className="text-center">
-      <h2 className="font-heading text-2xl text-muted mb-2">
-        Pass to <span className="text-purple">{player.name}</span>
-      </h2>
-      <p className="text-sm text-muted mb-8">
-        Player {currentIdx + 1} of {players.length} — everyone else look away! 👀
-      </p>
-
-      <div className="perspective-[600px]">
-        <AnimatePresence mode="wait">
-          {!revealed ? (
-            <motion.div
-              key="hidden"
-              initial={{ rotateY: 180, opacity: 0 }}
-              animate={{ rotateY: 0, opacity: 1 }}
-              exit={{ rotateY: -90, opacity: 0 }}
-              transition={{ duration: 0.5, type: "spring", stiffness: 200 }}
-            >
-              <Card
-                glow
-                padding="lg"
-                className="cursor-pointer min-h-[240px] flex flex-col items-center justify-center"
-                onClick={() => setRevealed(true)}
-              >
-                <motion.div
-                  className="text-6xl mb-4"
-                  animate={{ scale: [1, 1.1, 1] }}
-                  transition={{ repeat: Infinity, duration: 2 }}
-                >
-                  🔒
-                </motion.div>
-                <p className="font-heading text-xl text-foreground">Tap to Reveal Your Role</p>
-                <p className="text-sm text-muted mt-2">Make sure only you can see the screen</p>
-              </Card>
-            </motion.div>
-          ) : (
-            <motion.div
-              key="revealed"
-              initial={{ rotateY: 90, opacity: 0 }}
-              animate={{ rotateY: 0, opacity: 1 }}
-              transition={{ duration: 0.5, type: "spring", stiffness: 200 }}
-            >
-              <Card
-                padding="lg"
-                className={cn(
-                  "min-h-[240px] flex flex-col items-center justify-center",
-                  isImpostor ? "border-rose/50 shadow-[0_0_30px_rgba(244,63,94,0.15)]" : "border-purple/50 shadow-[0_0_30px_rgba(168,85,247,0.15)]"
-                )}
-              >
-                {isImpostor ? (
-                  <>
-                    <motion.div
-                      className="text-6xl mb-4"
-                      initial={{ scale: 0 }}
-                      animate={{ scale: 1 }}
-                      transition={{ type: "spring", stiffness: 300 }}
-                    >
-                      🕵️
-                    </motion.div>
-                    <p className="font-heading text-2xl text-rose mb-2">
-                      You are the IMPOSTOR
-                    </p>
-                    <p className="text-muted">
-                      Topic: <span className="text-orange font-medium">{topic}</span>
-                    </p>
-                    <p className="text-sm text-rose/70 mt-2">
-                      You do NOT know the secret word. Bluff! 🤫
-                    </p>
-                  </>
-                ) : (
-                  <>
-                    <motion.div
-                      className="text-6xl mb-4"
-                      initial={{ scale: 0 }}
-                      animate={{ scale: 1 }}
-                      transition={{ type: "spring", stiffness: 300 }}
-                    >
-                      ✅
-                    </motion.div>
-                    <p className="font-heading text-2xl text-purple mb-2">
-                      You are a Regular Player
-                    </p>
-                    <p className="text-muted">
-                      Topic: <span className="text-orange font-medium">{topic}</span>
-                    </p>
-                    <p className="text-foreground mt-2">
-                      Secret Word: <span className="text-purple font-bold text-xl">{secretWord}</span>
-                    </p>
-                  </>
-                )}
-              </Card>
-            </motion.div>
-          )}
-        </AnimatePresence>
+    <div>
+      <div className="mb-7 flex items-center justify-between">
+        <Chip icon="users" tone="brand">{topic} · pass &amp; play</Chip>
+        <span className="text-[13px] font-semibold text-muted" style={{ fontFamily: "var(--font-head)" }}>
+          {currentIdx + 1} / {players.length}
+        </span>
       </div>
 
-      {revealed && (
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
-          <Button variant="primary" size="lg" className="mt-6 w-full" onClick={handleNext}>
-            {currentIdx + 1 >= players.length ? "Everyone Has Seen — Start! 🎮" : "Pass to Next Player →"}
+      {!revealed ? (
+        <div key={`h${currentIdx}`} className="pop-in flex flex-col items-center gap-5 py-8 text-center">
+          <p className="kicker">Pass the phone to</p>
+          <Avatar name={player.name} color={tokenColor(player.id)} size="xl" />
+          <h1 className="display" style={{ fontSize: "clamp(40px,9vw,72px)" }}>{player.name}</h1>
+          <p className="max-w-[300px] text-[15px] text-muted">Make sure nobody else is peeking. Your role is for your eyes only.</p>
+          <Button variant="primary" size="lg" onClick={() => setRevealed(true)}>
+            <Icon name="eye" size={18} /> I&apos;m {player.name} — reveal my role
           </Button>
-        </motion.div>
+        </div>
+      ) : (
+        <RoleCard key={`r${currentIdx}`} isImpostor={isImpostor} secret={secretWord} topic={topic} onNext={handleNext} last={last} />
       )}
+    </div>
+  );
+}
+
+function RoleCard({ isImpostor, secret, topic, onNext, last }: { isImpostor: boolean; secret: string; topic: string; onNext: () => void; last: boolean }) {
+  const c = isImpostor ? "var(--heat)" : "var(--aqua)";
+  return (
+    <div className="flex flex-col items-center gap-6 py-2.5">
+      <div
+        className="role-card pop-in"
+        style={{ ["--c" as string]: c, borderColor: `color-mix(in oklab, ${c} 50%, transparent)`, boxShadow: `0 0 60px -16px ${c}, inset 0 1px 0 rgba(255,255,255,.08)` }}
+      >
+        <div className="role-ic" style={{ background: `linear-gradient(150deg, ${c}, color-mix(in oklab, ${c} 55%, #000))` }}>
+          <Icon name={isImpostor ? "mask" : "shield"} size={40} />
+        </div>
+        {isImpostor ? (
+          <>
+            <p className="kicker" style={{ color: "var(--heat-2)" }}>You are the</p>
+            <h2 className="display" style={{ fontSize: 58, color: "var(--heat)" }}>IMPOSTER</h2>
+            <p className="mx-auto mt-1 max-w-[320px] text-[14.5px] text-muted">You don&apos;t know the secret word. Blend in, fake a clue, and survive the vote.</p>
+            <div className="role-chip">
+              <span className="kicker" style={{ fontSize: 10 }}>Your only hint — the topic</span>
+              <span className="display" style={{ fontSize: 34, color: "var(--amber)" }}>{topic}</span>
+            </div>
+          </>
+        ) : (
+          <>
+            <p className="kicker" style={{ color: "var(--aqua-2)" }}>You are</p>
+            <h2 className="display" style={{ fontSize: 58, color: "var(--aqua)" }}>CREW</h2>
+            <p className="mx-auto mt-1 max-w-[320px] text-[14.5px] text-muted">You know the word. Prove it with a clue — but don&apos;t make it too easy for the faker.</p>
+            <div className="role-chip">
+              <span className="kicker" style={{ fontSize: 10 }}>The secret word</span>
+              <span className="display" style={{ fontSize: 38, color: "var(--text)" }}>{secret}</span>
+              <span className="text-[12px] text-muted">Topic · {topic}</span>
+            </div>
+          </>
+        )}
+      </div>
+      <Button variant={isImpostor ? "heat" : "primary"} size="lg" onClick={onNext}>
+        {last ? <>Everyone&apos;s ready — start clues <Icon name="arrow" size={18} /></> : <>Got it — pass it on <Icon name="arrow" size={18} /></>}
+      </Button>
     </div>
   );
 }
@@ -191,77 +141,63 @@ function SpeakingPhase() {
 
   if (allDone) {
     return (
-      <div className="text-center">
-        <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}>
-          <div className="text-6xl mb-4">💬</div>
-          <h2 className="font-heading text-2xl text-foreground mb-2">Everyone Has Spoken!</h2>
-          <p className="text-muted mb-4">
-            Discuss amongst yourselves — who was being suspicious? 🤔
-          </p>
-          <p className="text-sm text-muted mb-8">
-            When you&apos;re ready, start voting.
-          </p>
-        </motion.div>
-
-        <div className="mb-6">
-          <h3 className="text-sm font-semibold text-muted mb-3">Turn Order</h3>
-          <div className="space-y-2">
-            {players.map((p, i) => (
-              <div key={p.id} className="flex items-center gap-3 rounded-2xl border-2 border-border bg-card px-3 py-2">
-                <span className="text-xs text-muted w-5">{i + 1}.</span>
-                <Avatar name={p.name} color={AVATAR_COLORS[i % AVATAR_COLORS.length]} size="sm" />
-                <span className="text-sm text-foreground font-medium">{p.name}</span>
-                <span className="text-xs text-emerald ml-auto">✓ spoke</span>
-              </div>
-            ))}
-          </div>
+      <div className="card card-pad">
+        <div className="mb-4 text-center">
+          <Chip icon="chat" tone="aqua" className="mb-3">All clues in</Chip>
+          <h2 className="text-[22px]">Everyone has spoken</h2>
+          <p className="mt-1 text-sm text-muted">Discuss — who was being suspicious?</p>
         </div>
-
-        <Button variant="primary" size="lg" className="w-full" onClick={() => setPhase("voting")}>
-          🗳️ Start Voting
+        <div className="mb-5 flex flex-col gap-2">
+          {players.map((p, i) => (
+            <div key={p.id} className="flex items-center gap-3 rounded-[14px] px-3.5 py-2.5" style={{ border: "1px solid var(--border)", background: "rgba(255,255,255,.015)" }}>
+              <span className="w-5 text-xs text-muted">{i + 1}.</span>
+              <Avatar name={p.name} color={tokenColor(p.id)} size="sm" />
+              <span className="text-[14px] font-semibold" style={{ fontFamily: "var(--font-head)" }}>{p.name}</span>
+              <span className="ml-auto flex items-center gap-1 text-xs" style={{ color: "var(--emerald)" }}>
+                <Icon name="check" size={13} stroke={2.6} /> spoke
+              </span>
+            </div>
+          ))}
+        </div>
+        <Button variant="heat" size="lg" className="w-full" onClick={() => setPhase("voting")}>
+          <Icon name="vote" size={18} /> Start voting
         </Button>
       </div>
     );
   }
 
   return (
-    <div className="text-center">
-      <h2 className="font-heading text-2xl text-foreground mb-1">🎤 Speaking Round</h2>
-      <p className="text-sm text-muted mb-6">
-        Player {currentTurnIndex + 1} of {players.length}
-      </p>
+    <div>
+      <div className="mb-6 text-center">
+        <Chip icon="chat" tone="aqua" className="mb-3">Clue round</Chip>
+        <p className="text-sm text-muted">Player {currentTurnIndex + 1} of {players.length}</p>
+      </div>
 
-      <div className="flex gap-2 justify-center flex-wrap mb-6">
+      <div className="mb-6 flex flex-wrap justify-center gap-3">
         {players.map((p, i) => (
-          <motion.div
-            key={p.id}
-            className={cn(
-              "flex flex-col items-center gap-1 transition-all px-2 py-1 rounded-xl",
-              i === currentTurnIndex && "bg-purple/10 ring-2 ring-purple/40",
-              i < currentTurnIndex && "opacity-50"
-            )}
-            animate={i === currentTurnIndex ? { scale: [1, 1.05, 1] } : {}}
-            transition={{ repeat: Infinity, duration: 2 }}
-          >
-            <Avatar name={p.name} color={AVATAR_COLORS[i % AVATAR_COLORS.length]} size="sm" />
-            <span className="text-xs text-muted truncate max-w-[60px]">{p.name}</span>
-            {i < currentTurnIndex && <span className="text-xs text-emerald">✓</span>}
-          </motion.div>
+          <div key={p.id} className="flex flex-col items-center gap-1.5" style={{ opacity: i < currentTurnIndex ? 0.5 : 1 }}>
+            <div className="relative">
+              <Avatar name={p.name} color={tokenColor(p.id)} size="md" />
+              {i === currentTurnIndex && <span className="absolute rounded-2xl" style={{ inset: -4, border: "2px solid var(--aqua)", animation: "ping 1.6s infinite" }} />}
+            </div>
+            <span className="max-w-[60px] truncate text-[11px] text-muted">{p.name}</span>
+          </div>
         ))}
       </div>
 
-      <Card padding="lg" glow>
-        <div className="text-5xl mb-3">🎤</div>
-        <p className="text-sm text-muted mb-1">It&apos;s your turn to speak</p>
-        <p className="font-heading text-3xl text-purple mb-4">{currentPlayer.name}</p>
-        <p className="text-muted text-sm leading-relaxed">
-          Say <span className="text-foreground font-medium">one word or short phrase</span> out
-          loud that proves you know the secret word — without making it too obvious!
+      <div className="role-card" style={{ ["--c" as string]: "var(--aqua)", borderColor: "color-mix(in oklab, var(--aqua) 45%, transparent)" }}>
+        <div className="role-ic" style={{ background: "linear-gradient(150deg, var(--aqua), color-mix(in oklab, var(--aqua) 55%, #000))" }}>
+          <Icon name="chat" size={38} />
+        </div>
+        <p className="kicker" style={{ color: "var(--aqua-2)" }}>It&apos;s your turn to speak</p>
+        <h2 className="display" style={{ fontSize: 44 }}>{currentPlayer.name}</h2>
+        <p className="mx-auto mt-2 max-w-[320px] text-[14px] text-muted">
+          Say one word out loud that proves you know the secret word — without making it too obvious.
         </p>
-      </Card>
+      </div>
 
       <Button variant="primary" size="lg" className="mt-6 w-full" onClick={advanceTurn}>
-        {currentTurnIndex + 1 >= players.length ? "Done — Everyone Has Spoken ✅" : `Next: ${players[currentTurnIndex + 1]?.name} →`}
+        {currentTurnIndex + 1 >= players.length ? <>Done — everyone has spoken <Icon name="check" size={18} stroke={2.4} /></> : <>Next: {players[currentTurnIndex + 1]?.name} <Icon name="arrow" size={18} /></>}
       </Button>
     </div>
   );
@@ -279,7 +215,6 @@ function VotingPhase() {
     if (!selectedId || !voter) return;
     submitVote(voter.id, selectedId);
     setSelectedId(null);
-
     if (currentVoterIdx + 1 >= players.length) {
       resolveVotes();
     } else {
@@ -292,22 +227,14 @@ function VotingPhase() {
 
   if (showPass) {
     return (
-      <div className="text-center">
-        <h2 className="font-heading text-2xl text-foreground mb-2">🗳️ Voting Phase</h2>
-        <p className="text-muted mb-6">Pass the device to</p>
-        <motion.p
-          className="font-heading text-3xl text-purple mb-6"
-          initial={{ scale: 0.8 }}
-          animate={{ scale: 1 }}
-          transition={{ type: "spring", stiffness: 300 }}
-        >
-          {voter.name}
-        </motion.p>
-        <p className="text-sm text-muted mb-6">
-          Voter {currentVoterIdx + 1} of {players.length}
-        </p>
-        <Button variant="primary" size="lg" className="w-full" onClick={() => setShowPass(false)}>
-          I&apos;m Ready to Vote 👍
+      <div className="flex flex-col items-center gap-5 py-8 text-center">
+        <Chip icon="vote" tone="heat">Voting</Chip>
+        <p className="kicker">Pass the device to</p>
+        <Avatar name={voter.name} color={tokenColor(voter.id)} size="xl" />
+        <h2 className="display" style={{ fontSize: "clamp(38px,8vw,64px)" }}>{voter.name}</h2>
+        <p className="text-sm text-muted">Voter {currentVoterIdx + 1} of {players.length}</p>
+        <Button variant="primary" size="lg" onClick={() => setShowPass(false)}>
+          <Icon name="eye" size={18} /> I&apos;m ready to vote
         </Button>
       </div>
     );
@@ -316,36 +243,33 @@ function VotingPhase() {
   const otherPlayers = players.filter((p) => p.id !== voter.id);
 
   return (
-    <div className="text-center">
-      <h2 className="font-heading text-2xl text-foreground mb-1">Cast Your Vote</h2>
-      <p className="text-muted mb-6">{voter.name}, who is the impostor? 🕵️</p>
+    <div className="card card-pad">
+      <div className="mb-5 text-center">
+        <h2 className="text-[20px]">Who&apos;s the impostor?</h2>
+        <p className="mt-1 text-sm text-muted">{voter.name}, tap a player to cast your vote.</p>
+      </div>
 
-      <div className="space-y-3 mb-6">
+      <div className="mb-5 grid grid-cols-[repeat(auto-fill,minmax(130px,1fr))] gap-3">
         {otherPlayers.map((p) => {
-          const pIdx = players.indexOf(p);
+          const picked = selectedId === p.id;
           return (
-            <motion.button
+            <button
               key={p.id}
+              type="button"
               onClick={() => setSelectedId(p.id)}
-              className={cn(
-                "w-full flex items-center gap-3 rounded-2xl border-2 px-4 py-3 transition-all duration-200 cursor-pointer",
-                selectedId === p.id
-                  ? "border-purple bg-purple/10 ring-1 ring-purple/30 shadow-[0_0_16px_rgba(168,85,247,0.15)]"
-                  : "border-border bg-card hover:border-purple/30"
-              )}
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
+              className="vote-card"
+              style={{ borderColor: picked ? "var(--heat)" : "var(--border)", background: picked ? "color-mix(in oklab, var(--heat) 12%, transparent)" : "var(--surface)" }}
             >
-              <Avatar name={p.name} color={AVATAR_COLORS[pIdx % AVATAR_COLORS.length]} size="sm" />
-              <span className="text-foreground font-medium">{p.name}</span>
-              {selectedId === p.id && <span className="ml-auto text-purple text-lg">✓</span>}
-            </motion.button>
+              <Avatar name={p.name} color={tokenColor(p.id)} size="md" />
+              <span className="text-[14px] font-bold" style={{ fontFamily: "var(--font-head)" }}>{p.name}</span>
+              {picked && <span className="chip chip-heat absolute right-2 top-2" style={{ fontSize: 9 }}>Your vote</span>}
+            </button>
           );
         })}
       </div>
 
-      <Button variant="primary" size="lg" className="w-full" onClick={handleVoteSubmit} disabled={!selectedId}>
-        Submit Vote
+      <Button variant="heat" size="lg" className="w-full" onClick={handleVoteSubmit} disabled={!selectedId}>
+        <Icon name="target" size={18} /> {selectedId ? `Lock vote — ${otherPlayers.find((p) => p.id === selectedId)?.name}` : "Pick someone to vote"}
       </Button>
     </div>
   );
@@ -355,103 +279,83 @@ function ResultsPhase() {
   const { players, winner, impostorId, secretWord, topic, sessionStats, playAgain, resetAll } = useLocalGameStore();
   const router = useRouter();
   const impostor = players.find((p) => p.id === impostorId);
-
   const groupWon = winner === "group";
 
   return (
-    <div className="text-center">
-      <motion.div
-        initial={{ scale: 0.5, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        transition={{ type: "spring", stiffness: 200, damping: 15 }}
-      >
-        <div className="text-7xl mb-4">{groupWon ? "🎉" : "🕵️"}</div>
-        <h2 className={cn("font-heading text-3xl mb-2", groupWon ? "text-emerald" : "text-rose")}>
-          {groupWon ? "Impostor Caught!" : "Impostor Wins!"}
-        </h2>
-        <p className="text-muted mb-6">
-          {groupWon
-            ? "The group successfully identified the impostor. 🎊"
-            : "The impostor fooled everyone! 😎"}
-        </p>
-      </motion.div>
+    <div className="card card-pad">
+      <div className="pop-in flex flex-col items-center gap-4 text-center">
+        <Chip tone={groupWon ? "aqua" : "heat"} icon={groupWon ? "trophy" : "flame"}>
+          {groupWon ? "Crew wins" : "Impostor escapes"}
+        </Chip>
+        <div className="role-ic" style={{ width: 84, height: 84, background: "linear-gradient(150deg, var(--heat), color-mix(in oklab, var(--heat) 55%, #000))" }}>
+          <Icon name="mask" size={42} />
+        </div>
+        <div>
+          <p className="kicker" style={{ color: "var(--heat-2)" }}>The impostor was</p>
+          <h2 className="display" style={{ fontSize: 56, color: "var(--heat)" }}>{impostor?.name}</h2>
+        </div>
 
-      <Card padding="lg" className="mb-6">
-        <div className="flex items-center justify-center gap-3 mb-4">
-          <Avatar
-            name={impostor?.name || "?"}
-            color={AVATAR_COLORS[players.indexOf(impostor!) % AVATAR_COLORS.length] || "#666"}
-            size="lg"
-          />
-          <div className="text-left">
-            <p className="text-sm text-muted">The Impostor was</p>
-            <p className="font-heading text-xl text-rose">{impostor?.name}</p>
+        <div className="flex flex-wrap items-center justify-center gap-3">
+          <div className="result-stat">
+            <span className="kicker" style={{ fontSize: 9 }}>Secret word</span>
+            <span className="display text-[26px]" style={{ color: "var(--aqua-2)" }}>{secretWord}</span>
+          </div>
+          <div className="result-stat">
+            <span className="kicker" style={{ fontSize: 9 }}>Topic</span>
+            <span className="display text-[26px]" style={{ color: "var(--amber)" }}>{topic}</span>
           </div>
         </div>
-        <div className="border-t-2 border-border pt-4 mt-4">
-          <p className="text-sm text-muted">
-            Topic: <span className="text-orange">{topic}</span>
-          </p>
-          <p className="text-sm text-muted mt-1">
-            Secret Word: <span className="text-purple font-bold">{secretWord}</span>
-          </p>
-        </div>
-      </Card>
 
-      <Card padding="md" className="mb-6">
-        <h3 className="font-heading text-lg text-foreground mb-3">🗳️ Votes</h3>
-        <div className="space-y-2">
-          {players.map((p, i) => (
-            <div
-              key={p.id}
-              className={cn(
-                "flex items-center gap-3 rounded-2xl px-3 py-2",
-                p.id === impostorId && "bg-rose/10 border-2 border-rose/30"
-              )}
-            >
-              <Avatar name={p.name} color={AVATAR_COLORS[i % AVATAR_COLORS.length]} size="sm" />
-              <span className="text-sm text-foreground font-medium">{p.name}</span>
-              <span className="ml-auto text-sm text-muted">
-                {p.votesReceived} vote{p.votesReceived !== 1 ? "s" : ""}
-              </span>
-              {p.id === impostorId && (
-                <span className="text-xs bg-rose/20 text-rose px-2 py-0.5 rounded-full font-bold">IMPOSTOR</span>
-              )}
-            </div>
-          ))}
-        </div>
-      </Card>
-
-      <Card padding="md" className="mb-6">
-        <h3 className="font-heading text-lg text-foreground mb-2">📊 Session Stats</h3>
-        <div className="flex justify-around text-center">
-          <div>
-            <p className="font-heading text-2xl text-purple">{sessionStats.rounds}</p>
-            <p className="text-xs text-muted">Rounds</p>
-          </div>
-          <div>
-            <p className="font-heading text-2xl text-emerald">{sessionStats.groupWins}</p>
-            <p className="text-xs text-muted">Group Wins</p>
-          </div>
-          <div>
-            <p className="font-heading text-2xl text-rose">{sessionStats.impostorWins}</p>
-            <p className="text-xs text-muted">Impostor Wins</p>
+        {/* votes */}
+        <div className="mt-2 w-full">
+          <p className="kicker mb-3 text-center">Votes</p>
+          <div className="flex flex-col gap-2">
+            {players.map((p) => {
+              const isImp = p.id === impostorId;
+              return (
+                <div
+                  key={p.id}
+                  className="flex items-center gap-3 rounded-[14px] px-3.5 py-2.5"
+                  style={{
+                    border: isImp ? "1px solid color-mix(in oklab, var(--heat) 40%, transparent)" : "1px solid var(--border)",
+                    background: isImp ? "color-mix(in oklab, var(--heat) 10%, transparent)" : "rgba(255,255,255,.015)",
+                  }}
+                >
+                  <Avatar name={p.name} color={tokenColor(p.id)} size="sm" role={isImp ? "impostor" : undefined} />
+                  <span className="text-[14px] font-semibold" style={{ fontFamily: "var(--font-head)" }}>{p.name}</span>
+                  <span className="flex-1" />
+                  <span className="text-[13px] text-muted">{p.votesReceived} vote{p.votesReceived !== 1 ? "s" : ""}</span>
+                  {isImp && <span className="chip chip-heat" style={{ fontSize: 9 }}>Impostor</span>}
+                </div>
+              );
+            })}
           </div>
         </div>
-      </Card>
 
-      <div className="flex gap-3">
-        <Button
-          variant="secondary"
-          size="lg"
-          className="flex-1"
-          onClick={() => { resetAll(); router.push("/local/setup"); }}
-        >
-          🔄 New Game
-        </Button>
-        <Button variant="primary" size="lg" className="flex-1" onClick={playAgain}>
-          🔁 Play Again
-        </Button>
+        {/* session stats */}
+        <div className="mt-2 flex w-full justify-around">
+          <div className="result-stat">
+            <span className="display text-[26px]" style={{ color: "var(--brand-2)" }}>{sessionStats.rounds}</span>
+            <span className="kicker" style={{ fontSize: 9 }}>Rounds</span>
+          </div>
+          <div className="result-stat">
+            <span className="display text-[26px]" style={{ color: "var(--emerald)" }}>{sessionStats.groupWins}</span>
+            <span className="kicker" style={{ fontSize: 9 }}>Crew wins</span>
+          </div>
+          <div className="result-stat">
+            <span className="display text-[26px]" style={{ color: "var(--heat)" }}>{sessionStats.impostorWins}</span>
+            <span className="kicker" style={{ fontSize: 9 }}>Impostor wins</span>
+          </div>
+        </div>
+
+        <div className="mt-2 flex w-full flex-wrap justify-center gap-2">
+          <Button variant="primary" size="lg" onClick={playAgain}>
+            <Icon name="play" size={17} fill /> Play again
+          </Button>
+          <Button variant="secondary" size="lg" onClick={() => { resetAll(); router.push("/local/setup"); }}>
+            <Icon name="refresh" size={17} /> New game
+          </Button>
+        </div>
       </div>
     </div>
   );

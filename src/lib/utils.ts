@@ -27,6 +27,20 @@ export function randomAvatarColor(): string {
   return AVATAR_COLORS[Math.floor(Math.random() * AVATAR_COLORS.length)];
 }
 
+/** Vivid "Live" token palette — used for the geometric player tokens. */
+export const TOKEN_COLORS = [
+  "#8b5cff", "#ff2e7e", "#1fe5d8", "#ffb23d", "#2be0a0",
+  "#5b8cff", "#ff6a3d", "#c6f94e", "#e05cff", "#36d1ff",
+];
+
+/** Deterministic vivid color from any seed (name/id) so a player keeps one hue. */
+export function tokenColor(seed: string): string {
+  let h = 0;
+  const s = String(seed);
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
+  return TOKEN_COLORS[h % TOKEN_COLORS.length];
+}
+
 export function getInitials(name: string): string {
   return name
     .split(" ")
