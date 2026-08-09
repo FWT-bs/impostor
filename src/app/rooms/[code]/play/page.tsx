@@ -3,7 +3,6 @@
 import { use, useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/Button";
 import { Avatar } from "@/components/ui/Avatar";
 import { Chip } from "@/components/ui/Chip";
@@ -48,8 +47,7 @@ export default function OnlinePlayPage({ params }: { params: Promise<{ code: str
   }, [room, loading, code, router]);
 
   useEffect(() => {
-    if (!loading) { setLoadingTooLong(false); return; }
-    const t = setTimeout(() => setLoadingTooLong(true), 5000);
+    const t = setTimeout(() => setLoadingTooLong(loading), loading ? 5000 : 0);
     return () => clearTimeout(t);
   }, [loading]);
 
@@ -57,8 +55,7 @@ export default function OnlinePlayPage({ params }: { params: Promise<{ code: str
     return (
       <main className="reveal-wrap">
         <div className="flex flex-col items-center gap-4">
-          <span className="livedot" />
-          <p className="text-sm text-muted">Loading game…</p>
+          <p className="text-sm text-muted">Loading game</p>
           {loadingTooLong && (
             <Button variant="secondary" size="sm" onClick={() => refetch()}>Retry</Button>
           )}
@@ -109,8 +106,8 @@ export default function OnlinePlayPage({ params }: { params: Promise<{ code: str
                   )}
                   {isTurn && (
                     <span
-                      className="absolute rounded-2xl"
-                      style={{ inset: -4, border: "2px solid var(--aqua)", animation: "ping 1.6s infinite" }}
+                      className="absolute rounded-lg"
+                      style={{ inset: -4, border: "2px solid var(--aqua)" }}
                     />
                   )}
                 </div>
@@ -129,39 +126,27 @@ export default function OnlinePlayPage({ params }: { params: Promise<{ code: str
       {/* stage + chat */}
       <div className="chatroom-grid">
         <div>
-          <AnimatePresence mode="wait">
-            {room.phase === "role_reveal" && (
-              <motion.div key="role_reveal" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
-                <OnlineRoleReveal
-                  secret={secret}
-                  loading={secretLoading}
-                  roomId={room.id}
-                  isHost={isHost}
-                  sendMessage={sendMessage}
-                />
-              </motion.div>
-            )}
-            {room.phase === "clue_phase" && (
-              <motion.div key="clue_phase" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
-                <OnlineCluePhase code={code} room={room} players={players} userId={user.id} secret={secret} sendMessage={sendMessage} myDisplayName={myPlayer?.display_name ?? ""} />
-              </motion.div>
-            )}
-            {room.phase === "discussion" && (
-              <motion.div key="discussion" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
-                <OnlineDiscussionPhase room={room} players={players} isHost={isHost} sendMessage={sendMessage} />
-              </motion.div>
-            )}
-            {room.phase === "voting" && (
-              <motion.div key="voting" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
-                <OnlineVotingPhase code={code} room={room} players={players} userId={user.id} isHost={isHost} />
-              </motion.div>
-            )}
-            {room.phase === "results" && (
-              <motion.div key="results" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
-                <OnlineResultsPhase code={code} room={room} players={players} userId={user.id} isHost={isHost} />
-              </motion.div>
-            )}
-          </AnimatePresence>
+          {room.phase === "role_reveal" && (
+            <OnlineRoleReveal
+              secret={secret}
+              loading={secretLoading}
+              roomId={room.id}
+              isHost={isHost}
+              sendMessage={sendMessage}
+            />
+          )}
+          {room.phase === "clue_phase" && (
+            <OnlineCluePhase code={code} room={room} players={players} userId={user.id} secret={secret} sendMessage={sendMessage} myDisplayName={myPlayer?.display_name ?? ""} />
+          )}
+          {room.phase === "discussion" && (
+            <OnlineDiscussionPhase room={room} players={players} isHost={isHost} sendMessage={sendMessage} />
+          )}
+          {room.phase === "voting" && (
+            <OnlineVotingPhase code={code} room={room} players={players} userId={user.id} isHost={isHost} />
+          )}
+          {room.phase === "results" && (
+            <OnlineResultsPhase code={code} room={room} players={players} userId={user.id} isHost={isHost} />
+          )}
         </div>
 
         <ChatPanel
@@ -208,14 +193,23 @@ function OnlineRoleReveal({
 
   useEffect(() => {
     if (!revealed) return;
-    setCountdown(10);
-    const interval = setInterval(() => {
-      setCountdown((c) => {
-        if (c === null || c <= 1) { clearInterval(interval); return 0; }
-        return c - 1;
-      });
-    }, 1000);
-    return () => clearInterval(interval);
+    let interval: ReturnType<typeof setInterval> | undefined;
+    const start = setTimeout(() => {
+      setCountdown(10);
+      interval = setInterval(() => {
+        setCountdown((c) => {
+          if (c === null || c <= 1) {
+            if (interval) clearInterval(interval);
+            return 0;
+          }
+          return c - 1;
+        });
+      }, 1000);
+    }, 0);
+    return () => {
+      clearTimeout(start);
+      if (interval) clearInterval(interval);
+    };
   }, [revealed]);
 
   useEffect(() => {
@@ -231,7 +225,7 @@ function OnlineRoleReveal({
         .eq("phase", "role_reveal");
     }, delay);
     if (isHost) {
-      sendMessage("🎮 Clue phase is starting — give hints that prove you know the word!", "system", "Game");
+      sendMessage("Clue phase starting, prove you know the word", "system", "Game");
     }
     return () => clearTimeout(t);
   }, [countdown, isHost, roomId, sendMessage]);
@@ -239,8 +233,7 @@ function OnlineRoleReveal({
   if (loading) {
     return (
       <div className="flex flex-col items-center gap-3 py-16 text-center">
-        <span className="livedot" />
-        <p className="text-muted">Getting your role…</p>
+        <p className="text-muted">Getting your role</p>
       </div>
     );
   }
@@ -254,14 +247,14 @@ function OnlineRoleReveal({
         <button
           type="button"
           onClick={() => setRevealed(true)}
-          className="role-ic float cursor-pointer"
-          style={{ width: 96, height: 96, ["--c" as string]: "var(--brand)", background: "linear-gradient(150deg, var(--brand), color-mix(in oklab, var(--brand) 55%, #000))" }}
+          className="role-ic cursor-pointer"
+          style={{ width: 96, height: 96, ["--c" as string]: "var(--brand)", background: "var(--brand)" }}
           aria-label="Reveal your role"
         >
           <Icon name="lock" size={44} />
         </button>
         <h2 className="display text-[40px]">TAP TO REVEAL</h2>
-        <p className="max-w-[300px] text-sm text-muted">Make sure nobody else is peeking — your role is for your eyes only.</p>
+        <p className="max-w-[300px] text-sm text-muted">No peeking, this one is yours only</p>
       </div>
     );
   }
@@ -274,35 +267,34 @@ function OnlineRoleReveal({
         style={{
           ["--c" as string]: c,
           borderColor: `color-mix(in oklab, ${c} 50%, transparent)`,
-          boxShadow: `0 0 60px -16px ${c}, inset 0 1px 0 rgba(255,255,255,.08)`,
         }}
       >
-        <div className="role-ic" style={{ background: `linear-gradient(150deg, ${c}, color-mix(in oklab, ${c} 55%, #000))` }}>
+        <div className="role-ic" style={{ background: c }}>
           <Icon name={isImpostor ? "mask" : "shield"} size={40} />
         </div>
         {isImpostor ? (
           <>
             <p className="kicker" style={{ color: "var(--heat-2)" }}>You are the</p>
-            <h2 className="display" style={{ fontSize: 58, color: "var(--heat)" }}>IMPOSTER</h2>
+            <h2 className="display" style={{ fontSize: 46, color: "var(--heat)" }}>IMPOSTER</h2>
             <p className="mx-auto mt-1 max-w-[320px] text-[14.5px] text-muted">
-              You don&apos;t know the secret word. Blend in, fake a clue, and survive the vote.
+              No secret word, blend in and survive the vote
             </p>
             <div className="role-chip">
-              <span className="kicker" style={{ fontSize: 10 }}>Your only hint — the topic</span>
+              <span className="kicker" style={{ fontSize: 10 }}>Your only hint: the topic</span>
               <span className="display" style={{ fontSize: 34, color: "var(--amber)" }}>{secret?.topic}</span>
             </div>
           </>
         ) : (
           <>
             <p className="kicker" style={{ color: "var(--aqua-2)" }}>You are</p>
-            <h2 className="display" style={{ fontSize: 58, color: "var(--aqua)" }}>CREW</h2>
+            <h2 className="display" style={{ fontSize: 46, color: "var(--aqua)" }}>CREW</h2>
             <p className="mx-auto mt-1 max-w-[320px] text-[14.5px] text-muted">
-              You know the word. Prove it with a clue — but don&apos;t make it too easy for the faker.
+              You know the word, clue carefully
             </p>
             <div className="role-chip">
               <span className="kicker" style={{ fontSize: 10 }}>The secret word</span>
               <span className="display" style={{ fontSize: 38, color: "var(--text)" }}>{secret?.secret_word}</span>
-              <span className="text-[12px] text-muted">Topic · {secret?.topic}</span>
+              <span className="text-[12px] text-muted">Topic: {secret?.topic}</span>
             </div>
           </>
         )}
@@ -312,11 +304,11 @@ function OnlineRoleReveal({
         <div className="flex flex-col items-center gap-1.5">
           {countdown > 0 ? (
             <>
-              <p className="text-sm text-muted">Clue phase starts in…</p>
+              <p className="text-sm text-muted">Clue phase starts in</p>
               <span className="display text-[40px]" style={{ color: "var(--brand-2)" }}>{countdown}</span>
             </>
           ) : (
-            <p className="text-sm font-semibold" style={{ color: "var(--brand-2)" }}>Starting…</p>
+            <p className="text-sm font-semibold" style={{ color: "var(--brand-2)" }}>Starting</p>
           )}
         </div>
       )}
@@ -358,7 +350,7 @@ function OnlineCluePhase({
     if (!player) return;
     announcedRef.current = idx;
     if (player.user_id === userId) {
-      sendMessage(`⏳ ${player.display_name} is choosing their hint…`, "system", "Game");
+      sendMessage(`${player.display_name} is choosing their hint.`, "system", "Game");
     }
   }, [room.current_turn_index, players, userId, sendMessage]);
 
@@ -378,9 +370,9 @@ function OnlineCluePhase({
       toast.error((data as { error?: string }).error || "Failed to submit clue");
       return;
     }
-    sendMessage(`🎤 ${myDisplayName} gave the hint "${submittedClue}"!`, "system", "Game");
+    sendMessage(`${myDisplayName} gave the hint "${submittedClue}".`, "system", "Game");
     if ((data as { allDone?: boolean }).allDone) {
-      sendMessage("✅ All hints given — discussion starting!", "system", "Game");
+      sendMessage("All hints in, discussion starting", "system", "Game");
     }
     setClue("");
   }
@@ -394,11 +386,11 @@ function OnlineCluePhase({
         <div className="flex items-start justify-between gap-3">
           <div>
             <h3 className="text-[19px]">Clue board</h3>
-            <p className="text-[13px] text-muted">One word each. Prove you know it — don&apos;t give it away.</p>
+            <p className="text-[13px] text-muted">One word each, prove it without giving it away</p>
           </div>
           {reminder && (
             <div
-              className="rounded-xl px-3 py-2 text-right leading-none"
+              className="rounded-lg px-3 py-2 text-right leading-none"
               style={{
                 border: `1px solid color-mix(in oklab, ${isImpostor ? "var(--amber)" : "var(--aqua)"} 35%, transparent)`,
                 background: `color-mix(in oklab, ${isImpostor ? "var(--amber)" : "var(--aqua)"} 8%, transparent)`,
@@ -419,7 +411,7 @@ function OnlineCluePhase({
             return (
               <div
                 key={p.id}
-                className="flex items-center gap-3 rounded-[14px] px-3.5 py-2.5"
+                className="flex items-center gap-3 rounded-lg px-3.5 py-2.5"
                 style={{
                   border: "1px solid var(--border)",
                   background: isTurn && !clueText ? "color-mix(in oklab, var(--aqua) 10%, transparent)" : "rgba(255,255,255,.015)",
@@ -433,7 +425,7 @@ function OnlineCluePhase({
                 {clueText ? (
                   <span className="display text-[20px]" style={{ color: "var(--aqua-2)" }}>{clueText}</span>
                 ) : isTurn ? (
-                  <span className="chip chip-aqua" style={{ fontSize: 10 }}>thinking…</span>
+                  <span className="chip chip-aqua" style={{ fontSize: 10 }}>thinking</span>
                 ) : (
                   <span className="text-[12.5px] text-muted">waiting</span>
                 )}
@@ -446,14 +438,14 @@ function OnlineCluePhase({
 
         {isMyTurn && !myClue ? (
           <div className="answer-bar pop-in">
-            <p className="kicker mb-2" style={{ color: "var(--aqua-2)" }}>Your turn — type your clue</p>
+            <p className="kicker mb-2" style={{ color: "var(--aqua-2)" }}>Your turn: type your clue</p>
             <div className="flex gap-2">
               <input
                 autoFocus
                 value={clue}
                 onChange={(e) => setClue(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && !submitting && handleSubmitClue()}
-                placeholder="One word…"
+                placeholder="One word"
                 maxLength={40}
                 className="field"
               />
@@ -465,9 +457,9 @@ function OnlineCluePhase({
         ) : (
           <div className="flex items-center justify-center gap-2 p-3.5 text-[13.5px] text-muted">
             {myClue ? (
-              <><Icon name="check" size={15} style={{ color: "var(--emerald)" }} /> Clue locked in — waiting for the table</>
+              <><Icon name="check" size={15} style={{ color: "var(--emerald)" }} /> Clue locked, waiting for the table</>
             ) : (
-              <><span className="typing"><i /><i /><i /></span> Waiting for {currentPlayer?.display_name ?? "…"}…</>
+              <><span className="typing"><i /><i /><i /></span> Waiting for {currentPlayer?.display_name ?? "someone"}</>
             )}
           </div>
         )}
@@ -508,7 +500,7 @@ function OnlineDiscussionPhase({
       const supabase = createClient();
       void supabase.from("rooms").update({ phase: "voting" }).eq("id", room.id).eq("phase", "discussion");
     }, delay);
-    if (isHost) sendMessage("⏰ Time's up — voting has started!", "system", "Game");
+    if (isHost) sendMessage("Time is up, voting started", "system", "Game");
     return () => clearTimeout(t);
   }, [seconds, isHost, room.id, sendMessage]);
 
@@ -528,17 +520,17 @@ function OnlineDiscussionPhase({
 
         <div className="flex flex-col gap-2">
           {players.map((p) => (
-            <div key={p.id} className="flex items-center gap-3 rounded-[14px] px-3.5 py-2.5" style={{ border: "1px solid var(--border)", background: "rgba(255,255,255,.015)" }}>
+            <div key={p.id} className="flex items-center gap-3 rounded-lg px-3.5 py-2.5" style={{ border: "1px solid var(--border)", background: "rgba(255,255,255,.015)" }}>
               <Avatar name={p.display_name} color={tokenColor(p.user_id)} size="sm" />
               <span className="text-[14px] font-semibold" style={{ fontFamily: "var(--font-head)" }}>{p.display_name}</span>
               <span className="flex-1" />
-              <span className="display text-[20px]" style={{ color: "var(--aqua-2)" }}>{p.clue_text || "—"}</span>
+              <span className="display text-[20px]" style={{ color: "var(--aqua-2)" }}>{p.clue_text || "-"}</span>
             </div>
           ))}
         </div>
 
         <p className="text-center text-[13px] text-muted">
-          {seconds > 0 ? "Discuss who the impostor might be in chat →" : "Advancing to voting…"}
+          {seconds > 0 ? "Talk through who feels suspicious" : "Advancing to voting"}
         </p>
       </div>
     </Stage>
@@ -615,7 +607,7 @@ function OnlineVotingPhase({
       return;
     }
     setHasVoted(true);
-    toast.success("Vote submitted! 🗳️");
+    toast.success("Vote submitted");
   }
 
   const otherPlayers = players.filter((p) => p.user_id !== userId);
@@ -626,10 +618,10 @@ function OnlineVotingPhase({
       <Stage>
         <div className="flex flex-col items-center gap-4 py-10 text-center">
           <Chip tone="heat" icon="vote">Vote submitted</Chip>
-          <div className="role-ic" style={{ width: 84, height: 84, background: "linear-gradient(150deg, var(--heat), color-mix(in oklab, var(--heat) 55%, #000))" }}>
+          <div className="role-ic" style={{ width: 84, height: 84, background: "var(--heat)" }}>
             <Icon name={timeUp ? "target" : "clock"} size={40} />
           </div>
-          <p className="text-muted">{timeUp ? "Time's up — tallying the votes…" : "Waiting for other players to vote…"}</p>
+          <p className="text-muted">{timeUp ? "Time is up, tallying votes" : "Waiting for other votes"}</p>
         </div>
       </Stage>
     );
@@ -641,7 +633,7 @@ function OnlineVotingPhase({
         <div className="flex items-center justify-between">
           <div>
             <h3 className="text-[19px]">Who&apos;s the impostor?</h3>
-            <p className="text-[13px] text-muted">Tap a player to cast your vote.</p>
+            <p className="text-[13px] text-muted">Tap someone to vote</p>
           </div>
           <div className="flex items-center gap-2" style={{ color: seconds < 10 ? "var(--heat)" : "var(--text)" }}>
             <Icon name="clock" size={16} />
@@ -672,7 +664,7 @@ function OnlineVotingPhase({
         </div>
 
         <Button variant="heat" size="lg" className="w-full" disabled={!selectedId || seconds <= 0} onClick={handleVote} isLoading={submitting}>
-          <Icon name="target" size={18} /> {seconds <= 0 ? "Tallying votes…" : selectedId ? `Lock vote — ${players.find((p) => p.user_id === selectedId)?.display_name}` : "Pick someone to vote"}
+          <Icon name="target" size={18} /> {seconds <= 0 ? "Tallying votes" : selectedId ? `Lock vote for ${players.find((p) => p.user_id === selectedId)?.display_name}` : "Pick someone to vote"}
         </Button>
       </div>
     </Stage>
@@ -736,8 +728,7 @@ function OnlineResultsPhase({
     return (
       <Stage>
         <div className="flex flex-col items-center gap-3 py-12 text-center">
-          <span className="livedot" />
-          <p className="text-muted">Loading results…</p>
+          <p className="text-muted">Loading results</p>
         </div>
       </Stage>
     );
@@ -761,13 +752,13 @@ function OnlineResultsPhase({
           {groupWon ? "Crew wins" : "Impostor escapes"}
         </Chip>
 
-        <div className="role-ic" style={{ width: 84, height: 84, background: "linear-gradient(150deg, var(--heat), color-mix(in oklab, var(--heat) 55%, #000))" }}>
+        <div className="role-ic" style={{ width: 84, height: 84, background: "var(--heat)" }}>
           <Icon name="mask" size={42} />
         </div>
         <div>
           <p className="kicker" style={{ color: "var(--heat-2)" }}>{impostors.length > 1 ? "The impostors were" : "The impostor was"}</p>
           <h2 className="display" style={{ fontSize: 48, color: "var(--heat)" }}>
-            {impostors.map((p) => p.display_name).join(" & ") || "—"}
+            {impostors.map((p) => p.display_name).join(" & ") || "-"}
           </h2>
         </div>
 
@@ -782,7 +773,7 @@ function OnlineResultsPhase({
           </div>
           <div className="result-stat">
             <span className="kicker" style={{ fontSize: 9 }}>Your vote</span>
-            <span className="display text-[26px]" style={{ color: groupWon ? "var(--emerald)" : "var(--heat)" }}>{myVotedName || "—"}</span>
+            <span className="display text-[26px]" style={{ color: groupWon ? "var(--emerald)" : "var(--heat)" }}>{myVotedName || "-"}</span>
           </div>
         </div>
 
@@ -796,7 +787,7 @@ function OnlineResultsPhase({
               return (
                 <div
                   key={p.id}
-                  className="flex items-center gap-3 rounded-[14px] px-3.5 py-2.5"
+                  className="flex items-center gap-3 rounded-lg px-3.5 py-2.5"
                   style={{
                     border: isImp ? "1px solid color-mix(in oklab, var(--heat) 40%, transparent)" : "1px solid var(--border)",
                     background: isImp ? "color-mix(in oklab, var(--heat) 10%, transparent)" : "rgba(255,255,255,.015)",
@@ -821,7 +812,7 @@ function OnlineResultsPhase({
             <Button variant="secondary" size="lg" onClick={handleBackToLobby}>Back to lobby</Button>
           </div>
         ) : (
-          <p className="text-sm text-muted">Waiting for the host to continue…</p>
+          <p className="text-sm text-muted">Waiting for the host</p>
         )}
       </div>
     </Stage>
@@ -862,7 +853,7 @@ function ChatPanel({
         <span className="flex items-center gap-2 text-[14px] font-bold" style={{ fontFamily: "var(--font-head)" }}>
           <Icon name="chat" size={16} /> Table chat
         </span>
-        <span className="chip"><span className="livedot" style={{ width: 6, height: 6 }} /> live</span>
+        <span className="chip">Room chat</span>
       </div>
 
       <div className="chat-scroll">
@@ -905,7 +896,7 @@ function ChatPanel({
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && send()}
-          placeholder="Say something…"
+          placeholder="Say something"
           maxLength={500}
           className="field"
         />

@@ -1,26 +1,37 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { usePathname, useRouter } from "next/navigation";
-import { toast } from "sonner";
-import { motion, AnimatePresence } from "framer-motion";
-import { Header } from "@/components/layout/Header";
+import {
+  AppShell,
+  DoodleMark,
+  EmptyState,
+  GameCard,
+  PageHeader,
+  RoomCard,
+  StatusBadge,
+  TopicPackGrid,
+} from "@/components/game";
+import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
-import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { Modal } from "@/components/ui/Modal";
-import { Chip } from "@/components/ui/Chip";
-import { useAuth } from "@/lib/hooks/use-auth";
-import { createClient } from "@/lib/supabase/client";
-import { cn } from "@/lib/utils";
-import { postJson } from "@/lib/api-fetch";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/Tabs";
+import { Icon } from "@/components/ui/Icon";
 import { loginWithNext } from "@/lib/auth-path";
+import { postJson } from "@/lib/api-fetch";
 import { getAuthAvatarColor, getAuthDisplayName } from "@/lib/auth-display-name";
+import { getCategories, getPremiumCategories } from "@/lib/game/words";
+import { useAuth } from "@/lib/hooks/use-auth";
 import {
   getPreferredDisplayName,
   setPreferredDisplayName,
 } from "@/lib/preferred-display-name";
-import { getCategories, getPremiumCategories } from "@/lib/game/words";
+import { createClient } from "@/lib/supabase/client";
+import { cn } from "@/lib/utils";
+import { AnimatePresence, motion } from "framer-motion";
+import Image from "next/image";
+import { usePathname, useRouter } from "next/navigation";
+import { useCallback, useEffect, useMemo, useState, type CSSProperties } from "react";
+import { toast } from "sonner";
 
 const MIN_ROOM_PLAYERS = 3;
 const MAX_ROOM_PLAYERS = 10;
@@ -39,7 +50,7 @@ type RoomRow = {
   room_players: { id: string }[];
 };
 
-type RoomTab = "mine" | "open" | "live" | "completed";
+type RoomTab = "open" | "live" | "mine";
 
 export default function RoomsPage() {
   const router = useRouter();
@@ -47,11 +58,10 @@ export default function RoomsPage() {
   const { user, profile, loading: authLoading } = useAuth();
   const supabase = useMemo(() => createClient(), []);
 
-  const [tab, setTab] = useState<RoomTab>("mine");
+  const [tab, setTab] = useState<RoomTab>("open");
   const [myRooms, setMyRooms] = useState<RoomRow[]>([]);
   const [openRooms, setOpenRooms] = useState<RoomRow[]>([]);
   const [liveRooms, setLiveRooms] = useState<RoomRow[]>([]);
-  const [completedRooms, setCompletedRooms] = useState<RoomRow[]>([]);
   const [loadingRooms, setLoadingRooms] = useState(true);
   const [listError, setListError] = useState<string | null>(null);
   const [joinCode, setJoinCode] = useState("");
@@ -63,7 +73,11 @@ export default function RoomsPage() {
   const [createMaxPlayers, setCreateMaxPlayers] = useState(8);
   const [createDiscussionTimer, setCreateDiscussionTimer] = useState(60);
   const [createCategory, setCreateCategory] = useState<string | null>(null);
-  const [listLoadPercent, setListLoadPercent] = useState(0);
+
+  const userId = user?.id ?? null;
+  const categories = useMemo(() => getCategories(), []);
+  const premiumCategories = useMemo(() => getPremiumCategories(), []);
+  const hasPremium = profile?.is_premium ?? false;
 
   useEffect(() => {
     const saved = getPreferredDisplayName();
@@ -72,17 +86,13 @@ export default function RoomsPage() {
 
   useEffect(() => {
     if (!profile?.username) return;
-    setDisplayName((d) => {
-      if (d.trim()) return d;
-      const saved = getPreferredDisplayName();
-      return saved || profile.username;
+    setDisplayName((current) => {
+      if (current.trim()) return current;
+      return getPreferredDisplayName() || profile.username;
     });
   }, [profile?.username]);
 
-  const loadOpenRooms = useCallback(async (): Promise<{
-    ok: boolean;
-    rooms: RoomRow[];
-  }> => {
+  const loadOpenRooms = useCallback(async (): Promise<{ ok: boolean; rooms: RoomRow[] }> => {
     const { data, error } = await supabase
       .from("rooms")
       .select(ROOM_LIST_SELECT)
@@ -97,10 +107,7 @@ export default function RoomsPage() {
     return { ok: true, rooms: (data as RoomRow[]) ?? [] };
   }, [supabase]);
 
-  const loadLiveRooms = useCallback(async (): Promise<{
-    ok: boolean;
-    rooms: RoomRow[];
-  }> => {
+  const loadLiveRooms = useCallback(async (): Promise<{ ok: boolean; rooms: RoomRow[] }> => {
     const { data, error } = await supabase
       .from("rooms")
       .select(ROOM_LIST_SELECT)
@@ -115,13 +122,9 @@ export default function RoomsPage() {
     return { ok: true, rooms: (data as RoomRow[]) ?? [] };
   }, [supabase]);
 
-  const loadMyRooms = useCallback(async (): Promise<{
-    ok: boolean;
-    rooms: RoomRow[];
-  }> => {
-    if (!user?.id) {
-      return { ok: true, rooms: [] };
-    }
+  const loadMyRooms = useCallback(async (): Promise<{ ok: boolean; rooms: RoomRow[] }> => {
+    if (!user?.id) return { ok: true, rooms: [] };
+
     const { data: rp, error: rpErr } = await supabase
       .from("room_players")
       .select("room_id")
@@ -130,10 +133,10 @@ export default function RoomsPage() {
       console.error("loadMyRooms room_players:", rpErr);
       return { ok: false, rooms: [] };
     }
-    const ids = [...new Set((rp ?? []).map((r) => r.room_id))];
-    if (ids.length === 0) {
-      return { ok: true, rooms: [] };
-    }
+
+    const ids = [...new Set((rp ?? []).map((row) => row.room_id))];
+    if (ids.length === 0) return { ok: true, rooms: [] };
+
     const { data, error } = await supabase
       .from("rooms")
       .select(ROOM_LIST_SELECT)
@@ -148,84 +151,38 @@ export default function RoomsPage() {
     return { ok: true, rooms: (data as RoomRow[]) ?? [] };
   }, [supabase, user?.id]);
 
-  const loadCompletedRooms = useCallback(async (): Promise<{
-    ok: boolean;
-    rooms: RoomRow[];
-  }> => {
-    if (!user?.id) {
-      return { ok: true, rooms: [] };
-    }
-    const { data: rp, error: rpErr } = await supabase
-      .from("room_players")
-      .select("room_id")
-      .eq("user_id", user.id);
-    if (rpErr) {
-      return { ok: false, rooms: [] };
-    }
-    const ids = [...new Set((rp ?? []).map((r) => r.room_id))];
-    if (ids.length === 0) {
-      return { ok: true, rooms: [] };
-    }
-    const { data, error } = await supabase
-      .from("rooms")
-      .select(ROOM_LIST_SELECT)
-      .in("id", ids)
-      .eq("status", "finished")
-      .order("updated_at", { ascending: false })
-      .limit(20);
-    if (error) {
-      return { ok: false, rooms: [] };
-    }
-    return { ok: true, rooms: (data as RoomRow[]) ?? [] };
-  }, [supabase, user?.id]);
-
   const refreshAllListings = useCallback(
     async (opts?: { silent?: boolean }) => {
-      if (!opts?.silent) {
-        setListError(null);
-      }
+      if (!opts?.silent) setListError(null);
       try {
-        const [openRes, liveRes, myRes, completedRes] = await Promise.all([
+        const [openRes, liveRes, myRes] = await Promise.all([
           loadOpenRooms(),
           loadLiveRooms(),
           loadMyRooms(),
-          loadCompletedRooms(),
         ]);
 
         setOpenRooms(openRes.rooms);
         setLiveRooms(liveRes.rooms);
         setMyRooms(myRes.rooms);
-        setCompletedRooms(completedRes.rooms);
 
         if (!opts?.silent) {
           if (!openRes.ok && !liveRes.ok && !myRes.ok) {
-            setListError("Could not load rooms. Try Refresh.");
+            setListError("Could not load rooms, try refresh");
           } else if (!openRes.ok || !liveRes.ok || !myRes.ok) {
-            setListError("Some lists could not be refreshed.");
+            setListError("Some room lists could not refresh");
           }
         }
-      } catch (e) {
-        console.error("refreshAllListings:", e);
+      } catch (error) {
+        console.error("refreshAllListings:", error);
         if (!opts?.silent) {
-          setListError(
-            e instanceof Error
-              ? e.message
-              : "Could not load rooms. Try Refresh.",
-          );
+          setListError(error instanceof Error ? error.message : "Could not load rooms, try refresh");
         }
       } finally {
-        if (!opts?.silent) {
-          setLoadingRooms(false);
-        }
+        if (!opts?.silent) setLoadingRooms(false);
       }
     },
-    [loadOpenRooms, loadLiveRooms, loadMyRooms, loadCompletedRooms],
+    [loadLiveRooms, loadMyRooms, loadOpenRooms],
   );
-
-  const userId = user?.id ?? null;
-  const categories = useMemo(() => getCategories(), []);
-  const premiumCategories = useMemo(() => getPremiumCategories(), []);
-  const isGuestUser = !user || user.is_anonymous;
 
   useEffect(() => {
     if (authLoading) return;
@@ -234,31 +191,9 @@ export default function RoomsPage() {
   }, [authLoading, refreshAllListings]);
 
   useEffect(() => {
-    if (!loadingRooms) {
-      setListLoadPercent(100);
-      const done = setTimeout(() => setListLoadPercent(0), 380);
-      return () => clearTimeout(done);
-    }
-    // Smooth continuous progress using requestAnimationFrame
-    let raf: number;
-    let start: number | null = null;
-    setListLoadPercent(0);
-
-    function tick(ts: number) {
-      if (!start) start = ts;
-      const elapsed = ts - start;
-      // Ease-out curve: fast at first, slows down approaching 95%
-      const progress = Math.min(95, 95 * (1 - Math.exp(-elapsed / 1800)));
-      setListLoadPercent(Math.round(progress));
-      raf = requestAnimationFrame(tick);
-    }
-    raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
-  }, [loadingRooms]);
-
-  useEffect(() => {
     let debounceTimer: ReturnType<typeof setTimeout> | null = null;
     let firstSubscribed = true;
+
     function scheduleRefresh() {
       if (debounceTimer) clearTimeout(debounceTimer);
       debounceTimer = setTimeout(() => {
@@ -269,16 +204,8 @@ export default function RoomsPage() {
 
     const channel = supabase
       .channel(`public-rooms:${userId ?? "anon"}`)
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "rooms" },
-        () => scheduleRefresh()
-      )
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "room_players" },
-        () => scheduleRefresh()
-      )
+      .on("postgres_changes", { event: "*", schema: "public", table: "rooms" }, () => scheduleRefresh())
+      .on("postgres_changes", { event: "*", schema: "public", table: "room_players" }, () => scheduleRefresh())
       .subscribe((status, err) => {
         if (status === "SUBSCRIBED") {
           if (firstSubscribed) {
@@ -294,15 +221,9 @@ export default function RoomsPage() {
         }
       });
 
-    const poll = setInterval(
-      () => void refreshAllListings({ silent: true }),
-      15000,
-    );
-
+    const poll = setInterval(() => void refreshAllListings({ silent: true }), 15000);
     function onVisible() {
-      if (document.visibilityState === "visible") {
-        void refreshAllListings({ silent: true });
-      }
+      if (document.visibilityState === "visible") void refreshAllListings({ silent: true });
     }
     document.addEventListener("visibilitychange", onVisible);
 
@@ -312,13 +233,10 @@ export default function RoomsPage() {
       document.removeEventListener("visibilitychange", onVisible);
       supabase.removeChannel(channel);
     };
-  }, [supabase, refreshAllListings, userId]);
+  }, [refreshAllListings, supabase, userId]);
 
   const displayRooms =
-    tab === "mine" ? myRooms
-    : tab === "live" ? liveRooms
-    : tab === "completed" ? completedRooms
-    : openRooms;
+    tab === "mine" ? myRooms : tab === "live" ? liveRooms : openRooms;
 
   function updateDisplayName(value: string) {
     setDisplayName(value);
@@ -326,6 +244,7 @@ export default function RoomsPage() {
   }
 
   async function handleJoin(code: string) {
+    const cleanCode = code.trim().toUpperCase();
     if (authLoading) return;
     if (!user) {
       toast.error("Sign in to play online");
@@ -340,7 +259,7 @@ export default function RoomsPage() {
         getAuthDisplayName(user, profile);
       const result = await postJson<{ room: { code: string } }>(
         "/api/rooms/join",
-        { code, displayName: name }
+        { code: cleanCode, displayName: name },
       );
       if (!result.ok) {
         toast.error(result.errorMessage);
@@ -348,7 +267,7 @@ export default function RoomsPage() {
       }
       setPreferredDisplayName(name);
       void refreshAllListings({ silent: true });
-      router.push(`/rooms/${code.toUpperCase()}`);
+      router.push(`/rooms/${cleanCode}`);
       router.refresh();
     } finally {
       setJoining(false);
@@ -385,7 +304,7 @@ export default function RoomsPage() {
       }
       const code = result.data?.room?.code;
       if (!code) {
-        toast.error("Room was created but the response was incomplete.");
+        toast.error("Room created, response incomplete");
         void refreshAllListings({ silent: true });
         return;
       }
@@ -408,488 +327,394 @@ export default function RoomsPage() {
     setCreating(false);
   }
 
-  const hasPremium = profile?.is_premium ?? false;
-
-  function handleCreateCategoryClick(cat: string) {
-    if (premiumCategories.has(cat) && !hasPremium) {
-      toast.error("Upgrade to Premium to unlock this category.");
+  function handleCreateCategoryClick(cat: string | null) {
+    if (cat && premiumCategories.has(cat) && !hasPremium) {
+      toast.error("Upgrade to Premium to unlock this pack");
       return;
     }
-    setCreateCategory((c) => (c === cat ? null : cat));
+    setCreateCategory((current) => (current === cat ? null : cat));
   }
 
   function enterMyRoom(room: RoomRow) {
-    if (room.status === "playing") {
-      router.push(`/rooms/${room.code}/play`);
-    } else {
-      router.push(`/rooms/${room.code}`);
-    }
+    if (room.status === "playing") router.push(`/rooms/${room.code}/play`);
+    else router.push(`/rooms/${room.code}`);
   }
 
+  const userSlot = user
+    ? {
+        username: getAuthDisplayName(user, profile),
+        avatarColor: getAuthAvatarColor(user, profile),
+      }
+    : null;
+
   return (
-    <>
-      <Header
-        user={
-          user
-            ? {
-                username: getAuthDisplayName(user, profile),
-                avatarColor: getAuthAvatarColor(user, profile),
-              }
-            : null
-        }
-      />
-      <main className="mx-auto max-w-2xl px-5 pt-28 pb-16">
-        <div className="mx-auto max-w-2xl">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-            className="mb-8 text-center"
-          >
-            <div className="mb-3 flex justify-center"><Chip tone="heat" icon="globe">Live multiplayer</Chip></div>
-            <h1 className="display mb-2" style={{ fontSize: "clamp(40px,8vw,72px)" }}>ONLINE ROOMS</h1>
-            <p className="text-sm text-muted">Drop into a live room or spin up your own</p>
-          </motion.div>
-
-          {/* Join by code */}
-          <motion.div
-            initial={{ opacity: 0, y: 14 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.12, duration: 0.5 }}
-          >
-            <Card padding="md" className="mb-8">
-              <h3 className="font-heading text-[15px] text-foreground mb-1">Join by Code</h3>
-              <p className="text-sm text-muted mb-4">Have a room code? Enter it to join any room.</p>
-              <div className="flex gap-2">
-                <Input
-                  placeholder="ABCD"
-                  value={joinCode}
-                  onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
-                  className="bg-background uppercase tracking-widest font-heading text-lg text-center"
-                  maxLength={4}
-                />
-                <Button
-                  variant="primary"
-                  onClick={() => handleJoin(joinCode)}
-                  disabled={joinCode.length !== 4 || joining}
-                  isLoading={joining}
-                >
-                  Join
+    <AppShell user={userSlot} mainClassName="max-w-7xl">
+      <section className="relative grid items-center gap-8 lg:grid-cols-[0.9fr_1.1fr]">
+        <DoodleMark kind="mask" className="-left-8 bottom-4" color="var(--heat)" size={38} rotate={-11} />
+        <DoodleMark kind="eye" className="left-[37%] top-36 hidden lg:block" color="var(--brand)" size={46} />
+        <div>
+          <PageHeader
+            eyebrow={<><Icon name="globe" size={15} /> Live multiplayer</>}
+            title={
+              <>
+                Find a <span className="scribble-word" style={{ "--scribble-color": "var(--heat)" } as CSSProperties}>table</span>
+              </>
+            }
+            description="Public lobbies, private codes, tables you can rejoin"
+            actions={
+              <>
+                <Button size="lg" onClick={() => setShowCreate(true)}>
+                  <Icon name="plus" size={20} /> Create room
                 </Button>
-              </div>
-            </Card>
-          </motion.div>
+                <Button variant="secondary" size="lg" onClick={() => {
+                  setLoadingRooms(true);
+                  void refreshAllListings({ silent: false });
+                }}>
+                  <Icon name="refresh" size={20} /> Refresh
+                </Button>
+              </>
+            }
+          />
+        </div>
+        <RoomsSpriteImage />
+      </section>
 
-          {/* Room browser */}
-          <motion.div
-            className="mb-4"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.22 }}
-          >
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-4">
-              <div className="flex rounded-2xl border-2 border-border bg-card/60 p-1 gap-1">
-                {(
-                  [
-                    ["mine", "Mine"] as const,
-                    ["open", "Open"] as const,
-                    ["live", "Live"] as const,
-                    ["completed", "Done"] as const,
-                  ] as const
-                ).map(([key, label]) => (
-                  <button
-                    key={key}
-                    type="button"
-                    onClick={() => setTab(key)}
-                    className={cn(
-                      "flex-1 rounded-xl px-3 py-2 text-sm font-semibold transition-all duration-200 cursor-pointer",
-                      tab === key
-                        ? "bg-purple/15 text-foreground border border-purple/25"
-                        : "text-muted hover:text-foreground",
-                    )}
+      <GameCard accent="cyan" className="mb-6 mt-7 p-4 sm:p-5">
+        <div className="grid gap-4 lg:grid-cols-[1fr_auto] lg:items-center">
+          <div>
+            <div className="mb-2 flex items-center gap-2">
+              <Badge variant="cyan">Join by code</Badge>
+              <StatusBadge status="live">Synced</StatusBadge>
+            </div>
+            <p className="text-sm text-muted">Four-character invite, straight to the table</p>
+          </div>
+          <div className="flex gap-2 sm:min-w-[360px]">
+            <Input
+              aria-label="Room code"
+              placeholder="ABCD"
+              value={joinCode}
+              onChange={(event) => setJoinCode(event.target.value.toUpperCase())}
+              className="h-14 bg-navy text-center text-2xl font-black uppercase tracking-normal text-white placeholder:text-white/50"
+              maxLength={4}
+            />
+            <Button
+              onClick={() => handleJoin(joinCode)}
+              disabled={joinCode.length !== 4 || joining}
+              isLoading={joining}
+            >
+              Join
+            </Button>
+          </div>
+        </div>
+      </GameCard>
+
+      <Tabs value={tab} onValueChange={(value) => setTab(value as RoomTab)}>
+        <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <TabsList>
+            <TabsTrigger value="open">Open</TabsTrigger>
+            <TabsTrigger value="live">Live</TabsTrigger>
+            <TabsTrigger value="mine">My rooms</TabsTrigger>
+          </TabsList>
+          <p className="text-sm text-muted">
+            {tab === "open" && "Public lobbies looking for players"}
+            {tab === "live" && "Matches already in round"}
+            {tab === "mine" && "Rooms you're already seated in"}
+          </p>
+        </div>
+
+        {listError && (
+          <p className="mb-4 rounded-lg border border-heat/35 bg-heat/10 px-4 py-3 text-sm text-heat-2" role="alert">
+            {listError}
+          </p>
+        )}
+
+        <TabsContent value={tab} className="mt-0">
+          {loadingRooms ? (
+            <LoadingRooms />
+          ) : displayRooms.length === 0 ? (
+            <EmptyRooms tab={tab} signedIn={Boolean(user)} onCreate={() => setShowCreate(true)} />
+          ) : (
+            <AnimatePresence mode="popLayout">
+              <div className="grid gap-4 lg:grid-cols-2">
+                {displayRooms.map((room, index) => (
+                  <motion.div
+                    key={`${tab}-${room.id}`}
+                    layout
+                    initial={{ opacity: 0, y: 12 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -12 }}
+                    transition={{ delay: index * 0.025, duration: 0.26, ease: [0.16, 1, 0.3, 1] }}
                   >
-                    {label}
-                  </button>
+                    <RoomCard
+                      code={room.code}
+                      players={room.room_players.length}
+                      maxPlayers={room.max_players}
+                      status={tab === "live" ? "live" : tab === "mine" ? "mine" : "open"}
+                      topic={getRoomTopic(room.settings)}
+                      action={getRoomAction({
+                        tab,
+                        room,
+                        joining,
+                        authLoading,
+                        onJoin: () => handleJoin(room.code),
+                        onEnter: () => enterMyRoom(room),
+                      })}
+                    />
+                  </motion.div>
                 ))}
               </div>
-              <div className="flex items-center gap-2 justify-end">
-                <span className="flex items-center gap-1.5 text-[11px] text-emerald/70">
-                  <span className="relative flex size-2">
-                    <span className="animate-ping absolute inline-flex size-full rounded-full bg-emerald opacity-40" />
-                    <span className="relative inline-flex size-2 rounded-full bg-emerald/70" />
-                  </span>
-                  Sync
-                </span>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  type="button"
-                  onClick={() => {
-                    setLoadingRooms(true);
-                    void refreshAllListings({ silent: false });
-                  }}
-                  className="text-muted"
-                >
-                  Refresh
-                </Button>
-                <Button variant="secondary" size="sm" onClick={() => setShowCreate(true)}>
-                  Create Room
-                </Button>
-              </div>
-            </div>
+            </AnimatePresence>
+          )}
+        </TabsContent>
+      </Tabs>
 
-            <p className="text-xs text-muted mb-3">
-              {tab === "mine" && "Rooms you’re in right now — lobby or in-game."}
-              {tab === "open" && "Public lobbies that still need players."}
-              {tab === "live" && "Public matches currently in progress (copy a code to ask for an invite)."}
-              {tab === "completed" && "Your finished games — rooms that ended or timed out after 30 minutes."}
-            </p>
-
-            {listError && (
-              <p className="text-sm text-rose mb-3" role="alert">
-                {listError}
-              </p>
-            )}
-
-            {loadingRooms ? (
-              <div className="w-full max-w-sm mx-auto py-14 px-1">
-                <div
-                  className="rounded-2xl border-2 border-border bg-card/70 px-6 py-8 flex flex-col items-center gap-5"
-                  style={{
-                    boxShadow:
-                      "inset 0 1px 0 rgba(255,255,255,0.04), 0 8px 32px rgba(0,0,0,0.25)",
-                  }}
-                >
-                  <svg
-                    className="size-8 animate-spin text-purple/65"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    aria-hidden
-                  >
-                    <circle
-                      className="opacity-20"
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      strokeWidth="3"
-                    />
-                    <path
-                      className="opacity-90"
-                      fill="currentColor"
-                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-                    />
-                  </svg>
-                  <div className="text-center space-y-1">
-                    <p className="text-sm font-medium text-foreground tracking-wide">
-                      Loading room list…
-                    </p>
-                    <p className="text-[11px] text-muted uppercase tracking-[0.2em]">
-                      Briefing channel
-                    </p>
-                  </div>
-                  <div className="w-full space-y-2.5">
-                    <div
-                      className="h-2.5 w-full rounded-full border border-border/90 overflow-hidden"
-                      style={{
-                        background:
-                          "linear-gradient(180deg, rgba(14,16,36,0.95) 0%, rgba(19,21,40,0.85) 100%)",
-                        boxShadow: "inset 0 1px 2px rgba(0,0,0,0.35)",
-                      }}
-                      role="progressbar"
-                      aria-valuenow={listLoadPercent}
-                      aria-valuemin={0}
-                      aria-valuemax={100}
-                    >
-                      <div
-                        className="h-full rounded-full"
-                        style={{
-                          width: `${Math.min(100, listLoadPercent)}%`,
-                          background:
-                            "linear-gradient(90deg, var(--purple-dim) 0%, var(--purple) 45%, var(--purple-glow) 100%)",
-                          boxShadow:
-                            "0 0 14px rgba(128, 112, 212, 0.45), inset 0 1px 0 rgba(255,255,255,0.12)",
-                          transition: listLoadPercent === 100
-                            ? "width 0.25s ease-out"
-                            : "width 0.08s linear",
-                        }}
-                      />
-                    </div>
-                    <p className="text-[11px] text-center text-muted font-medium tabular-nums">
-                      {listLoadPercent < 100 ? (
-                        <>
-                          Almost there · <span className="text-purple/90">{listLoadPercent}%</span>
-                        </>
-                      ) : (
-                        <span className="text-emerald/90">Ready</span>
-                      )}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            ) : displayRooms.length === 0 ? (
-              <Card padding="lg" className="text-center">
-                <p className="text-muted text-sm mb-4">
-                  {tab === "mine" && !user && "Sign in to see rooms you’re part of."}
-                  {tab === "mine" && user && "You’re not in any room yet. Join one from Open or use a code."}
-                  {tab === "open" && "No public open lobbies right now."}
-                  {tab === "live" && "No public games in progress right now."}
-                  {tab === "completed" && "No completed games yet — finished rooms appear here."}
-                </p>
-                {tab === "open" && (
-                  <Button variant="primary" size="sm" onClick={() => setShowCreate(true)}>
-                    Create a room
-                  </Button>
-                )}
-              </Card>
-            ) : (
-              <AnimatePresence mode="popLayout">
-                <div className="space-y-3">
-                  {displayRooms.map((room, i) => (
-                    <motion.div
-                      key={`${tab}-${room.id}`}
-                      initial={{ opacity: 0, y: 8 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -8 }}
-                      transition={{ delay: 0.06 + i * 0.03, duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-                    >
-                      <Card hover padding="md" className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                        <div className="flex flex-wrap items-center gap-3">
-                          <span className="font-heading text-xl text-purple tracking-widest">
-                            {room.code}
-                          </span>
-                          <span className="text-sm text-muted">
-                            {room.room_players.length}/{room.max_players} players
-                          </span>
-                          {tab === "mine" && (
-                            <span
-                              className={cn(
-                                "text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border",
-                                room.status === "playing"
-                                  ? "border-emerald/30 text-emerald bg-emerald/10"
-                                  : "border-purple/30 text-purple bg-purple/10",
-                              )}
-                            >
-                              {room.status === "playing" ? "In game" : "Lobby"}
-                            </span>
-                          )}
-                          {tab === "live" && (
-                            <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border border-orange/30 text-orange bg-orange/10">
-                              Live
-                            </span>
-                          )}
-                          {tab === "completed" && (
-                            <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border border-muted/30 text-muted bg-muted/10">
-                              Finished
-                            </span>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-2 shrink-0">
-                          {tab === "open" && (
-                            <Button
-                              variant="primary"
-                              size="sm"
-                              onClick={() => handleJoin(room.code)}
-                              disabled={joining || authLoading}
-                              isLoading={joining}
-                            >
-                              Join
-                            </Button>
-                          )}
-                          {tab === "mine" && (
-                            <Button variant="primary" size="sm" onClick={() => enterMyRoom(room)}>
-                              Enter
-                            </Button>
-                          )}
-                          {tab === "live" && (
-                            <Button
-                              variant="secondary"
-                              size="sm"
-                              type="button"
-                              onClick={() => {
-                                void navigator.clipboard.writeText(room.code);
-                                toast.success("Room code copied");
-                              }}
-                            >
-                              Copy code
-                            </Button>
-                          )}
-                        </div>
-                      </Card>
-                    </motion.div>
-                  ))}
-                </div>
-              </AnimatePresence>
-            )}
-          </motion.div>
-        </div>
-      </main>
-
-      <Modal open={showCreate} onClose={closeCreateModal} title="Create Room">
-        <div className="space-y-4">
+      <Modal open={showCreate} onClose={closeCreateModal} title="Create a room">
+        <div className="space-y-5">
           <Input
-            label="Display Name"
+            label="Display name"
             value={displayName}
-            onChange={(e) => updateDisplayName(e.target.value)}
-            placeholder="Your name in the room"
+            onChange={(event) => updateDisplayName(event.target.value)}
+            placeholder="Your name at the table"
           />
 
           <div>
-            <label className="block text-sm font-semibold text-foreground mb-2">Room Type</label>
-            <div className="flex gap-3">
-              <button
+            <label className="mb-2 block text-sm font-semibold text-foreground">Room type</label>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <RoomTypeButton
+                selected={!isPrivate}
+                icon="globe"
+                title="Public"
+                text="Visible in Open rooms"
                 onClick={() => setIsPrivate(false)}
-                className={cn(
-                  "flex-1 rounded-2xl border px-4 py-3 text-center transition-all duration-200 cursor-pointer",
-                  !isPrivate
-                    ? "border-purple/40 bg-purple/10 text-foreground"
-                    : "border-border bg-card hover:border-purple/20 text-muted",
-                )}
-              >
-                <div className="flex items-center justify-center mb-2">
-                  <svg className="size-5 text-purple" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.038 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.038-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582m15.686 0A11.953 11.953 0 0112 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0121 12c0 .778-.099 1.533-.284 2.253" />
-                  </svg>
-                </div>
-                <p className="text-sm font-medium">Public</p>
-                <p className="text-xs text-muted mt-0.5">Visible in room browser</p>
-              </button>
-              <button
+              />
+              <RoomTypeButton
+                selected={isPrivate}
+                icon="lock"
+                title="Private"
+                text="Join by code only"
                 onClick={() => setIsPrivate(true)}
-                className={cn(
-                  "flex-1 rounded-2xl border px-4 py-3 text-center transition-all duration-200 cursor-pointer",
-                  isPrivate
-                    ? "border-orange/40 bg-orange/10 text-foreground"
-                    : "border-border bg-card hover:border-orange/20 text-muted",
-                )}
-              >
-                <div className="flex items-center justify-center mb-2">
-                  <svg className="size-5 text-orange" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
-                  </svg>
-                </div>
-                <p className="text-sm font-medium">Private</p>
-                <p className="text-xs text-muted mt-0.5">Join by code only</p>
-              </button>
+              />
             </div>
           </div>
 
-          <Card padding="md" className="!bg-card/40 border border-border">
-            <label className="block text-sm font-semibold text-foreground mb-3">
+          <div className="rounded-lg border border-border bg-background/45 p-4">
+            <label className="mb-3 block text-sm font-semibold text-foreground">
               Max players ({createMaxPlayers})
             </label>
-            <div className="flex items-center gap-4 justify-center">
+            <div className="flex items-center justify-center gap-4">
               <Button
                 variant="secondary"
                 size="sm"
                 type="button"
-                onClick={() =>
-                  setCreateMaxPlayers((c) =>
-                    Math.max(MIN_ROOM_PLAYERS, c - 1),
-                  )
-                }
+                onClick={() => setCreateMaxPlayers((count) => Math.max(MIN_ROOM_PLAYERS, count - 1))}
                 disabled={createMaxPlayers <= MIN_ROOM_PLAYERS}
-                className="!rounded-full !size-10 !p-0 shrink-0"
+                className="size-10 rounded-lg p-0"
               >
-                −
+                <Icon name="minus" size={16} />
               </Button>
-              <span className="font-heading text-2xl text-purple min-w-[2ch] text-center">
+              <span className="display min-w-[2ch] text-center text-4xl text-brand-2">
                 {createMaxPlayers}
               </span>
               <Button
                 variant="secondary"
                 size="sm"
                 type="button"
-                onClick={() =>
-                  setCreateMaxPlayers((c) =>
-                    Math.min(MAX_ROOM_PLAYERS, c + 1),
-                  )
-                }
+                onClick={() => setCreateMaxPlayers((count) => Math.min(MAX_ROOM_PLAYERS, count + 1))}
                 disabled={createMaxPlayers >= MAX_ROOM_PLAYERS}
-                className="!rounded-full !size-10 !p-0 shrink-0"
+                className="size-10 rounded-lg p-0"
               >
-                +
+                <Icon name="plus" size={16} />
               </Button>
             </div>
-          </Card>
+          </div>
+
+          <Input
+            label="Discussion timer (seconds)"
+            type="number"
+            min={30}
+            max={300}
+            value={createDiscussionTimer}
+            onChange={(event) => {
+              const value = Number(event.target.value);
+              if (Number.isFinite(value)) {
+                setCreateDiscussionTimer(Math.min(300, Math.max(30, value)));
+              }
+            }}
+            className="bg-background/65"
+          />
 
           <div>
-            <label className="block text-sm font-semibold text-foreground mb-2">
-              Discussion timer (seconds)
+            <label className="mb-2 block text-sm font-semibold text-foreground">
+              Topic pack <span className="font-normal text-muted">(optional)</span>
             </label>
-            <Input
-              type="number"
-              min={30}
-              max={300}
-              value={createDiscussionTimer}
-              onChange={(e) => {
-                const v = Number(e.target.value);
-                if (Number.isFinite(v)) {
-                  setCreateDiscussionTimer(Math.min(300, Math.max(30, v)));
-                }
-              }}
-              className="bg-background"
+            <TopicPackGrid
+              packs={categories}
+              premiumPacks={premiumCategories}
+              selected={createCategory}
+              lockedWhenPremium={!hasPremium}
+              onSelect={handleCreateCategoryClick}
+              className="max-h-44 overflow-y-auto pr-1"
             />
           </div>
 
-          <div>
-            <label className="block text-sm font-semibold text-foreground mb-2">
-              Category <span className="text-muted font-normal">(optional)</span>
-            </label>
-            <div className="flex flex-wrap gap-2 max-h-40 overflow-y-auto pr-1">
-              <button
-                type="button"
-                onClick={() => setCreateCategory(null)}
-                className={cn(
-                  "rounded-full border px-3 py-1.5 text-xs transition-all duration-200 cursor-pointer",
-                  !createCategory
-                    ? "border-purple/40 bg-purple/12 text-purple"
-                    : "border-border text-muted hover:border-purple/25",
-                )}
-              >
-                Random
-              </button>
-              {categories.map((cat) => {
-                const isPremium = premiumCategories.has(cat);
-                const locked = isPremium && !hasPremium;
-                const isSelected = createCategory === cat;
-                return (
-                  <button
-                    key={cat}
-                    type="button"
-                    onClick={() => handleCreateCategoryClick(cat)}
-                    className={cn(
-                      "rounded-full border px-3 py-1.5 text-xs transition-all duration-200 cursor-pointer flex items-center gap-1",
-                      isSelected
-                        ? "border-purple/40 bg-purple/12 text-purple"
-                        : locked
-                          ? "border-orange/20 text-muted/60"
-                          : "border-border text-muted hover:border-purple/25",
-                    )}
-                  >
-                    {locked && (
-                      <svg className="size-3 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
-                      </svg>
-                    )}
-                    {cat}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
           <Button
-            variant="primary"
             size="lg"
             className="w-full"
             onClick={handleCreate}
             isLoading={creating}
           >
-            Create {isPrivate ? "Private" : "Public"} Room
+            Create {isPrivate ? "private" : "public"} room
           </Button>
         </div>
       </Modal>
-    </>
+    </AppShell>
+  );
+}
+
+function RoomsSpriteImage() {
+  return (
+    <aside className="relative mx-auto w-full max-w-[700px] justify-self-center lg:justify-self-end">
+      <div className="art-frame rooms-art-frame">
+        <Image
+          src="/assets/imposter-sprite-sheet.png"
+          alt="Imposter game pieces, room cards, clue cards, spy icons, and topic pack tiles"
+          width={1448}
+          height={1086}
+          sizes="(min-width: 1024px) 54vw, 92vw"
+          className="reference-art"
+        />
+      </div>
+    </aside>
+  );
+}
+
+function getRoomTopic(settings: unknown): string {
+  if (settings && typeof settings === "object" && "category" in settings) {
+    const category = (settings as { category?: unknown }).category;
+    if (typeof category === "string" && category.trim()) return category;
+  }
+  return "Random pack";
+}
+
+function getRoomAction({
+  tab,
+  room,
+  joining,
+  authLoading,
+  onJoin,
+  onEnter,
+}: {
+  tab: RoomTab;
+  room: RoomRow;
+  joining: boolean;
+  authLoading: boolean;
+  onJoin: () => void;
+  onEnter: () => void;
+}) {
+  if (tab === "open") {
+    return (
+      <Button size="sm" onClick={onJoin} disabled={joining || authLoading} isLoading={joining}>
+        Join
+      </Button>
+    );
+  }
+  if (tab === "mine") {
+    return (
+      <Button size="sm" onClick={onEnter}>
+        {room.status === "playing" ? "Play" : "Enter"}
+      </Button>
+    );
+  }
+  return (
+    <Button
+      variant="secondary"
+      size="sm"
+      onClick={() => {
+        void navigator.clipboard.writeText(room.code);
+        toast.success("Room code copied");
+      }}
+    >
+      Copy code
+    </Button>
+  );
+}
+
+function EmptyRooms({
+  tab,
+  signedIn,
+  onCreate,
+}: {
+  tab: RoomTab;
+  signedIn: boolean;
+  onCreate: () => void;
+}) {
+  if (tab === "mine" && !signedIn) {
+    return (
+      <EmptyState
+        icon="lock"
+        title="Sign in to see your tables"
+        text="Active rooms show here once you join or create one"
+      />
+    );
+  }
+  return (
+    <EmptyState
+      icon={tab === "live" ? "eye" : "globe"}
+      title={tab === "live" ? "No live games right now" : tab === "mine" ? "No rooms yet" : "No open tables"}
+      text={tab === "open" ? "Create a public room and be first host at the table" : "Check back in a moment or start a fresh lobby"}
+      action={
+        tab !== "live" ? (
+          <Button onClick={onCreate}>
+            <Icon name="plus" size={16} /> Create room
+          </Button>
+        ) : undefined
+      }
+    />
+  );
+}
+
+function LoadingRooms() {
+  return (
+    <GameCard className="mx-auto max-w-md p-8 text-center" accent="cyan">
+      <div className="mx-auto mb-5 grid size-14 place-items-center rounded-lg border border-aqua/35 bg-aqua/10 text-aqua-2">
+        <svg className="size-7 animate-spin" fill="none" viewBox="0 0 24 24" aria-hidden>
+          <circle className="opacity-20" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" />
+          <path className="opacity-90" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+        </svg>
+      </div>
+      <h2 className="text-xl font-bold">Scanning lobby list</h2>
+      <p className="mt-2 text-sm text-muted">Fresh room status from the table</p>
+    </GameCard>
+  );
+}
+
+function RoomTypeButton({
+  selected,
+  icon,
+  title,
+  text,
+  onClick,
+}: {
+  selected: boolean;
+  icon: "globe" | "lock";
+  title: string;
+  text: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "rounded-lg border p-4 text-left transition-colors cursor-pointer",
+        selected ? "border-brand/50 bg-brand/14" : "border-border bg-card/65 hover:border-brand/35",
+      )}
+    >
+      <div className="mb-3 grid size-10 place-items-center rounded-lg border border-border bg-background/60 text-brand-2">
+        <Icon name={icon} size={20} />
+      </div>
+      <p className="text-sm font-bold text-foreground">{title}</p>
+      <p className="mt-1 text-xs text-muted">{text}</p>
+    </button>
   );
 }

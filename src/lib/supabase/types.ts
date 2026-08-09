@@ -56,7 +56,15 @@ export interface Database {
         };
       };
       rooms: {
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: "rooms_host_id_fkey";
+            columns: ["host_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
         Row: {
           id: string;
           code: string;
@@ -68,6 +76,7 @@ export interface Database {
           settings: Json;
           max_players: number;
           is_private: boolean;
+          completed_at: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -82,6 +91,7 @@ export interface Database {
           settings?: Json;
           max_players?: number;
           is_private?: boolean;
+          completed_at?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -96,12 +106,28 @@ export interface Database {
           settings?: Json;
           max_players?: number;
           is_private?: boolean;
+          completed_at?: string | null;
           created_at?: string;
           updated_at?: string;
         };
       };
       room_players: {
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: "room_players_room_id_fkey";
+            columns: ["room_id"];
+            isOneToOne: false;
+            referencedRelation: "rooms";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "room_players_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
         Row: {
           id: string;
           room_id: string;
@@ -137,7 +163,36 @@ export interface Database {
         };
       };
       player_secrets: {
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: "player_secrets_room_id_fkey";
+            columns: ["room_id"];
+            isOneToOne: false;
+            referencedRelation: "rooms";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "player_secrets_round_id_fkey";
+            columns: ["round_id"];
+            isOneToOne: false;
+            referencedRelation: "game_rounds";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "player_secrets_round_id_fkey";
+            columns: ["round_id"];
+            isOneToOne: false;
+            referencedRelation: "game_rounds_public";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "player_secrets_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
         Row: {
           id: string;
           room_id: string;
@@ -167,7 +222,29 @@ export interface Database {
         };
       };
       game_rounds: {
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: "game_rounds_impostor_id_fkey";
+            columns: ["impostor_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "game_rounds_room_id_fkey";
+            columns: ["room_id"];
+            isOneToOne: false;
+            referencedRelation: "rooms";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "game_rounds_second_impostor_id_fkey";
+            columns: ["second_impostor_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
         Row: {
           id: string;
           room_id: string;
@@ -206,7 +283,36 @@ export interface Database {
         };
       };
       votes: {
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: "votes_round_id_fkey";
+            columns: ["round_id"];
+            isOneToOne: false;
+            referencedRelation: "game_rounds";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "votes_round_id_fkey";
+            columns: ["round_id"];
+            isOneToOne: false;
+            referencedRelation: "game_rounds_public";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "votes_voted_for_id_fkey";
+            columns: ["voted_for_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "votes_voter_id_fkey";
+            columns: ["voter_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
         Row: {
           id: string;
           round_id: string;
@@ -230,7 +336,22 @@ export interface Database {
         };
       };
       chat_messages: {
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: "chat_messages_room_id_fkey";
+            columns: ["room_id"];
+            isOneToOne: false;
+            referencedRelation: "rooms";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "chat_messages_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
         Row: {
           id: string;
           room_id: string;
@@ -259,7 +380,15 @@ export interface Database {
     };
     Views: {
       game_rounds_public: {
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: "game_rounds_room_id_fkey";
+            columns: ["room_id"];
+            isOneToOne: false;
+            referencedRelation: "rooms";
+            referencedColumns: ["id"];
+          },
+        ];
         Row: {
           id: string;
           room_id: string;
@@ -274,6 +403,23 @@ export interface Database {
         };
       };
     };
-    Functions: Record<string, never>;
+    Functions: {
+      cleanup_stale_rooms: {
+        Args: Record<string, never>;
+        Returns: Json;
+      };
+      is_room_member: {
+        Args: { p_room_id: string };
+        Returns: boolean;
+      };
+      is_waiting_room: {
+        Args: { p_room_id: string };
+        Returns: boolean;
+      };
+      user_room_ids: {
+        Args: Record<string, never>;
+        Returns: string[];
+      };
+    };
   };
 }

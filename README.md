@@ -40,6 +40,10 @@ Key tables:
 | `player_secrets` | Secret word assignments (RLS-protected) |
 | `game_rounds` | Round history |
 | `votes` | Per-round vote records |
+| `chat_messages` | Persistent room chat history |
+
+The hosted project also uses an `avatars` storage bucket and a `cleanup-rooms`
+Edge Function for stale room cleanup.
 
 Migrations live in `supabase/migrations/`. Apply via Supabase CLI.
 
@@ -54,9 +58,17 @@ npm install
 Create a `.env.local` file:
 
 ```env
-NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+NEXT_PUBLIC_SUPABASE_URL=https://xqujzzfnkgbhoymhcvmg.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_publishable_or_anon_key
+SUPABASE_SERVICE_ROLE_KEY=your_secret_or_service_role_key
+
+# Optional: premium checkout
+STRIPE_SECRET_KEY=
+STRIPE_WEBHOOK_SECRET=
+STRIPE_PREMIUM_PRICE_ID=
 ```
+
+For guest play, enable anonymous sign-ins in Supabase Auth.
 
 Run migrations:
 

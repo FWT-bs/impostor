@@ -19,18 +19,18 @@ export function generateId(): string {
 }
 
 const AVATAR_COLORS = [
-  "#ef4444", "#f97316", "#f59e0b", "#22c55e", "#14b8a6",
-  "#06b6d4", "#3b82f6", "#6366f1", "#8b5cf6", "#ec4899",
+  "#1155f6", "#ef493a", "#f4b218", "#15925f", "#7ac4ad",
+  "#8a67d4", "#f27a3d", "#1e9bd1", "#f16d9d", "#0f6f58",
 ];
 
 export function randomAvatarColor(): string {
   return AVATAR_COLORS[Math.floor(Math.random() * AVATAR_COLORS.length)];
 }
 
-/** Vivid "Live" token palette — used for the geometric player tokens. */
+/** Tabletop pawn palette used for player tokens. */
 export const TOKEN_COLORS = [
-  "#8b5cff", "#ff2e7e", "#1fe5d8", "#ffb23d", "#2be0a0",
-  "#5b8cff", "#ff6a3d", "#c6f94e", "#e05cff", "#36d1ff",
+  "#1155f6", "#ef493a", "#f4b218", "#15925f", "#7ac4ad",
+  "#8a67d4", "#f27a3d", "#1e9bd1", "#f16d9d", "#0f6f58",
 ];
 
 /** Deterministic vivid color from any seed (name/id) so a player keeps one hue. */

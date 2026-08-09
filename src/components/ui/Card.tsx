@@ -29,20 +29,14 @@ export function Card({
   return (
     <div
       className={cn(
-        "rounded-2xl text-foreground",
+        "lava-card rounded-[18px] border border-border bg-card/92 text-foreground shadow-[0_18px_40px_rgba(7,22,42,0.08)]",
         paddingClasses[padding],
         hover &&
-          "transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_16px_40px_rgba(0,0,0,0.35)]",
-        glow && "animate-glow-pulse",
+          "cursor-pointer transition-all duration-200 hover:-translate-y-0.5 hover:border-brand/42 hover:bg-card-hover",
+        glow && "border-brand/40",
         className,
       )}
-      style={{
-        background: "var(--surface)",
-        border: `1px solid ${glow ? "color-mix(in oklab, var(--brand) 30%, transparent)" : "var(--border)"}`,
-        backdropFilter: "blur(14px)",
-        WebkitBackdropFilter: "blur(14px)",
-        ...style,
-      }}
+      style={style}
       {...props}
     />
   );

@@ -65,8 +65,7 @@ export function Modal({
             aria-modal="true"
             aria-labelledby={titleId}
             className={cn(
-              "relative z-10 w-full max-w-lg rounded-2xl border-2 border-border bg-card/95 backdrop-blur-md p-6",
-              "shadow-[0_0_0_1px_rgba(168,85,247,0.1),0_24px_80px_rgba(0,0,0,0.6)]",
+              "relative z-10 w-full max-w-lg rounded-lg border border-border bg-card p-6",
               className,
             )}
             initial={{ opacity: 0, scale: 0.9, y: 20 }}
@@ -78,7 +77,7 @@ export function Modal({
             <div className="mb-4 flex items-start justify-between gap-4">
               <h2
                 id={titleId}
-                className="font-heading text-xl font-bold tracking-wide text-foreground"
+              className="font-heading text-xl font-bold text-foreground"
               >
                 {title}
               </h2>
@@ -86,9 +85,9 @@ export function Modal({
                 type="button"
                 onClick={onClose}
                 className={cn(
-                  "rounded-full p-1.5 text-muted transition-all duration-200 cursor-pointer",
-                  "hover:bg-card-hover hover:text-foreground hover:rotate-90",
-                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple focus-visible:ring-offset-2 focus-visible:ring-offset-card",
+                  "rounded-lg p-1.5 text-muted transition-all duration-200 cursor-pointer",
+                  "hover:bg-surface-2 hover:text-foreground",
+                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-card",
                 )}
                 aria-label="Close"
               >

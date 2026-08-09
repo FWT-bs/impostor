@@ -2,7 +2,6 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/Button";
 import { Avatar } from "@/components/ui/Avatar";
 import { Chip } from "@/components/ui/Chip";
@@ -25,28 +24,10 @@ export default function LocalPlayPage() {
   return (
     <main className="reveal-wrap">
       <div className="reveal-inner">
-        <AnimatePresence mode="wait">
-          {store.phase === "role_reveal" && (
-            <motion.div key="role_reveal" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-              <RoleRevealPhase />
-            </motion.div>
-          )}
-          {store.phase === "clue_phase" && (
-            <motion.div key="clue_phase" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-              <SpeakingPhase />
-            </motion.div>
-          )}
-          {store.phase === "voting" && (
-            <motion.div key="voting" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-              <VotingPhase />
-            </motion.div>
-          )}
-          {store.phase === "results" && (
-            <motion.div key="results" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-              <ResultsPhase />
-            </motion.div>
-          )}
-        </AnimatePresence>
+        {store.phase === "role_reveal" && <RoleRevealPhase />}
+        {store.phase === "clue_phase" && <SpeakingPhase />}
+        {store.phase === "voting" && <VotingPhase />}
+        {store.phase === "results" && <ResultsPhase />}
       </div>
     </main>
   );
@@ -80,10 +61,10 @@ function RoleRevealPhase() {
         <div key={`h${currentIdx}`} className="pop-in flex flex-col items-center gap-5 py-8 text-center">
           <p className="kicker">Pass the phone to</p>
           <Avatar name={player.name} color={tokenColor(player.id)} size="xl" />
-          <h1 className="display" style={{ fontSize: "clamp(40px,9vw,72px)" }}>{player.name}</h1>
-          <p className="max-w-[300px] text-[15px] text-muted">Make sure nobody else is peeking. Your role is for your eyes only.</p>
+          <h1 className="display text-[46px] leading-tight">{player.name}</h1>
+          <p className="max-w-[300px] text-[15px] text-muted">No peeking, this one is yours only</p>
           <Button variant="primary" size="lg" onClick={() => setRevealed(true)}>
-            <Icon name="eye" size={18} /> I&apos;m {player.name} — reveal my role
+            <Icon name="eye" size={18} /> I&apos;m {player.name}. Reveal my role
           </Button>
         </div>
       ) : (
@@ -99,26 +80,26 @@ function RoleCard({ isImpostor, secret, topic, onNext, last }: { isImpostor: boo
     <div className="flex flex-col items-center gap-6 py-2.5">
       <div
         className="role-card pop-in"
-        style={{ ["--c" as string]: c, borderColor: `color-mix(in oklab, ${c} 50%, transparent)`, boxShadow: `0 0 60px -16px ${c}, inset 0 1px 0 rgba(255,255,255,.08)` }}
+        style={{ ["--c" as string]: c, borderColor: `color-mix(in oklab, ${c} 50%, transparent)` }}
       >
-        <div className="role-ic" style={{ background: `linear-gradient(150deg, ${c}, color-mix(in oklab, ${c} 55%, #000))` }}>
+        <div className="role-ic" style={{ background: c }}>
           <Icon name={isImpostor ? "mask" : "shield"} size={40} />
         </div>
         {isImpostor ? (
           <>
             <p className="kicker" style={{ color: "var(--heat-2)" }}>You are the</p>
-            <h2 className="display" style={{ fontSize: 58, color: "var(--heat)" }}>IMPOSTER</h2>
-            <p className="mx-auto mt-1 max-w-[320px] text-[14.5px] text-muted">You don&apos;t know the secret word. Blend in, fake a clue, and survive the vote.</p>
+            <h2 className="display" style={{ fontSize: 46, color: "var(--heat)" }}>IMPOSTER</h2>
+            <p className="mx-auto mt-1 max-w-[320px] text-[14.5px] text-muted">No secret word, blend in and survive the vote</p>
             <div className="role-chip">
-              <span className="kicker" style={{ fontSize: 10 }}>Your only hint — the topic</span>
+              <span className="kicker" style={{ fontSize: 10 }}>Your only hint: the topic</span>
               <span className="display" style={{ fontSize: 34, color: "var(--amber)" }}>{topic}</span>
             </div>
           </>
         ) : (
           <>
             <p className="kicker" style={{ color: "var(--aqua-2)" }}>You are</p>
-            <h2 className="display" style={{ fontSize: 58, color: "var(--aqua)" }}>CREW</h2>
-            <p className="mx-auto mt-1 max-w-[320px] text-[14.5px] text-muted">You know the word. Prove it with a clue — but don&apos;t make it too easy for the faker.</p>
+            <h2 className="display" style={{ fontSize: 46, color: "var(--aqua)" }}>CREW</h2>
+            <p className="mx-auto mt-1 max-w-[320px] text-[14.5px] text-muted">You know the word, clue carefully</p>
             <div className="role-chip">
               <span className="kicker" style={{ fontSize: 10 }}>The secret word</span>
               <span className="display" style={{ fontSize: 38, color: "var(--text)" }}>{secret}</span>
@@ -128,7 +109,7 @@ function RoleCard({ isImpostor, secret, topic, onNext, last }: { isImpostor: boo
         )}
       </div>
       <Button variant={isImpostor ? "heat" : "primary"} size="lg" onClick={onNext}>
-        {last ? <>Everyone&apos;s ready — start clues <Icon name="arrow" size={18} /></> : <>Got it — pass it on <Icon name="arrow" size={18} /></>}
+        {last ? <>Everyone is ready. Start clues <Icon name="arrow" size={18} /></> : <>Got it. Pass it on <Icon name="arrow" size={18} /></>}
       </Button>
     </div>
   );
@@ -145,11 +126,11 @@ function SpeakingPhase() {
         <div className="mb-4 text-center">
           <Chip icon="chat" tone="aqua" className="mb-3">All clues in</Chip>
           <h2 className="text-[22px]">Everyone has spoken</h2>
-          <p className="mt-1 text-sm text-muted">Discuss — who was being suspicious?</p>
+          <p className="mt-1 text-sm text-muted">Who felt suspicious</p>
         </div>
         <div className="mb-5 flex flex-col gap-2">
           {players.map((p, i) => (
-            <div key={p.id} className="flex items-center gap-3 rounded-[14px] px-3.5 py-2.5" style={{ border: "1px solid var(--border)", background: "rgba(255,255,255,.015)" }}>
+            <div key={p.id} className="flex items-center gap-3 rounded-lg px-3.5 py-2.5" style={{ border: "1px solid var(--border)", background: "rgba(255,255,255,.015)" }}>
               <span className="w-5 text-xs text-muted">{i + 1}.</span>
               <Avatar name={p.name} color={tokenColor(p.id)} size="sm" />
               <span className="text-[14px] font-semibold" style={{ fontFamily: "var(--font-head)" }}>{p.name}</span>
@@ -178,7 +159,7 @@ function SpeakingPhase() {
           <div key={p.id} className="flex flex-col items-center gap-1.5" style={{ opacity: i < currentTurnIndex ? 0.5 : 1 }}>
             <div className="relative">
               <Avatar name={p.name} color={tokenColor(p.id)} size="md" />
-              {i === currentTurnIndex && <span className="absolute rounded-2xl" style={{ inset: -4, border: "2px solid var(--aqua)", animation: "ping 1.6s infinite" }} />}
+              {i === currentTurnIndex && <span className="absolute rounded-lg" style={{ inset: -4, border: "2px solid var(--aqua)" }} />}
             </div>
             <span className="max-w-[60px] truncate text-[11px] text-muted">{p.name}</span>
           </div>
@@ -186,18 +167,18 @@ function SpeakingPhase() {
       </div>
 
       <div className="role-card" style={{ ["--c" as string]: "var(--aqua)", borderColor: "color-mix(in oklab, var(--aqua) 45%, transparent)" }}>
-        <div className="role-ic" style={{ background: "linear-gradient(150deg, var(--aqua), color-mix(in oklab, var(--aqua) 55%, #000))" }}>
+        <div className="role-ic" style={{ background: "var(--aqua)" }}>
           <Icon name="chat" size={38} />
         </div>
         <p className="kicker" style={{ color: "var(--aqua-2)" }}>It&apos;s your turn to speak</p>
         <h2 className="display" style={{ fontSize: 44 }}>{currentPlayer.name}</h2>
         <p className="mx-auto mt-2 max-w-[320px] text-[14px] text-muted">
-          Say one word out loud that proves you know the secret word — without making it too obvious.
+          One word out loud, enough to prove it, not enough to give it away
         </p>
       </div>
 
       <Button variant="primary" size="lg" className="mt-6 w-full" onClick={advanceTurn}>
-        {currentTurnIndex + 1 >= players.length ? <>Done — everyone has spoken <Icon name="check" size={18} stroke={2.4} /></> : <>Next: {players[currentTurnIndex + 1]?.name} <Icon name="arrow" size={18} /></>}
+        {currentTurnIndex + 1 >= players.length ? <>Done. Everyone has spoken <Icon name="check" size={18} stroke={2.4} /></> : <>Next: {players[currentTurnIndex + 1]?.name} <Icon name="arrow" size={18} /></>}
       </Button>
     </div>
   );
@@ -231,7 +212,7 @@ function VotingPhase() {
         <Chip icon="vote" tone="heat">Voting</Chip>
         <p className="kicker">Pass the device to</p>
         <Avatar name={voter.name} color={tokenColor(voter.id)} size="xl" />
-        <h2 className="display" style={{ fontSize: "clamp(38px,8vw,64px)" }}>{voter.name}</h2>
+        <h2 className="display text-[44px] leading-tight">{voter.name}</h2>
         <p className="text-sm text-muted">Voter {currentVoterIdx + 1} of {players.length}</p>
         <Button variant="primary" size="lg" onClick={() => setShowPass(false)}>
           <Icon name="eye" size={18} /> I&apos;m ready to vote
@@ -246,7 +227,7 @@ function VotingPhase() {
     <div className="card card-pad">
       <div className="mb-5 text-center">
         <h2 className="text-[20px]">Who&apos;s the impostor?</h2>
-        <p className="mt-1 text-sm text-muted">{voter.name}, tap a player to cast your vote.</p>
+        <p className="mt-1 text-sm text-muted">{voter.name}, tap someone to vote</p>
       </div>
 
       <div className="mb-5 grid grid-cols-[repeat(auto-fill,minmax(130px,1fr))] gap-3">
@@ -269,7 +250,7 @@ function VotingPhase() {
       </div>
 
       <Button variant="heat" size="lg" className="w-full" onClick={handleVoteSubmit} disabled={!selectedId}>
-        <Icon name="target" size={18} /> {selectedId ? `Lock vote — ${otherPlayers.find((p) => p.id === selectedId)?.name}` : "Pick someone to vote"}
+        <Icon name="target" size={18} /> {selectedId ? `Lock vote for ${otherPlayers.find((p) => p.id === selectedId)?.name}` : "Pick someone to vote"}
       </Button>
     </div>
   );
@@ -287,7 +268,7 @@ function ResultsPhase() {
         <Chip tone={groupWon ? "aqua" : "heat"} icon={groupWon ? "trophy" : "flame"}>
           {groupWon ? "Crew wins" : "Impostor escapes"}
         </Chip>
-        <div className="role-ic" style={{ width: 84, height: 84, background: "linear-gradient(150deg, var(--heat), color-mix(in oklab, var(--heat) 55%, #000))" }}>
+        <div className="role-ic" style={{ width: 84, height: 84, background: "var(--heat)" }}>
           <Icon name="mask" size={42} />
         </div>
         <div>
@@ -315,7 +296,7 @@ function ResultsPhase() {
               return (
                 <div
                   key={p.id}
-                  className="flex items-center gap-3 rounded-[14px] px-3.5 py-2.5"
+                  className="flex items-center gap-3 rounded-lg px-3.5 py-2.5"
                   style={{
                     border: isImp ? "1px solid color-mix(in oklab, var(--heat) 40%, transparent)" : "1px solid var(--border)",
                     background: isImp ? "color-mix(in oklab, var(--heat) 10%, transparent)" : "rgba(255,255,255,.015)",

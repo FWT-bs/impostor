@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useMemo, useCallback, useRef } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { Database } from "@/lib/supabase/types";
 import type { ChatMessage } from "@/types/game";
@@ -16,9 +16,14 @@ export function usePlayerSecret(roundId: string | null) {
     let cancelled = false;
 
     if (!roundId) {
-      setSecret(null);
-      setLoading(false);
-      return;
+      queueMicrotask(() => {
+        if (cancelled) return;
+        setSecret(null);
+        setLoading(false);
+      });
+      return () => {
+        cancelled = true;
+      };
     }
 
     const rid = roundId;
@@ -40,7 +45,9 @@ export function usePlayerSecret(roundId: string | null) {
       }
     }
 
-    setLoading(true);
+    queueMicrotask(() => {
+      if (!cancelled) setLoading(true);
+    });
     void fetchSecret();
 
     const channel = supabase
@@ -97,11 +104,15 @@ export function useChat(roomId: string | null) {
   }, []);
 
   useEffect(() => {
-    if (!roomId) {
-      setMessages([]);
-      return;
-    }
     let cancelled = false;
+    if (!roomId) {
+      queueMicrotask(() => {
+        if (!cancelled) setMessages([]);
+      });
+      return () => {
+        cancelled = true;
+      };
+    }
 
     async function loadHistory() {
       const { data } = await supabase

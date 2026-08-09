@@ -1,53 +1,57 @@
 "use client";
 
 import { cn } from "@/lib/utils";
+import { Slot } from "@radix-ui/react-slot";
+import { cva, type VariantProps } from "class-variance-authority";
 import {
-  Children,
-  cloneElement,
   forwardRef,
-  isValidElement,
   type ButtonHTMLAttributes,
-  type ReactElement,
 } from "react";
 
 export type ButtonVariant = "primary" | "secondary" | "danger" | "ghost" | "heat";
 export type ButtonSize = "sm" | "md" | "lg";
 
-export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: ButtonVariant;
-  size?: ButtonSize;
+const buttonVariants = cva(
+  [
+    "button-motion group/button inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-xl text-sm font-extrabold",
+    "transition-[transform,box-shadow,border-color,background,color,opacity] duration-200 ease-out",
+    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/70 focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+    "disabled:pointer-events-none disabled:opacity-45 cursor-pointer select-none",
+    "will-change-transform hover:scale-[1.01] active:translate-y-px active:scale-[0.985]",
+  ],
+  {
+    variants: {
+      variant: {
+        primary:
+          "border border-brand bg-brand text-[var(--brand-ink)] shadow-[0_12px_24px_rgba(24,185,100,0.22)] hover:-translate-y-0.5 hover:bg-brand-2 hover:shadow-[0_16px_30px_rgba(24,185,100,0.26)]",
+        secondary:
+          "border border-border bg-card/90 text-foreground shadow-[0_10px_20px_rgba(7,22,42,0.08)] hover:-translate-y-0.5 hover:border-brand/50 hover:bg-card-hover",
+        ghost:
+          "border border-transparent bg-transparent text-foreground hover:bg-card-hover hover:text-brand",
+        danger:
+          "border border-heat bg-heat text-white shadow-[0_12px_24px_rgba(238,77,63,0.18)] hover:-translate-y-0.5 hover:bg-heat-2",
+        heat:
+          "border border-heat bg-heat text-white shadow-[0_12px_24px_rgba(238,77,63,0.18)] hover:-translate-y-0.5 hover:bg-heat-2",
+      },
+      size: {
+        sm: "h-10 rounded-xl px-4 text-[13px]",
+        md: "h-12 px-5",
+        lg: "h-14 rounded-xl px-7 text-[16px] sm:h-[58px] sm:px-8",
+      },
+    },
+    defaultVariants: {
+      variant: "primary",
+      size: "md",
+    },
+  },
+);
+
+export interface ButtonProps
+  extends ButtonHTMLAttributes<HTMLButtonElement>,
+    VariantProps<typeof buttonVariants> {
   isLoading?: boolean;
   /** Merge styles into a single child (e.g. Next.js `Link`) instead of rendering `<button>`. */
   asChild?: boolean;
-}
-
-/* Maps onto the "Live" design-system .btn-* classes in globals.css. */
-const variantClasses: Record<ButtonVariant, string> = {
-  primary: "btn-primary",
-  secondary: "btn-ghost",
-  danger: "btn-heat",
-  heat: "btn-heat",
-  ghost: "btn-line",
-};
-
-const sizeClasses: Record<ButtonSize, string> = {
-  sm: "btn-sm",
-  md: "",
-  lg: "btn-lg",
-};
-
-function buttonClassName(
-  variant: ButtonVariant,
-  size: ButtonSize,
-  className?: string,
-) {
-  return cn(
-    "btn",
-    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-background",
-    variantClasses[variant],
-    sizeClasses[size],
-    className,
-  );
 }
 
 function Spinner({ className }: { className?: string }) {
@@ -92,38 +96,19 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     ref,
   ) {
     const isDisabled = disabled || isLoading;
-    const classes = buttonClassName(variant, size, className);
+    const classes = cn(buttonVariants({ variant, size }), className);
 
     if (asChild) {
-      const child = Children.only(children);
-      if (!isValidElement(child)) {
-        throw new Error("Button with `asChild` expects a single React element child.");
-      }
-      const el = child as ReactElement<{
-        className?: string;
-        children?: React.ReactNode;
-        tabIndex?: number;
-      }>;
-      return cloneElement(el, {
-        className: cn(
-          classes,
-          el.props.className,
-          isDisabled && "pointer-events-none opacity-45",
-        ),
-        "aria-disabled": isDisabled ? true : undefined,
-        tabIndex: isDisabled ? -1 : el.props.tabIndex,
-        ref: ref as never,
-        children: (
-          <>
-            {isLoading && (
-              <Spinner
-                className={variant === "primary" ? "text-white" : undefined}
-              />
-            )}
-            {el.props.children}
-          </>
-        ),
-      } as never);
+      return (
+        <Slot
+          ref={ref}
+          aria-disabled={isDisabled ? true : undefined}
+          className={cn(classes, isDisabled && "pointer-events-none opacity-45")}
+          {...props}
+        >
+          {children}
+        </Slot>
+      );
     }
 
     return (

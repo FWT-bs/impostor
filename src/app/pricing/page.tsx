@@ -1,34 +1,52 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
-import { toast } from "sonner";
-import { Header } from "@/components/layout/Header";
+import {
+  AppShell,
+  DoodleMark,
+  GameCard,
+  PageHeader,
+  PricingCard,
+  TopicPackChip,
+} from "@/components/game";
+import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
-import { Chip } from "@/components/ui/Chip";
 import { Icon } from "@/components/ui/Icon";
-import { useAuth } from "@/lib/hooks/use-auth";
 import { loginWithNext } from "@/lib/auth-path";
+import { getAuthAvatarColor, getAuthDisplayName } from "@/lib/auth-display-name";
+import { useAuth } from "@/lib/hooks/use-auth";
+import Image from "next/image";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useState, type CSSProperties } from "react";
+import { toast } from "sonner";
 
 const FREE_FEATURES = [
-  "All standard topic packs",
+  "Standard topic packs",
   "Local pass-and-play",
   "Online multiplayer rooms",
   "Global leaderboard",
 ];
 
 const PREMIUM_FEATURES = [
-  "Everything in Free",
   "40+ exclusive topic packs",
   "Priority room creation",
   "Detailed match history",
-  "Glowing premium badge",
+  "Imposter+ badge",
   "Support development",
 ];
 
 const PREMIUM_PACKS = [
-  "Cult Movies", "Street Food", "90s Nostalgia", "World Capitals", "Sneakerhead",
-  "Boss Battles", "Cocktails", "Conspiracies", "K-Pop", "Pro Wrestling", "Cryptids", "Michelin",
+  "Cult Movies",
+  "Street Food",
+  "90s Nostalgia",
+  "World Capitals",
+  "Sneakerhead",
+  "Boss Battles",
+  "Cocktails",
+  "Conspiracies",
+  "K-Pop",
+  "Pro Wrestling",
+  "Cryptids",
+  "Michelin",
 ];
 
 export default function PricingPage() {
@@ -79,122 +97,145 @@ export default function PricingPage() {
     }
   }
 
+  const userSlot = user
+    ? {
+        username: getAuthDisplayName(user, profile),
+        avatarColor: getAuthAvatarColor(user, profile),
+      }
+    : null;
+
   return (
-    <>
-      <Header />
-      <main className="pt-24 pb-20">
-        {/* ── HERO ───────────────────────────────────────────────────────────── */}
-        <section className="mx-auto max-w-[1180px] px-5 pb-8 text-center">
-          <Chip tone="brand" icon="crown" className="mb-4">Upgrade</Chip>
-          <h1 className="display mb-3.5" style={{ fontSize: "clamp(46px,8vw,96px)" }}>
-            GO <span style={{ color: "var(--brand)" }}>PREMIUM</span>
-          </h1>
-          <p className="mx-auto max-w-[480px] text-[17px] leading-relaxed text-muted">
-            More topics, faster rooms, and a badge that tells the table you mean business.
-          </p>
-          {canceled && (
-            <div className="mt-5">
-              <Chip tone="heat" icon="x">Checkout canceled — no charge was made</Chip>
-            </div>
-          )}
-        </section>
-
-        {/* ── PRICE GRID ─────────────────────────────────────────────────────── */}
-        <section className="mx-auto max-w-[880px] px-5 pb-10">
-          <div className="grid gap-[18px] sm:grid-cols-2">
-            {/* FREE */}
-            <div className="card card-pad flex flex-col">
-              <p className="kicker mb-3.5">Free</p>
-              <div className="mb-[22px] flex items-baseline gap-1.5">
-                <span className="display text-[56px]">$0</span>
-                <span className="text-muted">forever</span>
-              </div>
-              <div className="flex-1">
-                {FREE_FEATURES.map((f) => <Feature key={f} ok>{f}</Feature>)}
-                <Feature>Premium topic packs</Feature>
-                <Feature>Priority matchmaking</Feature>
-              </div>
-              <Button variant="secondary" size="lg" className="mt-[22px] w-full" disabled>
-                {isPremium ? "Included" : "Current plan"}
+    <AppShell user={userSlot} mainClassName="max-w-6xl">
+      <section className="relative grid items-center gap-8 lg:grid-cols-[0.82fr_1.18fr]">
+        <DoodleMark kind="lock" className="-left-4 top-12" color="var(--brand)" size={44} />
+        <DoodleMark kind="mask" className="left-[42%] top-8 hidden lg:block" color="var(--text)" size={50} />
+        <DoodleMark kind="shh" className="left-[34%] top-[45%] hidden lg:block" color="var(--heat)" size={50} rotate={8} />
+        <div>
+          <PageHeader
+            eyebrow={<><Icon name="crown" size={15} /> Imposter+</>}
+            title={
+              <>
+                Unlock the <span className="scribble-word" style={{ "--scribble-color": "var(--heat)" } as CSSProperties}>full</span> table
+              </>
+            }
+            description="The locked topic drawer, more packs, better room priority, a badge for regulars"
+            actions={
+              <Button size="lg" onClick={isPremium ? handleManageBilling : handleUpgrade} isLoading={loading}>
+                <Icon name="crown" size={20} /> {isPremium ? "Manage Imposter+" : "Join Imposter+"}
               </Button>
-            </div>
+            }
+          />
+          <p className="ml-6 mt-2 max-w-[20ch] rotate-[-3deg] font-display text-2xl leading-tight text-brand">
+            More chaos, better games
+          </p>
+        </div>
+        <TopicVaultImage />
+      </section>
 
-            {/* PREMIUM */}
-            <div className="card card-pad glow-ring relative flex flex-col overflow-hidden">
-              <span
-                className="chip chip-brand absolute right-5 top-5"
-                style={
-                  isPremium
-                    ? { color: "var(--emerald)", borderColor: "color-mix(in oklab, var(--emerald) 45%, transparent)" }
-                    : undefined
-                }
-              >
-                <Icon name="star" size={12} fill /> {isPremium ? "Active" : "Popular"}
-              </span>
-              <p className="kicker mb-3.5" style={{ color: "var(--brand-2)" }}>Imposter+</p>
-              <div className="mb-[22px] flex items-baseline gap-1.5">
-                <span className="display text-[56px]" style={{ color: "var(--text)" }}>$3</span>
-                <span className="text-muted">/ month</span>
-              </div>
-              <div className="flex-1">
-                {PREMIUM_FEATURES.map((f) => <Feature key={f} ok hot>{f}</Feature>)}
-              </div>
-              {isPremium ? (
-                <Button variant="secondary" size="lg" className="mt-[22px] w-full" onClick={handleManageBilling} isLoading={loading}>
-                  Manage billing
-                </Button>
-              ) : (
-                <Button variant="primary" size="lg" className="mt-[22px] w-full" onClick={handleUpgrade} isLoading={loading}>
-                  <Icon name="bolt" size={18} fill />{" "}
-                  {!user ? "Sign in to upgrade" : isGuest ? "Create account to upgrade" : "Upgrade now"}
-                </Button>
-              )}
-              <p className="mt-3 text-center text-[12px] text-muted">Secure checkout · cancel anytime</p>
+      {canceled && (
+        <div className="mx-auto mb-6 max-w-xl rounded-lg border border-heat/35 bg-heat/10 px-4 py-3 text-center text-sm text-heat-2">
+          Checkout canceled, no charge made
+        </div>
+      )}
+
+      <section className="mb-8 mt-8">
+        <GameCard accent="pink" className="overflow-hidden p-5 sm:p-6">
+          <div className="relative z-[1] mb-5 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <Badge variant="locked"><Icon name="lock" size={13} /> Locked packs</Badge>
+              <h2 className="mt-3 text-3xl font-bold">The topic drawer</h2>
+              <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted">
+                Oddly specific packs, argument-friendly categories, built for bluffing
+              </p>
             </div>
+            <Badge variant="pink">40+ total</Badge>
           </div>
-        </section>
-
-        {/* ── PACKS PREVIEW ──────────────────────────────────────────────────── */}
-        <section className="mx-auto max-w-[1180px] px-5">
-          <p className="kicker mb-4 text-center">A taste of what unlocks</p>
-          <div className="flex flex-wrap items-center justify-center gap-3">
-            {PREMIUM_PACKS.map((p) => (
-              <span
-                key={p}
-                className="chip text-[13px]"
-                style={{ padding: "9px 15px", color: "var(--text)", borderColor: "var(--border-2)" }}
-              >
-                <Icon name="lock" size={13} style={{ color: "var(--brand-2)" }} /> {p}
-              </span>
+          <div className="relative z-[1] flex flex-wrap gap-2">
+            {PREMIUM_PACKS.map((pack) => (
+              <TopicPackChip key={pack} name={pack} locked premium />
             ))}
           </div>
-        </section>
-      </main>
-    </>
+        </GameCard>
+      </section>
+
+      <section className="grid gap-5 lg:grid-cols-2">
+        <PricingCard
+          name="Free"
+          price="$0"
+          description="Everything for a table tonight"
+          features={FREE_FEATURES}
+          badge={<Badge variant="secondary">Current base game</Badge>}
+          cta={
+            <Button variant="secondary" size="lg" className="w-full" disabled>
+              {isPremium ? "Included" : "Current plan"}
+            </Button>
+          }
+        />
+
+        <PricingCard
+          name="Imposter+"
+          price="$3"
+          description="Bigger tables, fresher packs, a little more room to bluff"
+          features={PREMIUM_FEATURES}
+          featured
+          badge={<Badge variant={isPremium ? "live" : "pink"}>{isPremium ? "Active" : "Unlock"}</Badge>}
+          cta={
+            isPremium ? (
+              <Button variant="secondary" size="lg" className="w-full" onClick={handleManageBilling} isLoading={loading}>
+                Manage billing
+              </Button>
+            ) : (
+              <Button size="lg" className="w-full" onClick={handleUpgrade} isLoading={loading}>
+                <Icon name="bolt" size={18} fill />{" "}
+                {!user ? "Sign in to unlock" : isGuest ? "Create account to unlock" : "Unlock Imposter+"}
+              </Button>
+            )
+          }
+        />
+      </section>
+
+      <section className="mt-8 grid gap-4 md:grid-cols-3">
+        <MiniUnlock icon="dice" title="Sharper replay value" text="New categories, same simple rules" />
+        <MiniUnlock icon="globe" title="Priority room creation" text="Fresh rooms moving faster when the lobby is busy" />
+        <MiniUnlock icon="trophy" title="Better memory" text="Match history for the next game night" />
+      </section>
+    </AppShell>
   );
 }
 
-function Feature({ ok, hot, children }: { ok?: boolean; hot?: boolean; children: ReactNode }) {
+function TopicVaultImage() {
   return (
-    <div
-      className="flex items-center gap-3 py-[9px] text-[14.5px]"
-      style={{ color: ok ? "var(--text)" : "var(--muted-2)" }}
-    >
-      <span
-        className="grid size-5 flex-none place-items-center rounded-[7px]"
-        style={{
-          background: ok
-            ? hot
-              ? "color-mix(in oklab, var(--brand) 22%, transparent)"
-              : "color-mix(in oklab, var(--emerald) 18%, transparent)"
-            : "transparent",
-          color: ok ? (hot ? "var(--brand-2)" : "var(--emerald)") : "var(--muted-2)",
-          border: ok ? "none" : "1px solid var(--border)",
-        }}
-      >
-        <Icon name={ok ? "check" : "x"} size={13} stroke={2.6} />
-      </span>
-      {children}
-    </div>
+    <aside className="relative mx-auto w-full max-w-[720px] justify-self-center lg:justify-self-end">
+      <div className="art-frame pricing-art-frame">
+        <Image
+          src="/assets/topic-vault-board.png"
+          alt="Topic vault board with locked premium packs in green, red, cream, and gold"
+          width={1448}
+          height={1086}
+          sizes="(min-width: 1024px) 56vw, 92vw"
+          className="reference-art"
+        />
+      </div>
+    </aside>
+  );
+}
+
+function MiniUnlock({
+  icon,
+  title,
+  text,
+}: {
+  icon: "dice" | "globe" | "trophy";
+  title: string;
+  text: string;
+}) {
+  return (
+    <GameCard accent="cyan" className="p-5" hover={false}>
+      <div className="mb-4 grid size-11 place-items-center rounded-lg border border-border bg-background/60 text-aqua-2">
+        <Icon name={icon} size={22} />
+      </div>
+      <h3 className="text-lg font-bold">{title}</h3>
+      <p className="mt-2 text-sm leading-relaxed text-muted">{text}</p>
+    </GameCard>
   );
 }

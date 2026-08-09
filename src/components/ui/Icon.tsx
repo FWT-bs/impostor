@@ -2,7 +2,7 @@
 
 import { type CSSProperties } from "react";
 
-/* Inline icon set — crisp, geometric, no cartoon characters. */
+/* Inline icon set with crisp geometric controls. */
 export const ICONS = {
   mask: "M3 5c3 0 5 1 9 1s6-1 9-1c0 6-1.5 12-9 12S3 11 3 5Zm5 5.5h.01M16 10.5h.01M9.5 14c1.5 1.2 3.5 1.2 5 0",
   shield: "M12 3l7 3v5c0 4.5-3 7.8-7 9-4-1.2-7-4.5-7-9V6l7-3Zm-3 8.5l2 2 4-4",
@@ -14,6 +14,7 @@ export const ICONS = {
   arrow: "M5 12h14m-6-6 6 6-6 6",
   chev: "M9 6l6 6-6 6",
   trophy: "M7 4h10v3a5 5 0 0 1-10 0V4ZM5 5H3v1a3 3 0 0 0 3 3M19 5h2v1a3 3 0 0 1-3 3M9 14h6m-3 0v3m-3 3h6",
+  chair: "M8 4v7h8V4M7 11h10a2 2 0 0 1 2 2v3H5v-3a2 2 0 0 1 2-2Zm0 5v4M17 16v4M9 8h6",
   crown: "M4 8l3.5 3L12 5l4.5 6L20 8l-1.5 9h-13L4 8Zm1.5 13h13",
   copy: "M9 9h10v10H9zM5 15H4V5a1 1 0 0 1 1-1h10v1",
   play: "M7 5l11 7-11 7V5Z",
@@ -28,7 +29,6 @@ export const ICONS = {
   plus: "M12 5v14M5 12h14",
   minus: "M5 12h14",
   vote: "M5 13l4 4L19 7M4 20h16",
-  spark: "M12 3v4m0 10v4M3 12h4m10 0h4M6 6l2.5 2.5M15.5 15.5 18 18M18 6l-2.5 2.5M8.5 15.5 6 18",
   target: "M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Zm0-4a5 5 0 1 0 0-10 5 5 0 0 0 0 10Zm0-3a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z",
   ghost: "M5 21V11a7 7 0 0 1 14 0v10l-2.3-1.8L14.4 21 12 19.2 9.6 21l-2.3-1.8L5 21Zm4-11h.01M15 10h.01",
   logout: "M15 12H3m9-4-4 4 4 4M9 4h8a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H9",

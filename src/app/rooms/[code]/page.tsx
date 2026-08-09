@@ -127,8 +127,7 @@ export default function LobbyPage({ params }: { params: Promise<{ code: string }
         <Header user={headerUser} />
         <main className="reveal-wrap">
           <div className="flex flex-col items-center gap-4">
-            <span className="livedot" />
-            <p className="text-sm text-muted">Opening the room…</p>
+            <p className="text-sm text-muted">Opening the room...</p>
           </div>
         </main>
       </>
@@ -141,7 +140,7 @@ export default function LobbyPage({ params }: { params: Promise<{ code: string }
         <Header user={headerUser} />
         <main className="reveal-wrap">
           <div className="card card-pad w-full max-w-md text-center">
-            <div className="role-ic mx-auto" style={{ ["--c" as string]: "var(--heat)", background: "linear-gradient(150deg, var(--heat), color-mix(in oklab, var(--heat) 55%, #000))" }}>
+            <div className="role-ic mx-auto" style={{ ["--c" as string]: "var(--heat)", background: "var(--heat)" }}>
               <Icon name="ghost" size={40} />
             </div>
             <h2 className="mb-2 mt-4 text-xl">Room not found</h2>
@@ -164,20 +163,19 @@ export default function LobbyPage({ params }: { params: Promise<{ code: string }
             {room.is_private ? "Private room" : "Public room"}
           </Chip>
         </div>
-        <h1 className="mb-7" style={{ fontSize: "clamp(30px,5vw,44px)" }}>Your room is ready</h1>
+        <h1 className="mb-7 text-[44px] leading-none">Your room is ready</h1>
 
         <div className="grid items-start gap-[18px] lg:grid-cols-[1.15fr_1fr]">
-          {/* LEFT — code + players */}
+          {/* Left: code and players */}
           <div className="flex flex-col gap-4">
             <div className="card card-pad glow-ring text-center">
               <p className="kicker mb-2.5">Share this code</p>
               <div
                 className="display"
                 style={{
-                  fontSize: "clamp(56px,11vw,88px)",
-                  letterSpacing: ".16em",
+                  fontSize: 76,
+                  letterSpacing: 0,
                   color: "var(--brand-2)",
-                  textShadow: "0 0 40px color-mix(in oklab, var(--brand) 40%, transparent)",
                 }}
               >
                 {room.code}
@@ -195,7 +193,7 @@ export default function LobbyPage({ params }: { params: Promise<{ code: string }
             <div className="card card-pad">
               <div className="mb-4 flex items-center justify-between">
                 <h3 className="text-base">Players</h3>
-                <span className="chip"><span className="livedot" style={{ width: 7, height: 7 }} /> {players.length}/{room.max_players}</span>
+                <span className="chip">{players.length}/{room.max_players} joined</span>
               </div>
               <div className="grid grid-cols-[repeat(auto-fill,minmax(80px,1fr))] gap-4">
                 {players.map((p, i) => (
@@ -243,7 +241,7 @@ export default function LobbyPage({ params }: { params: Promise<{ code: string }
             </div>
           </div>
 
-          {/* RIGHT — round info + action */}
+          {/* Right: round info and action */}
           <div className="flex flex-col gap-4">
             <div className="card card-pad">
               <h3 className="mb-[18px] text-base">Round setup</h3>

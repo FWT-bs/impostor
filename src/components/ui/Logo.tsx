@@ -9,7 +9,7 @@ export interface LogoProps {
   className?: string;
 }
 
-/** Mask glyph + condensed wordmark — replaces the old ghost mascot. */
+/** Mask glyph + condensed wordmark for the case-file table theme. */
 export function Logo({ size = 30, showWord = true, word = "IMPOSTER", className }: LogoProps) {
   return (
     <span className={`inline-flex items-center gap-2 ${className ?? ""}`}>
@@ -17,12 +17,10 @@ export function Logo({ size = 30, showWord = true, word = "IMPOSTER", className 
         style={{
           width: size,
           height: size,
-          borderRadius: size * 0.28,
+          borderRadius: 8,
           display: "grid",
           placeItems: "center",
-          background:
-            "linear-gradient(140deg, var(--brand), color-mix(in oklab, var(--heat) 55%, var(--brand)))",
-          boxShadow: "0 4px 16px -6px var(--brand)",
+          background: "var(--navy)",
           color: "#fff",
         }}
       >
@@ -31,7 +29,7 @@ export function Logo({ size = 30, showWord = true, word = "IMPOSTER", className 
       {showWord && (
         <span
           className="display"
-          style={{ fontSize: size * 0.74, color: "var(--text)", letterSpacing: "0.04em" }}
+          style={{ fontSize: size * 0.86, color: "var(--text)", letterSpacing: 0 }}
         >
           {word}
         </span>

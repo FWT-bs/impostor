@@ -1,7 +1,6 @@
 import { create } from "zustand";
 import type {
   GamePhase,
-  GameWinner,
   LocalGameState,
   LocalPlayer,
 } from "@/types/game";

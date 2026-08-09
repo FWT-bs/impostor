@@ -18,13 +18,13 @@ import { cn } from "@/lib/utils";
 import Link from "next/link";
 
 const AVATAR_COLORS = [
-  "#ef4444", "#f97316", "#f59e0b", "#22c55e", "#14b8a6",
-  "#06b6d4", "#3b82f6", "#6366f1", "#8b5cf6", "#ec4899",
+  "#1155f6", "#ef493a", "#f4b218", "#15925f", "#7ac4ad",
+  "#8a67d4", "#f27a3d", "#1e9bd1", "#f16d9d", "#0f6f58",
 ];
 
 const statConfig = [
   { key: "games_played" as const, label: "Games Played", color: "" },
-  { key: "winRate" as const, label: "Win Rate", color: "text-purple" },
+  { key: "winRate" as const, label: "Win Rate", color: "text-brand-2" },
   { key: "group_wins" as const, label: "Group Wins", color: "text-emerald" },
   { key: "impostor_wins" as const, label: "Impostor Wins", color: "text-rose" },
   { key: "impostor_games" as const, label: "Times Impostor", color: "" },
@@ -34,10 +34,8 @@ const statConfig = [
 function PageSpinner({ label }: { label: string }) {
   return (
     <main className="min-h-screen bg-background pt-20 pb-16 px-4 relative overflow-hidden flex flex-col items-center justify-center">
-      <div className="absolute top-20 -left-20 w-72 h-72 rounded-full bg-purple/5 blur-3xl pointer-events-none" aria-hidden />
-      <div className="absolute bottom-10 -right-20 w-64 h-64 rounded-full bg-cyan/5 blur-3xl pointer-events-none" aria-hidden />
       <div className="flex flex-col items-center gap-4 relative z-10">
-        <svg className="size-8 animate-spin text-purple/50" fill="none" viewBox="0 0 24 24">
+        <svg className="size-8 animate-spin text-brand/60" fill="none" viewBox="0 0 24 24">
           <circle className="opacity-20" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" />
           <path className="opacity-80" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
         </svg>
@@ -56,7 +54,7 @@ export default function ProfilePage() {
   const [selectedColor, setSelectedColor] = useState("");
   const [saving, setSaving] = useState(false);
   const [recoveryUsername, setRecoveryUsername] = useState("");
-  const [recoveryColor, setRecoveryColor] = useState("#06b6d4");
+  const [recoveryColor, setRecoveryColor] = useState("#1155f6");
   const [creatingProfile, setCreatingProfile] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -70,13 +68,20 @@ export default function ProfilePage() {
 
   useEffect(() => {
     if (!user) return;
+    let cancelled = false;
     const meta = user.user_metadata as { username?: string; avatar_color?: string } | undefined;
     const fromMeta = meta?.username?.trim();
-    setRecoveryUsername(
-      fromMeta || user.email?.split("@")[0]?.trim() || `Player_${user.id.slice(0, 6)}`,
-    );
+    const fallbackName =
+      fromMeta || user.email?.split("@")[0]?.trim() || `Player_${user.id.slice(0, 6)}`;
     const c = meta?.avatar_color?.trim();
-    if (c) setRecoveryColor(c);
+    queueMicrotask(() => {
+      if (cancelled) return;
+      setRecoveryUsername(fallbackName);
+      if (c) setRecoveryColor(c);
+    });
+    return () => {
+      cancelled = true;
+    };
   }, [user]);
 
   const handleCreateMissingProfile = useCallback(async () => {
@@ -109,7 +114,7 @@ export default function ProfilePage() {
     return (
       <>
         <Header />
-        <PageSpinner label="Loading profile…" />
+        <PageSpinner label="Loading profile..." />
       </>
     );
   }
@@ -118,7 +123,7 @@ export default function ProfilePage() {
     return (
       <>
         <Header />
-        <PageSpinner label="Redirecting…" />
+        <PageSpinner label="Redirecting..." />
       </>
     );
   }
@@ -133,21 +138,19 @@ export default function ProfilePage() {
           }}
         />
         <main className="min-h-screen bg-background pt-20 pb-16 px-4 relative overflow-hidden">
-          <div className="absolute top-20 -left-20 w-72 h-72 rounded-full bg-purple/5 blur-3xl pointer-events-none" aria-hidden />
-          <div className="absolute bottom-10 -right-20 w-64 h-64 rounded-full bg-cyan/5 blur-3xl pointer-events-none" aria-hidden />
           <div className="mx-auto max-w-2xl relative z-10">
             <motion.div
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
               className="mb-8 text-center"
             >
-              <p className="text-[10px] uppercase tracking-[0.5em] text-muted/60 mb-3">
+              <p className="text-[10px] uppercase text-muted/60 mb-3">
                 Agent record
               </p>
               <h1 className="font-heading text-4xl text-foreground mb-2">Finish setup</h1>
               <p className="text-sm text-muted max-w-md mx-auto">
                 You&apos;re signed in, but there&apos;s no player row in the database yet (often a missed trigger).
-                Create your profile here — same permissions as normal signup.
+                Create your profile here with the same permissions as normal signup.
               </p>
             </motion.div>
             <Card padding="lg" className="border-2 border-border">
@@ -167,10 +170,10 @@ export default function ProfilePage() {
                     type="button"
                     onClick={() => setRecoveryColor(c)}
                     className={cn(
-                      "size-9 rounded-full transition-all duration-200 cursor-pointer",
+                      "size-9 rounded-lg transition-colors duration-150 cursor-pointer",
                       recoveryColor === c
-                        ? "ring-2 ring-purple scale-110 shadow-[0_0_12px_rgba(128,112,212,0.35)]"
-                        : "hover:scale-110",
+                        ? "ring-2 ring-brand"
+                        : "ring-1 ring-transparent hover:ring-border-2",
                     )}
                     style={{ backgroundColor: c }}
                   />
@@ -181,7 +184,7 @@ export default function ProfilePage() {
                   Create profile
                 </Button>
                 <Button variant="secondary" className="sm:flex-1" onClick={() => void refreshAuth()}>
-                  I already have one — refresh
+                  I already have one. Refresh
                 </Button>
               </div>
             </Card>
@@ -311,7 +314,7 @@ export default function ProfilePage() {
             className="mb-8 text-center"
           >
             <div className="mb-3 flex justify-center"><Chip tone="brand" icon="users">Your record</Chip></div>
-            <h1 className="display mb-2" style={{ fontSize: "clamp(40px,8vw,72px)" }}>PROFILE</h1>
+            <h1 className="display mb-2" style={{ fontSize: 56 }}>PROFILE</h1>
             <p className="mx-auto max-w-md text-sm text-muted">
               Your alias, colors, and stats carry into online matches and the leaderboard.
             </p>
@@ -322,7 +325,7 @@ export default function ProfilePage() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.08, duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
           >
-            <Card padding="lg" className="text-center mb-6 border-2 border-border shadow-[0_0_40px_rgba(168,85,247,0.06)]">
+            <Card padding="lg" className="text-center mb-6 border border-border">
               <motion.div
                 initial={{ scale: 0.88 }}
                 animate={{ scale: 1 }}
@@ -363,7 +366,7 @@ export default function ProfilePage() {
                 </label>
               </motion.div>
               {uploading && (
-                <p className="text-xs text-purple mb-2">Uploading...</p>
+                <p className="text-xs text-brand-2 mb-2">Uploading...</p>
               )}
               {activeProfile.avatar_url && !uploading && (
                 <button
@@ -374,7 +377,7 @@ export default function ProfilePage() {
                   Remove photo
                 </button>
               )}
-              <h2 className="font-heading text-3xl text-foreground mb-1 tracking-wide">
+              <h2 className="font-heading text-3xl text-foreground mb-1">
                 {activeProfile.username}
               </h2>
               <p className="text-sm text-muted mb-1">
@@ -415,10 +418,10 @@ export default function ProfilePage() {
                         type="button"
                         onClick={() => setSelectedColor(c)}
                         className={cn(
-                          "size-9 rounded-full transition-all duration-200 cursor-pointer",
+                          "size-9 rounded-lg transition-colors duration-150 cursor-pointer",
                           selectedColor === c
-                            ? "ring-2 ring-purple scale-110 shadow-[0_0_12px_rgba(128,112,212,0.35)]"
-                            : "hover:scale-110",
+                            ? "ring-2 ring-brand"
+                            : "ring-1 ring-transparent hover:ring-border-2",
                         )}
                         style={{ backgroundColor: c }}
                       />
@@ -466,15 +469,15 @@ export default function ProfilePage() {
                     className="overflow-hidden"
                   >
                     <div className="pt-5 space-y-4">
-                      <div className="flex items-center justify-between rounded-2xl border-2 border-border bg-card-hover/50 px-4 py-3">
+                      <div className="flex items-center justify-between rounded-lg border border-border bg-card-hover/50 px-4 py-3">
                         <div>
                           <p className="text-sm font-medium text-foreground">Account type</p>
                           <p className="text-xs text-muted mt-0.5">
-                            {activeUser.is_anonymous ? "Guest — sign up to keep your stats" : "Full account"}
+                            {activeUser.is_anonymous ? "Guest. Sign up to keep your stats" : "Full account"}
                           </p>
                         </div>
                         <span className={cn(
-                          "text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border",
+                          "text-[10px] font-bold uppercase px-2 py-0.5 rounded-lg border",
                           activeUser.is_anonymous
                             ? "border-orange/30 text-orange bg-orange/10"
                             : "border-emerald/30 text-emerald bg-emerald/10"
@@ -483,7 +486,7 @@ export default function ProfilePage() {
                         </span>
                       </div>
 
-                      <div className="flex items-center justify-between rounded-2xl border-2 border-border bg-card-hover/50 px-4 py-3">
+                      <div className="flex items-center justify-between rounded-lg border border-border bg-card-hover/50 px-4 py-3">
                         <div>
                           <p className="text-sm font-medium text-foreground">Email</p>
                           <p className="text-xs text-muted mt-0.5">
@@ -492,7 +495,7 @@ export default function ProfilePage() {
                         </div>
                       </div>
 
-                      <div className="flex items-center justify-between rounded-2xl border-2 border-border bg-card-hover/50 px-4 py-3">
+                      <div className="flex items-center justify-between rounded-lg border border-border bg-card-hover/50 px-4 py-3">
                         <div>
                           <p className="text-sm font-medium text-foreground">Member since</p>
                           <p className="text-xs text-muted mt-0.5">
@@ -505,29 +508,29 @@ export default function ProfilePage() {
                         </div>
                       </div>
 
-                      <div className="flex items-center justify-between rounded-2xl border-2 bg-card-hover/50 px-4 py-3"
+                      <div className="flex items-center justify-between rounded-lg border bg-card-hover/50 px-4 py-3"
                         style={{
                           borderColor: activeProfile.is_premium
-                            ? "rgba(168,85,247,0.3)"
-                            : "rgba(28,31,58,1)",
+                            ? "color-mix(in oklab, var(--brand) 35%, transparent)"
+                            : "var(--border)",
                         }}
                       >
                         <div>
                           <p className="text-sm font-medium text-foreground">Subscription</p>
                           <p className="text-xs text-muted mt-0.5">
                             {activeProfile.is_premium
-                              ? `Premium${activeProfile.premium_until ? ` — renews ${new Date(activeProfile.premium_until).toLocaleDateString()}` : ""}`
+                              ? `Premium${activeProfile.premium_until ? ` - renews ${new Date(activeProfile.premium_until).toLocaleDateString()}` : ""}`
                               : "Free plan"}
                           </p>
                         </div>
                         {activeProfile.is_premium ? (
-                          <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border border-purple/30 text-purple bg-purple/10">
+                          <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-lg border border-brand/30 text-brand-2 bg-brand/10">
                             Premium
                           </span>
                         ) : (
                           <Link
                             href="/pricing"
-                            className="text-xs font-medium text-purple hover:text-purple-glow transition-colors"
+                            className="text-xs font-medium text-brand-2 hover:text-foreground transition-colors"
                           >
                             Upgrade
                           </Link>
@@ -545,12 +548,12 @@ export default function ProfilePage() {
                 {statConfig.map((s) => (
                   <div
                     key={s.key}
-                    className="rounded-2xl border-2 border-border bg-card-hover/50 px-3 py-3 text-center transition-all duration-200 hover:border-purple/20"
+                    className="rounded-lg border border-border bg-card-hover/50 px-3 py-3 text-center transition-all duration-200 hover:border-brand/28"
                   >
                     <p className={cn("font-heading text-2xl", s.color || "text-foreground")}>
                       {getStatValue(s.key)}
                     </p>
-                    <p className="text-[11px] text-muted mt-1 uppercase tracking-wider">
+                    <p className="text-[11px] text-muted mt-1 uppercase">
                       {s.label}
                     </p>
                   </div>

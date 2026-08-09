@@ -34,13 +34,13 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
         aria-invalid={error ? true : undefined}
         aria-describedby={describedBy}
         className={cn(
-          "w-full rounded-xl border-2 border-border bg-card px-4 py-2.5 text-sm text-foreground",
+          "w-full rounded-xl border border-border bg-card/90 px-4 py-2.5 text-sm font-bold text-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.26)]",
           "placeholder:text-muted",
           "transition-all duration-200",
-          "focus:border-purple focus:outline-none focus:ring-2 focus:ring-purple/30 focus:ring-offset-2 focus:ring-offset-background",
+          "focus:border-brand/65 focus:outline-none focus:ring-2 focus:ring-brand/30 focus:ring-offset-2 focus:ring-offset-background",
           "disabled:cursor-not-allowed disabled:opacity-50",
           error &&
-            "border-rose focus:border-rose focus:ring-rose/30",
+            "border-heat focus:border-heat focus:ring-heat/30",
           className,
         )}
         {...props}

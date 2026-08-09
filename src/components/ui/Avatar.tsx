@@ -37,8 +37,7 @@ const badgeIconSize: Record<AvatarSize, number> = {
 };
 
 /**
- * Geometric player token — replaces the generated SVG character cast.
- * A bold gradient square with initials, an optional role badge, and an
+ * Geometric player token with initials, an optional role badge, and an
  * optional "you" outline. Keeps the original Avatar prop surface.
  */
 export function Avatar({
@@ -62,7 +61,7 @@ export function Avatar({
       aria-label={label}
       className={cn("token", sizeClass[size], className)}
       style={{
-        background: `linear-gradient(155deg, ${color}, color-mix(in oklab, ${color} 60%, #000))`,
+        background: color,
         opacity: dim ? 0.45 : 1,
         outline: you ? "2px solid var(--text)" : "none",
         outlineOffset: 2,

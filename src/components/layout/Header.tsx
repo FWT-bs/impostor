@@ -2,6 +2,7 @@
 
 import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
+import { Icon } from "@/components/ui/Icon";
 import { Logo } from "@/components/ui/Logo";
 import { useAuth } from "@/lib/hooks/use-auth";
 import { cn } from "@/lib/utils";
@@ -10,7 +11,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { loginWithNext, signupWithNext } from "@/lib/auth-path";
 import { getAuthAvatarColor, getAuthDisplayName } from "@/lib/auth-display-name";
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 
 const nav = [
   { href: "/", label: "Home" },
@@ -34,6 +35,8 @@ export interface HeaderProps {
 export function Header({ user: userProp, authSlot, className }: HeaderProps) {
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [darkMode, setDarkMode] = useState(true);
+  const [themeReady, setThemeReady] = useState(false);
   const { user: authUser, profile } = useAuth();
   const loginHref = loginWithNext(pathname);
   const signupHref = signupWithNext(pathname);
@@ -53,31 +56,51 @@ export function Header({ user: userProp, authSlot, className }: HeaderProps) {
   /** Guests look "signed in" in the UI but must still reach Login / Sign up anytime. */
   const showLoginSignup = user === null || isAnonymous;
 
+  useEffect(() => {
+    if (!menuOpen) return;
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") setMenuOpen(false);
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [menuOpen]);
+
+  useEffect(() => {
+    const frame = window.requestAnimationFrame(() => {
+      setDarkMode(document.documentElement.dataset.theme === "tabletop-dark");
+      setThemeReady(true);
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, []);
+
+  useEffect(() => {
+    if (!themeReady) return;
+    const theme = darkMode ? "tabletop-dark" : "tabletop";
+    document.documentElement.dataset.theme = theme;
+    window.localStorage.setItem("impostor-theme", darkMode ? "dark" : "light");
+  }, [darkMode, themeReady]);
+
   return (
     <motion.header
-      initial={{ y: -20, opacity: 0 }}
-      animate={{ y: 0, opacity: 1 }}
-      transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
       className={cn(
-        "fixed top-0 z-40 w-full",
+        "fixed inset-x-0 top-4 z-40 px-3 sm:px-8",
         className,
       )}
-      style={{
-        borderBottom: "1px solid color-mix(in oklab, var(--border) 70%, transparent)",
-        background: "color-mix(in oklab, var(--bg) 72%, transparent)",
-        backdropFilter: "blur(20px)",
-        WebkitBackdropFilter: "blur(20px)",
-      }}
     >
-      <div className="mx-auto flex h-14 max-w-6xl items-center justify-between gap-4 px-4 sm:h-16 sm:px-6">
+      <div
+        className="mx-auto flex h-16 max-w-[1500px] items-center justify-between gap-4 rounded-[18px] border px-4 shadow-[0_12px_34px_rgba(7,22,42,0.08)] sm:h-[72px] sm:px-6"
+        style={{
+          borderColor: "var(--border)",
+          background: "color-mix(in oklab, var(--surface) 94%, transparent)",
+          backdropFilter: "blur(16px)",
+          WebkitBackdropFilter: "blur(16px)",
+        }}
+      >
         {/* Logo */}
         <Link href="/" className="group flex items-center">
-          <motion.div
-            whileHover={{ scale: 1.04 }}
-            transition={{ type: "spring", stiffness: 300, damping: 18 }}
-          >
+          <div>
             <Logo size={28} />
-          </motion.div>
+          </div>
         </Link>
 
         {/* Desktop nav */}
@@ -90,18 +113,20 @@ export function Header({ user: userProp, authSlot, className }: HeaderProps) {
                 key={href}
                 href={href}
                 className={cn(
-                  "relative rounded-full px-4 py-2 text-[13px] font-medium transition-all duration-200",
+                  "relative rounded-md px-3.5 py-2 text-[13px] font-semibold transition-all duration-200",
                   active
                     ? "text-foreground"
-                    : "text-muted hover:text-foreground",
+                    : "text-foreground/78 hover:text-foreground",
                 )}
               >
                 {active && (
                   <motion.span
                     layoutId="nav-pill"
-                    className="absolute inset-0 rounded-full"
-                    style={{ background: "color-mix(in oklab, var(--brand) 16%, transparent)" }}
-                    transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                    className="absolute -bottom-2 left-3 right-3 h-1 rounded-full"
+                    style={{
+                      background: "var(--brand)",
+                    }}
+                    transition={{ duration: 0.18, ease: "easeOut" }}
                   />
                 )}
                 <span className="relative">{label}</span>
@@ -112,24 +137,26 @@ export function Header({ user: userProp, authSlot, className }: HeaderProps) {
 
         {/* Right side */}
         <div className="flex items-center gap-2 sm:gap-3">
+          <button
+            type="button"
+            className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-border bg-card/80 px-3 text-[13px] font-extrabold text-foreground transition-colors hover:bg-card-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/70"
+            aria-label={darkMode ? "Use light mode" : "Use dark mode"}
+            aria-pressed={darkMode}
+            onClick={() => setDarkMode((value) => !value)}
+          >
+            <Icon name={darkMode ? "eye" : "mask"} size={16} stroke={2.15} />
+            <span className="hidden sm:inline">{darkMode ? "Light" : "Dark"}</span>
+          </button>
+
           {authSlot ?? (
             <div className="flex items-center gap-2 sm:gap-3">
               {user && (
                 <Link
                   href="/profile"
-                  className="group flex items-center gap-2 sm:gap-2.5 rounded-full py-1.5 pl-1.5 pr-3 transition-all duration-200"
-                  style={{ border: "1px solid transparent" }}
-                  onMouseEnter={(e) => {
-                    (e.currentTarget as HTMLElement).style.borderColor = "var(--border)";
-                    (e.currentTarget as HTMLElement).style.background = "var(--surface)";
-                  }}
-                  onMouseLeave={(e) => {
-                    (e.currentTarget as HTMLElement).style.borderColor = "transparent";
-                    (e.currentTarget as HTMLElement).style.background = "transparent";
-                  }}
+                  className="group flex items-center gap-2 rounded-xl border border-transparent py-1.5 pl-1.5 pr-3 transition-all duration-200 hover:border-border hover:bg-card-hover sm:gap-2.5"
                 >
                   <Avatar name={user.username} color={user.avatarColor} size="sm" />
-                  <span className="hidden max-w-[130px] truncate text-[13px] font-medium text-foreground transition-colors group-hover:text-purple sm:inline">
+                  <span className="hidden max-w-[130px] truncate text-[13px] font-medium text-foreground transition-colors group-hover:text-brand-2 sm:inline">
                     {user.username}
                   </span>
                 </Link>
@@ -152,7 +179,7 @@ export function Header({ user: userProp, authSlot, className }: HeaderProps) {
             type="button"
             className={cn(
               "inline-flex size-9 items-center justify-center rounded-lg transition-all duration-200 md:hidden cursor-pointer",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand",
             )}
             style={{
               background: menuOpen ? "color-mix(in oklab, var(--brand) 14%, transparent)" : "var(--surface)",
@@ -164,10 +191,7 @@ export function Header({ user: userProp, authSlot, className }: HeaderProps) {
             aria-label={menuOpen ? "Close menu" : "Open menu"}
             onClick={() => setMenuOpen((o) => !o)}
           >
-            <motion.div
-              animate={{ rotate: menuOpen ? 90 : 0 }}
-              transition={{ type: "spring", stiffness: 300, damping: 20 }}
-            >
+            <motion.div animate={{ rotate: menuOpen ? 90 : 0 }} transition={{ duration: 0.16 }}>
               {menuOpen ? (
                 <svg
                   viewBox="0 0 24 24"
@@ -204,40 +228,37 @@ export function Header({ user: userProp, authSlot, className }: HeaderProps) {
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            transition={{ type: "spring", stiffness: 320, damping: 32 }}
+            transition={{ duration: 0.18, ease: "easeOut" }}
             className="overflow-hidden md:hidden"
             style={{
-              borderTop: "1px solid color-mix(in oklab, var(--border) 70%, transparent)",
-              background: "color-mix(in oklab, var(--bg) 92%, transparent)",
+              marginTop: 8,
+              border: "1px solid var(--border)",
+              borderRadius: 18,
+              background: "color-mix(in oklab, var(--surface) 96%, transparent)",
               backdropFilter: "blur(20px)",
             }}
           >
             <nav className="flex flex-col px-4 py-3" aria-label="Mobile">
-              {nav.map(({ href, label }, i) => {
+              {nav.map(({ href, label }) => {
                 const active =
                   href === "/"
                     ? pathname === "/"
                     : pathname.startsWith(href);
                 return (
-                  <motion.div
-                    key={href}
-                    initial={{ opacity: 0, x: -12 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: i * 0.05, duration: 0.3 }}
-                  >
+                  <div key={href}>
                     <Link
                       href={href}
                       onClick={() => setMenuOpen(false)}
                       className={cn(
-                        "block rounded-xl px-4 py-3 text-sm font-medium transition-all duration-200",
+                        "block rounded-md px-4 py-3 text-sm font-medium transition-all duration-200",
                         active
-                          ? "bg-purple/10 text-purple"
-                          : "text-muted hover:text-foreground hover:bg-white/[0.04]",
+                          ? "bg-brand/12 text-brand-2"
+                          : "text-muted hover:text-foreground hover:bg-card-hover",
                       )}
                     >
                       {label}
                     </Link>
-                  </motion.div>
+                  </div>
                 );
               })}
               {showLoginSignup && !authSlot && (
@@ -246,7 +267,7 @@ export function Header({ user: userProp, authSlot, className }: HeaderProps) {
                   style={{ borderColor: "var(--border)" }}
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
-                  transition={{ delay: 0.2 }}
+                  transition={{ duration: 0.14 }}
                 >
                   <Button variant="secondary" size="md" asChild className="w-full">
                     <Link href={loginHref} onClick={() => setMenuOpen(false)}>
