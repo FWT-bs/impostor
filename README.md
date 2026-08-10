@@ -43,7 +43,15 @@ Key tables:
 | `chat_messages` | Persistent room chat history |
 
 The hosted project also uses an `avatars` storage bucket and a `cleanup-rooms`
-Edge Function for stale room cleanup.
+Edge Function for stale room cleanup. Public rooms stop showing after 10 minutes
+without activity; stale lobbies are deleted and stale games are marked finished.
+The deployed app also exposes `/api/cron/cleanup-rooms`, scheduled in
+`vercel.json` every 5 minutes as a Vercel-side backup cleanup path. Set
+`CRON_SECRET` if you want that endpoint locked behind a bearer token.
+
+AI practice tables use `bot_profiles` plus bot-aware room player, secret, and
+vote rows. They are labeled as AI tables in the app and do not create fake auth
+users or count toward player stats.
 
 Migrations live in `supabase/migrations/`. Apply via Supabase CLI.
 

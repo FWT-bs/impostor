@@ -12,10 +12,12 @@ import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
 import { Logo } from "@/components/ui/Logo";
+import { AI_TABLES } from "@/lib/bots/tables";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/lib/hooks/use-auth";
 import { getAuthAvatarColor, getAuthDisplayName } from "@/lib/auth-display-name";
 import { loginWithNext, signupWithNext } from "@/lib/auth-path";
+import { getActiveRoomCutoffIso } from "@/lib/rooms/stale";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -26,15 +28,11 @@ type LiveRoom = {
   code: string;
   max_players: number;
   status: string;
+  phase: string;
+  updated_at: string;
   settings: unknown;
   room_players: { id: string }[];
 };
-
-const SAMPLE_ROOMS = [
-  { code: "VXQR", players: 6, max: 8, status: "playing", topic: "Movies" },
-  { code: "MZ7K", players: 4, max: 6, status: "waiting", topic: "Food" },
-  { code: "BQ29", players: 8, max: 8, status: "playing", topic: "Music" },
-];
 
 function getRoomTopic(settings: unknown): string {
   if (settings && typeof settings === "object" && "category" in settings) {
@@ -54,9 +52,11 @@ export default function HomePage() {
     async function fetchRooms() {
       const { data: open } = await supabase
         .from("rooms")
-        .select("id, code, max_players, status, settings, room_players(id)")
+        .select("id, code, max_players, status, phase, updated_at, settings, room_players(id)")
         .eq("is_private", false)
         .in("status", ["waiting", "playing"])
+        .neq("phase", "results")
+        .gte("updated_at", getActiveRoomCutoffIso())
         .order("updated_at", { ascending: false })
         .limit(6);
       setLiveRooms((open ?? []) as LiveRoom[]);
@@ -79,8 +79,19 @@ export default function HomePage() {
     max: room.max_players,
     status: room.status,
     topic: getRoomTopic(room.settings),
+    ai: false,
   }));
-  const rooms = realRooms.length > 0 ? realRooms : SAMPLE_ROOMS;
+  const rooms = realRooms.length > 0
+    ? realRooms
+    : AI_TABLES.slice(0, 3).map((table) => ({
+        code: table.code,
+        players: table.bots.length,
+        max: table.maxPlayers,
+        status: "waiting",
+        topic: table.topic ?? "Random pack",
+        ai: true,
+      }));
+  const showingAiTables = realRooms.length === 0;
   const playingNow = realRooms.reduce((sum, room) => sum + room.players, 0);
 
   return (
@@ -119,8 +130,8 @@ export default function HomePage() {
           />
 
           <div className="grid max-w-2xl gap-5 sm:grid-cols-3">
-            <GameStat icon="users" value={playingNow > 0 ? String(playingNow) : "142"} label="players live" />
-            <GameStat icon="trophy" value={realRooms.length > 0 ? String(realRooms.length) : "38"} label="rooms open" />
+            <GameStat icon="users" value={String(playingNow)} label="players live" />
+            <GameStat icon="trophy" value={String(realRooms.length)} label="rooms open" />
             <GameStat icon="chair" value="3-10" label="seats per game" />
           </div>
         </div>
@@ -167,7 +178,7 @@ export default function HomePage() {
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <div>
             <p className="text-sm font-semibold text-muted">Room browser</p>
-            <h2 className="mt-3 text-3xl font-bold">Open tables</h2>
+            <h2 className="mt-3 text-3xl font-bold">{showingAiTables ? "Practice tables" : "Open tables"}</h2>
           </div>
           <Button variant="secondary" asChild>
             <Link href="/rooms">See all rooms</Link>
@@ -175,20 +186,20 @@ export default function HomePage() {
         </div>
         <div className="grid gap-4 lg:grid-cols-3">
           {rooms.slice(0, 3).map((room) => (
-            <RoomCard
-              key={room.code}
-              code={room.code}
-              players={room.players}
-              maxPlayers={room.max}
-              status={room.status === "playing" ? "live" : "open"}
-              topic={room.topic}
-              action={
-                <Button size="sm" variant={room.status === "playing" ? "secondary" : "primary"} asChild>
-                  <Link href="/rooms">{room.status === "playing" ? "Watch code" : "Join"}</Link>
-                </Button>
-              }
-            />
-          ))}
+              <RoomCard
+                key={room.code}
+                code={room.code}
+                players={room.players}
+                maxPlayers={room.max}
+                status={room.status === "playing" ? "live" : "open"}
+                topic={room.ai ? `${room.topic} · AI table` : room.topic}
+                action={
+                  <Button size="sm" variant={room.status === "playing" ? "secondary" : "primary"} asChild>
+                    <Link href="/rooms">{room.ai ? "Open" : room.status === "playing" ? "Watch code" : "Join"}</Link>
+                  </Button>
+                }
+              />
+            ))}
         </div>
       </section>
 

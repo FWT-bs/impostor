@@ -801,7 +801,7 @@ export function TabletopScene({
         <div className="absolute bottom-6 right-4 z-[5] hidden h-56 w-5 rotate-[-15deg] rounded-full bg-amber shadow-[0_12px_18px_rgba(0,0,0,0.22)] md:block" />
         {variant === "rooms" && (
           <div className="absolute right-8 top-[22%] z-[5] w-[230px] rounded-2xl border border-white/12 bg-[#07182a]/92 p-5 shadow-[0_18px_34px_rgba(0,0,0,0.2)]">
-            <p className="font-display text-2xl">Room VXQR</p>
+            <p className="font-display text-2xl">Room HUSH</p>
             <p className="mt-2 text-sm text-white/70">Public lobbies looking for players</p>
             <div className="mt-4 grid grid-cols-2 gap-3 text-center">
               {["M", "J", "N", "T"].map((initial, index) => (

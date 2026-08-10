@@ -2,6 +2,9 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { pickWord } from "@/lib/game/words";
+import { getPlayerIdentity } from "@/lib/game/player-identity";
+import { resolveImpostorCount, type RoomSettings } from "@/lib/rooms/settings";
+import { isWithinActiveRoomWindow } from "@/lib/rooms/stale";
 import type { Database } from "@/lib/supabase/types";
 
 type Room = Database["public"]["Tables"]["rooms"]["Row"];
@@ -34,6 +37,14 @@ export async function POST(
     return NextResponse.json({ error: "Room not found" }, { status: 404 });
   }
 
+  if (!isWithinActiveRoomWindow(room.updated_at)) {
+    await admin.rpc("cleanup_stale_rooms");
+    return NextResponse.json(
+      { error: "Room expired after 10 minutes of inactivity" },
+      { status: 410 }
+    );
+  }
+
   if (room.host_id !== user.id) {
     return NextResponse.json(
       { error: "Only the host can start the game" },
@@ -62,15 +73,18 @@ export async function POST(
     );
   }
 
-  const settings = room.settings as { category?: string | null } | null;
+  const settings = room.settings as Partial<RoomSettings> | null;
   const category = settings?.category ?? null;
   const { entry } = pickWord([], category);
 
-  const nImpostors = players.length > 5 ? 2 : 1;
+  const nImpostors = resolveImpostorCount(players.length, settings?.impostorCount);
   const impostorPickOrder = [...players].sort(() => Math.random() - 0.5);
-  const impostorId = impostorPickOrder[0].user_id;
-  const secondImpostorId =
-    nImpostors === 2 ? impostorPickOrder[1].user_id : null;
+  const primaryImpostor = impostorPickOrder[0];
+  const secondImpostor = nImpostors === 2 ? impostorPickOrder[1] : null;
+  const impostorId = primaryImpostor.user_id;
+  const impostorBotId = primaryImpostor.bot_id;
+  const secondImpostorId = secondImpostor?.user_id ?? null;
+  const secondImpostorBotId = secondImpostor?.bot_id ?? null;
 
   const { data: prevRounds } = await admin
     .from("game_rounds")
@@ -90,7 +104,9 @@ export async function POST(
       topic: entry.topic,
       secret_word: entry.word,
       impostor_id: impostorId,
+      impostor_bot_id: impostorBotId,
       second_impostor_id: secondImpostorId,
+      second_impostor_bot_id: secondImpostorBotId,
       status: "active",
     })
     .select()
@@ -104,15 +120,15 @@ export async function POST(
     );
   }
 
-  const impostorSet = new Set(
-    [impostorId, secondImpostorId].filter((id): id is string => Boolean(id)),
-  );
+  const impostorSet = new Set([primaryImpostor, secondImpostor].filter(Boolean).map((p) => getPlayerIdentity(p as RoomPlayer)));
   const secrets = players.map((p) => ({
     room_id: room.id,
     round_id: round.id,
     user_id: p.user_id,
-    role: impostorSet.has(p.user_id) ? "impostor" : "player",
-    secret_word: impostorSet.has(p.user_id) ? null : entry.word,
+    bot_id: p.bot_id,
+    is_bot: p.is_bot,
+    role: impostorSet.has(getPlayerIdentity(p)) ? "impostor" : "player",
+    secret_word: impostorSet.has(getPlayerIdentity(p)) ? null : entry.word,
     topic: entry.topic,
   }));
 

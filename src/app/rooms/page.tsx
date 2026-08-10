@@ -15,9 +15,10 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Modal } from "@/components/ui/Modal";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/Tabs";
-import { Icon } from "@/components/ui/Icon";
+import { Icon, type IconName } from "@/components/ui/Icon";
 import { loginWithNext } from "@/lib/auth-path";
 import { postJson } from "@/lib/api-fetch";
+import { AI_TABLES, type AiTable } from "@/lib/bots/tables";
 import { getAuthAvatarColor, getAuthDisplayName } from "@/lib/auth-display-name";
 import { getCategories, getPremiumCategories } from "@/lib/game/words";
 import { useAuth } from "@/lib/hooks/use-auth";
@@ -25,6 +26,8 @@ import {
   getPreferredDisplayName,
   setPreferredDisplayName,
 } from "@/lib/preferred-display-name";
+import type { BotDifficulty, ClueMode, ImpostorCountSetting } from "@/lib/rooms/settings";
+import { getActiveRoomCutoffIso } from "@/lib/rooms/stale";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import { AnimatePresence, motion } from "framer-motion";
@@ -37,7 +40,7 @@ const MIN_ROOM_PLAYERS = 3;
 const MAX_ROOM_PLAYERS = 10;
 
 const ROOM_LIST_SELECT =
-  "id, code, host_id, max_players, is_private, settings, status, room_players(id)";
+  "id, code, host_id, max_players, is_private, settings, status, phase, updated_at, room_players(id)";
 
 type RoomRow = {
   id: string;
@@ -47,6 +50,8 @@ type RoomRow = {
   is_private: boolean;
   settings: unknown;
   status: string;
+  phase: string;
+  updated_at: string;
   room_players: { id: string }[];
 };
 
@@ -68,11 +73,16 @@ export default function RoomsPage() {
   const [joining, setJoining] = useState(false);
   const [showCreate, setShowCreate] = useState(false);
   const [creating, setCreating] = useState(false);
+  const [joiningAiTable, setJoiningAiTable] = useState<string | null>(null);
   const [displayName, setDisplayName] = useState("");
   const [isPrivate, setIsPrivate] = useState(false);
   const [createMaxPlayers, setCreateMaxPlayers] = useState(8);
   const [createDiscussionTimer, setCreateDiscussionTimer] = useState(60);
+  const [createVotingTimer, setCreateVotingTimer] = useState(30);
   const [createCategory, setCreateCategory] = useState<string | null>(null);
+  const [createImpostorCount, setCreateImpostorCount] = useState<ImpostorCountSetting>("auto");
+  const [createClueMode, setCreateClueMode] = useState<ClueMode>("classic");
+  const [createBotDifficulty, setCreateBotDifficulty] = useState<BotDifficulty>("normal");
 
   const userId = user?.id ?? null;
   const categories = useMemo(() => getCategories(), []);
@@ -98,6 +108,7 @@ export default function RoomsPage() {
       .select(ROOM_LIST_SELECT)
       .eq("status", "waiting")
       .eq("is_private", false)
+      .gte("updated_at", getActiveRoomCutoffIso())
       .order("created_at", { ascending: false })
       .limit(30);
     if (error) {
@@ -113,6 +124,8 @@ export default function RoomsPage() {
       .select(ROOM_LIST_SELECT)
       .eq("status", "playing")
       .eq("is_private", false)
+      .neq("phase", "results")
+      .gte("updated_at", getActiveRoomCutoffIso())
       .order("updated_at", { ascending: false })
       .limit(30);
     if (error) {
@@ -142,6 +155,8 @@ export default function RoomsPage() {
       .select(ROOM_LIST_SELECT)
       .in("id", ids)
       .in("status", ["waiting", "playing"])
+      .neq("phase", "results")
+      .gte("updated_at", getActiveRoomCutoffIso())
       .order("updated_at", { ascending: false })
       .limit(30);
     if (error) {
@@ -296,6 +311,10 @@ export default function RoomsPage() {
           maxPlayers: createMaxPlayers,
           category: createCategory,
           discussionTimer: createDiscussionTimer,
+          votingTimer: createVotingTimer,
+          impostorCount: createImpostorCount,
+          clueMode: createClueMode,
+          botDifficulty: createBotDifficulty,
         },
       );
       if (!result.ok) {
@@ -313,12 +332,52 @@ export default function RoomsPage() {
       setIsPrivate(false);
       setCreateMaxPlayers(8);
       setCreateDiscussionTimer(60);
+      setCreateVotingTimer(30);
       setCreateCategory(null);
+      setCreateImpostorCount("auto");
+      setCreateClueMode("classic");
+      setCreateBotDifficulty("normal");
       void refreshAllListings({ silent: true });
       router.push(`/rooms/${code}`);
       router.refresh();
     } finally {
       setCreating(false);
+    }
+  }
+
+  async function handleJoinAiTable(table: AiTable) {
+    if (authLoading) return;
+    if (!user) {
+      toast.error("Sign in to join an AI table");
+      router.push(loginWithNext(pathname));
+      return;
+    }
+    setJoiningAiTable(table.id);
+    try {
+      const name =
+        displayName.trim() ||
+        profile?.username?.trim() ||
+        getAuthDisplayName(user, profile) ||
+        "Host";
+      const result = await postJson<{ room: { code: string } }>(
+        "/api/rooms/ai/join",
+        { tableId: table.id, displayName: name },
+      );
+      if (!result.ok) {
+        toast.error(result.errorMessage);
+        return;
+      }
+      const code = result.data?.room?.code;
+      if (!code) {
+        toast.error("AI table opened, response incomplete");
+        return;
+      }
+      setPreferredDisplayName(name);
+      void refreshAllListings({ silent: true });
+      router.push(`/rooms/${code}`);
+      router.refresh();
+    } finally {
+      setJoiningAiTable(null);
     }
   }
 
@@ -431,6 +490,14 @@ export default function RoomsPage() {
         <TabsContent value={tab} className="mt-0">
           {loadingRooms ? (
             <LoadingRooms />
+          ) : displayRooms.length === 0 && tab === "open" ? (
+            <AiTablesGrid
+              tables={AI_TABLES}
+              joiningTableId={joiningAiTable}
+              authLoading={authLoading}
+              onJoin={handleJoinAiTable}
+              onCreate={() => setShowCreate(true)}
+            />
           ) : displayRooms.length === 0 ? (
             <EmptyRooms tab={tab} signedIn={Boolean(user)} onCreate={() => setShowCreate(true)} />
           ) : (
@@ -543,6 +610,102 @@ export default function RoomsPage() {
             className="bg-background/65"
           />
 
+          <Input
+            label="Voting timer (seconds)"
+            type="number"
+            min={15}
+            max={180}
+            value={createVotingTimer}
+            onChange={(event) => {
+              const value = Number(event.target.value);
+              if (Number.isFinite(value)) {
+                setCreateVotingTimer(Math.min(180, Math.max(15, value)));
+              }
+            }}
+            className="bg-background/65"
+          />
+
+          <div>
+            <label className="mb-2 block text-sm font-semibold text-foreground">Impostors</label>
+            <div className="grid gap-3 sm:grid-cols-3">
+              <SettingOptionButton
+                selected={createImpostorCount === "auto"}
+                icon="dice"
+                title="Auto"
+                text="scales with seats"
+                onClick={() => setCreateImpostorCount("auto")}
+              />
+              <SettingOptionButton
+                selected={createImpostorCount === 1}
+                icon="mask"
+                title="One"
+                text="classic table"
+                onClick={() => setCreateImpostorCount(1)}
+              />
+              <SettingOptionButton
+                selected={createImpostorCount === 2}
+                icon="eye"
+                title="Two"
+                text="more suspicion"
+                onClick={() => setCreateImpostorCount(2)}
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="mb-2 block text-sm font-semibold text-foreground">Clue style</label>
+            <div className="grid gap-3 sm:grid-cols-3">
+              <SettingOptionButton
+                selected={createClueMode === "classic"}
+                icon="chat"
+                title="Classic"
+                text="normal hints"
+                onClick={() => setCreateClueMode("classic")}
+              />
+              <SettingOptionButton
+                selected={createClueMode === "short"}
+                icon="bolt"
+                title="Short"
+                text="tight hints"
+                onClick={() => setCreateClueMode("short")}
+              />
+              <SettingOptionButton
+                selected={createClueMode === "single"}
+                icon="lock"
+                title="One word"
+                text="no rambling"
+                onClick={() => setCreateClueMode("single")}
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="mb-2 block text-sm font-semibold text-foreground">AI table mood</label>
+            <div className="grid gap-3 sm:grid-cols-3">
+              <SettingOptionButton
+                selected={createBotDifficulty === "easy"}
+                icon="shield"
+                title="Soft"
+                text="safer bots"
+                onClick={() => setCreateBotDifficulty("easy")}
+              />
+              <SettingOptionButton
+                selected={createBotDifficulty === "normal"}
+                icon="eye"
+                title="Quiet"
+                text="balanced"
+                onClick={() => setCreateBotDifficulty("normal")}
+              />
+              <SettingOptionButton
+                selected={createBotDifficulty === "tricky"}
+                icon="mask"
+                title="Shifty"
+                text="less obvious"
+                onClick={() => setCreateBotDifficulty("tricky")}
+              />
+            </div>
+          </div>
+
           <div>
             <label className="mb-2 block text-sm font-semibold text-foreground">
               Topic pack <span className="font-normal text-muted">(optional)</span>
@@ -639,6 +802,75 @@ function getRoomAction({
   );
 }
 
+function AiTablesGrid({
+  tables,
+  joiningTableId,
+  authLoading,
+  onJoin,
+  onCreate,
+}: {
+  tables: AiTable[];
+  joiningTableId: string | null;
+  authLoading: boolean;
+  onJoin: (table: AiTable) => void;
+  onCreate: () => void;
+}) {
+  return (
+    <div className="space-y-4">
+      <GameCard accent="pink" className="p-4 sm:p-5">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <div className="mb-2 flex flex-wrap items-center gap-2">
+              <StatusBadge status="open">AI tables</StatusBadge>
+              <StatusBadge status="live">clearly labeled</StatusBadge>
+            </div>
+            <h2 className="text-xl font-bold">No public tables yet, so here are practice seats</h2>
+            <p className="mt-1 text-sm text-muted">bots wait in the lobby, real players can join after you open one</p>
+          </div>
+          <Button variant="secondary" onClick={onCreate}>
+            <Icon name="plus" size={16} /> Create human room
+          </Button>
+        </div>
+      </GameCard>
+
+      <div className="grid gap-4 lg:grid-cols-3">
+        {tables.map((table) => (
+          <GameCard key={table.id} accent="cyan" className="p-4 sm:p-5">
+            <div className="mb-3 flex items-start justify-between gap-3">
+              <div>
+                <span className="display text-3xl text-brand">{table.code}</span>
+                <h3 className="mt-1 text-lg font-bold">{table.label}</h3>
+              </div>
+              <StatusBadge status="open">AI table</StatusBadge>
+            </div>
+            <p className="min-h-[40px] text-sm text-muted">{table.note}</p>
+            <div className="my-4 flex flex-wrap gap-2">
+              <span className="chip"><Icon name="mask" size={12} /> {table.bots.length} bots</span>
+              <span className="chip"><Icon name="users" size={12} /> {table.bots.length}/{table.maxPlayers}</span>
+              <span className="chip"><Icon name="dice" size={12} /> {table.topic ?? "Random"}</span>
+            </div>
+            <div className="mb-4 flex flex-wrap gap-2">
+              {table.bots.map((bot, index) => (
+                <span key={bot} className="chip" style={{ color: index === 0 ? "var(--emerald)" : "var(--amber)" }}>
+                  {bot}
+                </span>
+              ))}
+            </div>
+            <Button
+              className="w-full"
+              onClick={() => onJoin(table)}
+              disabled={authLoading || joiningTableId !== null}
+              isLoading={joiningTableId === table.id}
+            >
+              <Icon name="plus" size={17} /> Join AI table
+            </Button>
+          </GameCard>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function EmptyRooms({
   tab,
   signedIn,
@@ -715,6 +947,38 @@ function RoomTypeButton({
       </div>
       <p className="text-sm font-bold text-foreground">{title}</p>
       <p className="mt-1 text-xs text-muted">{text}</p>
+    </button>
+  );
+}
+
+function SettingOptionButton({
+  selected,
+  icon,
+  title,
+  text,
+  onClick,
+}: {
+  selected: boolean;
+  icon: IconName;
+  title: string;
+  text: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "rounded-lg border p-3 text-left transition-colors cursor-pointer",
+        selected ? "border-brand/50 bg-brand/14" : "border-border bg-card/65 hover:border-brand/35",
+      )}
+      aria-pressed={selected}
+    >
+      <div className="mb-2 grid size-8 place-items-center rounded-lg border border-border bg-background/60 text-brand-2">
+        <Icon name={icon} size={17} />
+      </div>
+      <p className="text-sm font-bold text-foreground">{title}</p>
+      <p className="mt-0.5 text-xs text-muted">{text}</p>
     </button>
   );
 }

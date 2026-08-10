@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useMemo, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { isWithinActiveRoomWindow } from "@/lib/rooms/stale";
 import type { Database } from "@/lib/supabase/types";
 
 type Room = Database["public"]["Tables"]["rooms"]["Row"];
@@ -30,16 +31,20 @@ export function useRoom(roomCode: string) {
 
       if (error) throw error;
 
-      if (roomData) {
-        setRoom(roomData);
-        const { data: playerData } = await supabase
-          .from("room_players")
-          .select("*")
-          .eq("room_id", roomData.id)
-          .order("player_order", { ascending: true });
-
-        setPlayers(sortPlayers(playerData ?? []));
+      if (!roomData || roomData.status === "finished" || !isWithinActiveRoomWindow(roomData.updated_at)) {
+        setRoom(null);
+        setPlayers([]);
+        return;
       }
+
+      setRoom(roomData);
+      const { data: playerData } = await supabase
+        .from("room_players")
+        .select("*")
+        .eq("room_id", roomData.id)
+        .order("player_order", { ascending: true });
+
+      setPlayers(sortPlayers(playerData ?? []));
     } catch (err) {
       console.error("fetchRoom error:", err);
     } finally {
@@ -76,9 +81,16 @@ export function useRoom(roomCode: string) {
         },
         (payload) => {
           if (payload.eventType === "UPDATE") {
-            setRoom(payload.new as Room);
+            const nextRoom = payload.new as Room;
+            if (nextRoom.status === "finished" || !isWithinActiveRoomWindow(nextRoom.updated_at)) {
+              setRoom(null);
+              setPlayers([]);
+            } else {
+              setRoom(nextRoom);
+            }
           } else if (payload.eventType === "DELETE") {
             setRoom(null);
+            setPlayers([]);
           }
         }
       )

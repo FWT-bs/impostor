@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { isWithinActiveRoomWindow } from "@/lib/rooms/stale";
 import type { Database } from "@/lib/supabase/types";
 
 type Room = Database["public"]["Tables"]["rooms"]["Row"];
@@ -19,24 +20,31 @@ export async function POST(
   }
 
   const body = await request.json().catch(() => ({}));
-  const targetUserId: string = body.userId;
+  const targetPlayerId: string = body.playerId ?? body.userId;
 
-  if (!targetUserId) {
+  if (!targetPlayerId) {
     return NextResponse.json(
-      { error: "Missing userId" },
+      { error: "Missing playerId" },
       { status: 400 }
     );
   }
 
   const { data: room } = await supabase
     .from("rooms")
-    .select("id, host_id")
+    .select("id, host_id, updated_at")
     .eq("code", code.toUpperCase())
     .returns<Room[]>()
     .maybeSingle();
 
   if (!room) {
     return NextResponse.json({ error: "Room not found" }, { status: 404 });
+  }
+
+  if (!isWithinActiveRoomWindow(room.updated_at)) {
+    return NextResponse.json(
+      { error: "Room expired after 10 minutes of inactivity" },
+      { status: 410 }
+    );
   }
 
   if (room.host_id !== user.id) {
@@ -46,7 +54,18 @@ export async function POST(
     );
   }
 
-  if (targetUserId === user.id) {
+  const { data: targetPlayer } = await supabase
+    .from("room_players")
+    .select("id, user_id")
+    .eq("room_id", room.id)
+    .or(`id.eq.${targetPlayerId},user_id.eq.${targetPlayerId}`)
+    .maybeSingle();
+
+  if (!targetPlayer) {
+    return NextResponse.json({ error: "Player not found" }, { status: 404 });
+  }
+
+  if (targetPlayer.user_id === user.id) {
     return NextResponse.json(
       { error: "Cannot kick yourself" },
       { status: 400 }
@@ -56,8 +75,7 @@ export async function POST(
   const { error } = await supabase
     .from("room_players")
     .delete()
-    .eq("room_id", room.id)
-    .eq("user_id", targetUserId);
+    .eq("id", targetPlayer.id);
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });

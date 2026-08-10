@@ -55,6 +55,30 @@ export interface Database {
           created_at?: string;
         };
       };
+      bot_profiles: {
+        Relationships: [];
+        Row: {
+          id: string;
+          name: string;
+          avatar_color: string;
+          personality: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          name: string;
+          avatar_color?: string;
+          personality?: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          name?: string;
+          avatar_color?: string;
+          personality?: string;
+          created_at?: string;
+        };
+      };
       rooms: {
         Relationships: [
           {
@@ -114,6 +138,13 @@ export interface Database {
       room_players: {
         Relationships: [
           {
+            foreignKeyName: "room_players_bot_id_fkey";
+            columns: ["bot_id"];
+            isOneToOne: false;
+            referencedRelation: "bot_profiles";
+            referencedColumns: ["id"];
+          },
+          {
             foreignKeyName: "room_players_room_id_fkey";
             columns: ["room_id"];
             isOneToOne: false;
@@ -131,7 +162,9 @@ export interface Database {
         Row: {
           id: string;
           room_id: string;
-          user_id: string;
+          user_id: string | null;
+          bot_id: string | null;
+          is_bot: boolean;
           display_name: string;
           is_ready: boolean;
           is_host: boolean;
@@ -142,7 +175,9 @@ export interface Database {
         Insert: {
           id?: string;
           room_id: string;
-          user_id: string;
+          user_id?: string | null;
+          bot_id?: string | null;
+          is_bot?: boolean;
           display_name: string;
           is_ready?: boolean;
           is_host?: boolean;
@@ -153,7 +188,9 @@ export interface Database {
         Update: {
           id?: string;
           room_id?: string;
-          user_id?: string;
+          user_id?: string | null;
+          bot_id?: string | null;
+          is_bot?: boolean;
           display_name?: string;
           is_ready?: boolean;
           is_host?: boolean;
@@ -164,6 +201,13 @@ export interface Database {
       };
       player_secrets: {
         Relationships: [
+          {
+            foreignKeyName: "player_secrets_bot_id_fkey";
+            columns: ["bot_id"];
+            isOneToOne: false;
+            referencedRelation: "bot_profiles";
+            referencedColumns: ["id"];
+          },
           {
             foreignKeyName: "player_secrets_room_id_fkey";
             columns: ["room_id"];
@@ -197,7 +241,9 @@ export interface Database {
           id: string;
           room_id: string;
           round_id: string;
-          user_id: string;
+          user_id: string | null;
+          bot_id: string | null;
+          is_bot: boolean;
           role: string;
           secret_word: string | null;
           topic: string;
@@ -206,7 +252,9 @@ export interface Database {
           id?: string;
           room_id: string;
           round_id: string;
-          user_id: string;
+          user_id?: string | null;
+          bot_id?: string | null;
+          is_bot?: boolean;
           role: string;
           secret_word?: string | null;
           topic: string;
@@ -215,7 +263,9 @@ export interface Database {
           id?: string;
           room_id?: string;
           round_id?: string;
-          user_id?: string;
+          user_id?: string | null;
+          bot_id?: string | null;
+          is_bot?: boolean;
           role?: string;
           secret_word?: string | null;
           topic?: string;
@@ -223,6 +273,13 @@ export interface Database {
       };
       game_rounds: {
         Relationships: [
+          {
+            foreignKeyName: "game_rounds_impostor_bot_id_fkey";
+            columns: ["impostor_bot_id"];
+            isOneToOne: false;
+            referencedRelation: "bot_profiles";
+            referencedColumns: ["id"];
+          },
           {
             foreignKeyName: "game_rounds_impostor_id_fkey";
             columns: ["impostor_id"];
@@ -235,6 +292,13 @@ export interface Database {
             columns: ["room_id"];
             isOneToOne: false;
             referencedRelation: "rooms";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "game_rounds_second_impostor_bot_id_fkey";
+            columns: ["second_impostor_bot_id"];
+            isOneToOne: false;
+            referencedRelation: "bot_profiles";
             referencedColumns: ["id"];
           },
           {
@@ -251,8 +315,10 @@ export interface Database {
           round_number: number;
           topic: string;
           secret_word: string;
-          impostor_id: string;
+          impostor_id: string | null;
           second_impostor_id: string | null;
+          impostor_bot_id: string | null;
+          second_impostor_bot_id: string | null;
           winner: string | null;
           status: string;
           created_at: string;
@@ -263,8 +329,10 @@ export interface Database {
           round_number?: number;
           topic: string;
           secret_word: string;
-          impostor_id: string;
+          impostor_id?: string | null;
           second_impostor_id?: string | null;
+          impostor_bot_id?: string | null;
+          second_impostor_bot_id?: string | null;
           winner?: string | null;
           status?: string;
           created_at?: string;
@@ -275,8 +343,10 @@ export interface Database {
           round_number?: number;
           topic?: string;
           secret_word?: string;
-          impostor_id?: string;
+          impostor_id?: string | null;
           second_impostor_id?: string | null;
+          impostor_bot_id?: string | null;
+          second_impostor_bot_id?: string | null;
           winner?: string | null;
           status?: string;
           created_at?: string;
@@ -299,10 +369,24 @@ export interface Database {
             referencedColumns: ["id"];
           },
           {
+            foreignKeyName: "votes_voted_for_bot_id_fkey";
+            columns: ["voted_for_bot_id"];
+            isOneToOne: false;
+            referencedRelation: "bot_profiles";
+            referencedColumns: ["id"];
+          },
+          {
             foreignKeyName: "votes_voted_for_id_fkey";
             columns: ["voted_for_id"];
             isOneToOne: false;
             referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "votes_voter_bot_id_fkey";
+            columns: ["voter_bot_id"];
+            isOneToOne: false;
+            referencedRelation: "bot_profiles";
             referencedColumns: ["id"];
           },
           {
@@ -316,22 +400,28 @@ export interface Database {
         Row: {
           id: string;
           round_id: string;
-          voter_id: string;
-          voted_for_id: string;
+          voter_id: string | null;
+          voter_bot_id: string | null;
+          voted_for_id: string | null;
+          voted_for_bot_id: string | null;
           created_at: string;
         };
         Insert: {
           id?: string;
           round_id: string;
-          voter_id: string;
-          voted_for_id: string;
+          voter_id?: string | null;
+          voter_bot_id?: string | null;
+          voted_for_id?: string | null;
+          voted_for_bot_id?: string | null;
           created_at?: string;
         };
         Update: {
           id?: string;
           round_id?: string;
-          voter_id?: string;
-          voted_for_id?: string;
+          voter_id?: string | null;
+          voter_bot_id?: string | null;
+          voted_for_id?: string | null;
+          voted_for_bot_id?: string | null;
           created_at?: string;
         };
       };
@@ -397,6 +487,8 @@ export interface Database {
           secret_word: string;
           impostor_id: string | null;
           second_impostor_id: string | null;
+          impostor_bot_id: string | null;
+          second_impostor_bot_id: string | null;
           winner: string | null;
           status: string;
           created_at: string;

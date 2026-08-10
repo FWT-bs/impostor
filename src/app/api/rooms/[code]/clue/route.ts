@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { isWithinActiveRoomWindow } from "@/lib/rooms/stale";
 import type { Database } from "@/lib/supabase/types";
 
 type Room = Database["public"]["Tables"]["rooms"]["Row"];
@@ -42,6 +43,14 @@ export async function POST(
     return NextResponse.json(
       { error: "Room not in clue phase" },
       { status: 400 }
+    );
+  }
+
+  if (!isWithinActiveRoomWindow(room.updated_at)) {
+    await admin.rpc("cleanup_stale_rooms");
+    return NextResponse.json(
+      { error: "Room expired after 10 minutes of inactivity" },
+      { status: 410 }
     );
   }
 

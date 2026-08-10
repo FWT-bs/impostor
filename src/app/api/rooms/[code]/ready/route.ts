@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { isWithinActiveRoomWindow } from "@/lib/rooms/stale";
 import type { Database } from "@/lib/supabase/types";
 
 type Room = Database["public"]["Tables"]["rooms"]["Row"];
@@ -35,6 +36,13 @@ export async function POST(
     return NextResponse.json(
       { error: "Room not found" },
       { status: 404, headers: noStore }
+    );
+  }
+
+  if (!isWithinActiveRoomWindow(room.updated_at)) {
+    return NextResponse.json(
+      { error: "Room expired after 10 minutes of inactivity" },
+      { status: 410, headers: noStore }
     );
   }
 

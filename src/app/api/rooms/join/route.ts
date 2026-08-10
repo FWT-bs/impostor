@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { getActiveRoomCutoffIso } from "@/lib/rooms/stale";
 import type { Database } from "@/lib/supabase/types";
 
 type Room = Database["public"]["Tables"]["rooms"]["Row"];
@@ -47,12 +48,13 @@ export async function POST(request: Request) {
     .select("*, room_players(id)")
     .eq("code", code)
     .eq("status", "waiting")
+    .gte("updated_at", getActiveRoomCutoffIso())
     .returns<RoomWithPlayers[]>()
     .maybeSingle();
 
   if (roomError || !room) {
     return NextResponse.json(
-      { error: "Room not found or game already started" },
+      { error: "Room not found, expired, or game already started" },
       { status: 404, headers: noStore }
     );
   }

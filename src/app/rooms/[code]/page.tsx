@@ -15,6 +15,8 @@ import { cn, tokenColor } from "@/lib/utils";
 import { postJson } from "@/lib/api-fetch";
 import { getAuthAvatarColor, getAuthDisplayName } from "@/lib/auth-display-name";
 import { loginWithNext, signupWithNext } from "@/lib/auth-path";
+import { getPlayerIdentity } from "@/lib/game/player-identity";
+import { describeImpostorCount, type RoomSettings } from "@/lib/rooms/settings";
 import Link from "next/link";
 
 export default function LobbyPage({ params }: { params: Promise<{ code: string }> }) {
@@ -63,12 +65,12 @@ export default function LobbyPage({ params }: { params: Promise<{ code: string }
     }
   }
 
-  async function handleKick(userId: string) {
+  async function handleKick(playerId: string) {
     const res = await fetch(`/api/rooms/${code}/kick`, {
       method: "POST",
       credentials: "include",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ userId }),
+      body: JSON.stringify({ playerId }),
     });
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
@@ -152,7 +154,7 @@ export default function LobbyPage({ params }: { params: Promise<{ code: string }
     );
   }
 
-  const settings = (room.settings ?? {}) as { discussionTimer?: number; category?: string };
+  const settings = (room.settings ?? {}) as Partial<RoomSettings>;
 
   return (
     <>
@@ -199,11 +201,11 @@ export default function LobbyPage({ params }: { params: Promise<{ code: string }
                 {players.map((p, i) => (
                   <div key={p.id} className="pop-in flex flex-col items-center gap-2" style={{ animationDelay: `${i * 0.06}s` }}>
                     <div className="relative">
-                      <Avatar name={p.display_name} color={tokenColor(p.user_id)} size="lg" you={p.user_id === user?.id} />
+                      <Avatar name={p.display_name} color={tokenColor(getPlayerIdentity(p))} size="lg" you={p.user_id === user?.id} />
                       {isHost && !p.is_host && (
                         <button
                           type="button"
-                          onClick={() => handleKick(p.user_id)}
+                          onClick={() => handleKick(p.id)}
                           aria-label={`Kick ${p.display_name}`}
                           className="token-badge cursor-pointer"
                           style={{ color: "var(--heat)" }}
@@ -221,6 +223,10 @@ export default function LobbyPage({ params }: { params: Promise<{ code: string }
                     {p.is_host ? (
                       <span className="chip chip-brand" style={{ fontSize: 9.5, padding: "3px 8px" }}>
                         <Icon name="crown" size={10} /> Host
+                      </span>
+                    ) : p.is_bot ? (
+                      <span className="chip chip-heat" style={{ fontSize: 9.5, padding: "3px 8px" }}>
+                        <Icon name="mask" size={10} /> AI
                       </span>
                     ) : (
                       <span
@@ -251,6 +257,20 @@ export default function LobbyPage({ params }: { params: Promise<{ code: string }
               <Setting label="Discussion timer">
                 <Chip icon="clock">{settings.discussionTimer ? `${settings.discussionTimer}s` : "60s"}</Chip>
               </Setting>
+              <Setting label="Voting timer">
+                <Chip icon="vote">{settings.votingTimer ? `${settings.votingTimer}s` : "30s"}</Chip>
+              </Setting>
+              <Setting label="Impostors">
+                <Chip icon="mask">{describeImpostorCount(settings.impostorCount)}</Chip>
+              </Setting>
+              <Setting label="Clue style">
+                <Chip icon="chat">{settings.clueMode === "single" ? "One word" : settings.clueMode === "short" ? "Short" : "Classic"}</Chip>
+              </Setting>
+              {settings.aiTable && (
+                <Setting label="AI seats">
+                  <Chip tone="heat" icon="eye">{settings.tableLabel ?? "Practice table"}</Chip>
+                </Setting>
+              )}
               <Setting label="Max players">
                 <span className="display text-[28px]" style={{ color: "var(--brand-2)" }}>{room.max_players}</span>
               </Setting>
@@ -280,7 +300,7 @@ export default function LobbyPage({ params }: { params: Promise<{ code: string }
                 <Button variant="primary" size="lg" className="w-full" onClick={handleStart} disabled={!canStartNow} isLoading={starting}>
                   <Icon name="play" size={18} fill /> {canStartNow ? "Start round" : `Need ${playersNeeded} more`}
                 </Button>
-                <p className="text-center text-[12.5px] text-muted">One impostor will be chosen at random.</p>
+                <p className="text-center text-[12.5px] text-muted">bots are labeled, stats only count real players</p>
               </>
             ) : (
               <div className="card card-pad flex items-center justify-between">

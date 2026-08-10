@@ -1,4 +1,5 @@
 import { determineWinner } from "@/lib/game/engine";
+import { getPlayerIdentity, getVoteTargetIdentity, getVoterIdentity } from "@/lib/game/player-identity";
 import type { createAdminClient } from "@/lib/supabase/admin";
 import type { Database } from "@/lib/supabase/types";
 
@@ -64,18 +65,18 @@ export async function finalizeRound(
     await Promise.all([
       admin
         .from("game_rounds")
-        .select("impostor_id, second_impostor_id, status")
+        .select("impostor_id, second_impostor_id, impostor_bot_id, second_impostor_bot_id, status")
         .eq("id", roundId)
         .returns<GameRound[]>()
         .maybeSingle(),
       admin
         .from("votes")
-        .select("voter_id, voted_for_id")
+        .select("voter_id, voter_bot_id, voted_for_id, voted_for_bot_id")
         .eq("round_id", roundId)
         .returns<Vote[]>(),
       admin
         .from("room_players")
-        .select("user_id, display_name")
+        .select("id, user_id, bot_id, is_bot, display_name")
         .eq("room_id", room.id)
         .returns<RoomPlayer[]>(),
     ]);
@@ -87,9 +88,16 @@ export async function finalizeRound(
 
   const voteMap: Record<string, string> = {};
   for (const v of allVotes ?? []) {
-    voteMap[v.voter_id] = v.voted_for_id;
+    const voterId = getVoterIdentity(v);
+    const targetId = getVoteTargetIdentity(v);
+    if (voterId && targetId) voteMap[voterId] = targetId;
   }
-  const impostorIds = [round.impostor_id, round.second_impostor_id].filter(
+  const impostorIds = [
+    round.impostor_id,
+    round.second_impostor_id,
+    round.impostor_bot_id,
+    round.second_impostor_bot_id,
+  ].filter(
     (id): id is string => typeof id === "string" && id.length > 0,
   );
   const result = determineWinner(voteMap, impostorIds);
@@ -108,8 +116,10 @@ export async function finalizeRound(
 
   await admin.from("rooms").update({ phase: "results" }).eq("id", room.id);
 
-  const isImpostor = (uid: string) => impostorIds.includes(uid);
+  const isImpostor = (identity: string) => impostorIds.includes(identity);
   for (const p of players ?? []) {
+    if (!p.user_id) continue;
+    const identity = getPlayerIdentity(p);
     await ensurePlayerProfile(admin, p.user_id, p.display_name);
     const { data: profile } = await admin
       .from("profiles")
@@ -125,11 +135,11 @@ export async function finalizeRound(
         games_played: profile.games_played + 1,
         group_wins:
           profile.group_wins +
-          (!isImpostor(p.user_id) && result.winner === "group" ? 1 : 0),
+          (!isImpostor(identity) && result.winner === "group" ? 1 : 0),
         impostor_wins:
           profile.impostor_wins +
-          (isImpostor(p.user_id) && result.winner === "impostor" ? 1 : 0),
-        impostor_games: profile.impostor_games + (isImpostor(p.user_id) ? 1 : 0),
+          (isImpostor(identity) && result.winner === "impostor" ? 1 : 0),
+        impostor_games: profile.impostor_games + (isImpostor(identity) ? 1 : 0),
       })
       .eq("id", p.user_id);
   }

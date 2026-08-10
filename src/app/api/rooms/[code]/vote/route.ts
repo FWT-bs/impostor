@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { finalizeRound } from "@/lib/game/finalize";
+import { getPlayerIdentity } from "@/lib/game/player-identity";
+import { isWithinActiveRoomWindow } from "@/lib/rooms/stale";
 import type { Database } from "@/lib/supabase/types";
 
 type Room = Database["public"]["Tables"]["rooms"]["Row"];
@@ -51,24 +53,34 @@ export async function POST(
     );
   }
 
+  if (!isWithinActiveRoomWindow(room.updated_at)) {
+    await admin.rpc("cleanup_stale_rooms");
+    return NextResponse.json(
+      { error: "Room expired after 10 minutes of inactivity" },
+      { status: 410 }
+    );
+  }
+
   if (!room.current_round_id) {
     return NextResponse.json({ error: "No active round" }, { status: 400 });
   }
 
   const { data: players } = await admin
     .from("room_players")
-    .select("user_id")
+    .select("id, user_id, bot_id, is_bot")
     .eq("room_id", room.id)
     .returns<RoomPlayer[]>();
 
-  const memberIds = new Set((players ?? []).map((p) => p.user_id));
-  if (!memberIds.has(user.id)) {
+  const roomPlayers = players ?? [];
+  const isRoomMember = roomPlayers.some((p) => p.user_id === user.id);
+  if (!isRoomMember) {
     return NextResponse.json(
       { error: "You are not in this room" },
       { status: 403 }
     );
   }
-  if (!memberIds.has(votedForId)) {
+  const targetPlayer = roomPlayers.find((p) => getPlayerIdentity(p) === votedForId);
+  if (!targetPlayer) {
     return NextResponse.json(
       { error: "That player is not in this room" },
       { status: 400 }
@@ -90,12 +102,16 @@ export async function POST(
   const { error: voteError } = await supabase.from("votes").insert({
     round_id: room.current_round_id,
     voter_id: user.id,
-    voted_for_id: votedForId,
+    voter_bot_id: null,
+    voted_for_id: targetPlayer.user_id,
+    voted_for_bot_id: targetPlayer.bot_id,
   });
 
   if (voteError) {
     return NextResponse.json({ error: voteError.message }, { status: 500 });
   }
+
+  await admin.from("rooms").update({ updated_at: new Date().toISOString() }).eq("id", room.id);
 
   // Once everyone has voted, close the round out immediately. The voting timer
   // on the clients also calls /resolve, and `finalizeRound` is idempotent, so
@@ -105,7 +121,7 @@ export async function POST(
     .select("id", { count: "exact", head: true })
     .eq("round_id", room.current_round_id);
 
-  const totalPlayers = memberIds.size;
+  const totalPlayers = roomPlayers.length;
   const totalVotes = voteCount ?? 0;
   const allVoted = totalVotes >= totalPlayers;
 

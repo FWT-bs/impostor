@@ -12,6 +12,8 @@ import { useAuth } from "@/lib/hooks/use-auth";
 import { useRoom } from "@/lib/hooks/use-room";
 import { usePlayerSecret, useChat } from "@/lib/hooks/use-game";
 import { createClient } from "@/lib/supabase/client";
+import { getPlayerIdentity, getVoteTargetIdentity } from "@/lib/game/player-identity";
+import type { RoomSettings } from "@/lib/rooms/settings";
 import { tokenColor } from "@/lib/utils";
 import type { Database } from "@/lib/supabase/types";
 import type { ChatMessage } from "@/types/game";
@@ -51,6 +53,25 @@ export default function OnlinePlayPage({ params }: { params: Promise<{ code: str
     return () => clearTimeout(t);
   }, [loading]);
 
+  useEffect(() => {
+    if (!room || !user || players.length === 0) return;
+    const currentPlayer = players[room.current_turn_index];
+    const shouldStep =
+      (room.phase === "clue_phase" && currentPlayer?.is_bot) ||
+      room.phase === "voting";
+    if (!shouldStep) return;
+
+    const delay = room.phase === "clue_phase" ? 1400 : 900;
+    const timer = setTimeout(() => {
+      void fetch(`/api/rooms/${code}/bot-step`, {
+        method: "POST",
+        credentials: "include",
+      }).catch(() => {});
+    }, delay);
+
+    return () => clearTimeout(timer);
+  }, [code, room, user, players]);
+
   if (loading || !room || !user) {
     return (
       <main className="reveal-wrap">
@@ -67,7 +88,7 @@ export default function OnlinePlayPage({ params }: { params: Promise<{ code: str
   const myPlayer = players.find((p) => p.user_id === user.id);
   const isHost = room.host_id === user.id;
   const meta = PHASE_META[room.phase] ?? PHASE_META.clue_phase;
-  const settings = (room.settings ?? {}) as { category?: string };
+  const settings = (room.settings ?? {}) as Partial<RoomSettings>;
   const topic = secret?.topic ?? settings.category ?? "Mixed";
 
   async function handleLeave() {
@@ -98,7 +119,7 @@ export default function OnlinePlayPage({ params }: { params: Promise<{ code: str
             return (
               <div key={p.id} className="flex min-w-[64px] flex-col items-center gap-2">
                 <div className="relative">
-                  <Avatar name={p.display_name} color={tokenColor(p.user_id)} size="md" you={p.user_id === user.id} />
+                  <Avatar name={p.display_name} color={tokenColor(getPlayerIdentity(p))} size="md" you={p.user_id === user.id} />
                   {room.phase === "clue_phase" && hasClue && (
                     <span className="token-badge" style={{ color: "var(--emerald)" }}>
                       <Icon name="check" size={11} stroke={3} />
@@ -115,7 +136,7 @@ export default function OnlinePlayPage({ params }: { params: Promise<{ code: str
                   className="max-w-[72px] truncate text-[11.5px] font-semibold"
                   style={{ fontFamily: "var(--font-head)", color: p.user_id === user.id ? "var(--brand-2)" : "var(--muted)" }}
                 >
-                  {p.display_name}
+                  {p.is_bot ? `${p.display_name} AI` : p.display_name}
                 </span>
               </div>
             );
@@ -407,7 +428,7 @@ function OnlineCluePhase({
         <div className="flex flex-col gap-2">
           {players.map((p) => {
             const clueText = p.clue_text;
-            const isTurn = p.user_id === currentPlayer?.user_id;
+            const isTurn = currentPlayer ? getPlayerIdentity(p) === getPlayerIdentity(currentPlayer) : false;
             return (
               <div
                 key={p.id}
@@ -417,15 +438,15 @@ function OnlineCluePhase({
                   background: isTurn && !clueText ? "color-mix(in oklab, var(--aqua) 10%, transparent)" : "rgba(255,255,255,.015)",
                 }}
               >
-                <Avatar name={p.display_name} color={tokenColor(p.user_id)} size="sm" you={p.user_id === userId} />
+                <Avatar name={p.display_name} color={tokenColor(getPlayerIdentity(p))} size="sm" you={p.user_id === userId} />
                 <span className="text-[14px] font-semibold" style={{ fontFamily: "var(--font-head)", color: p.user_id === userId ? "var(--brand-2)" : "var(--text)" }}>
-                  {p.display_name}
+                  {p.display_name}{p.is_bot ? " AI" : ""}
                 </span>
                 <span className="flex-1" />
                 {clueText ? (
                   <span className="display text-[20px]" style={{ color: "var(--aqua-2)" }}>{clueText}</span>
                 ) : isTurn ? (
-                  <span className="chip chip-aqua" style={{ fontSize: 10 }}>thinking</span>
+                  <span className="chip chip-aqua" style={{ fontSize: 10 }}>{p.is_bot ? "AI thinking" : "thinking"}</span>
                 ) : (
                   <span className="text-[12.5px] text-muted">waiting</span>
                 )}
@@ -482,7 +503,7 @@ function OnlineDiscussionPhase({
   isHost: boolean;
   sendMessage: SendMessage;
 }) {
-  const settings = room.settings as { discussionTimer?: number } | null;
+  const settings = room.settings as Partial<RoomSettings> | null;
   const timerDuration = settings?.discussionTimer ?? 60;
   const [seconds, setSeconds] = useState(timerDuration);
   const advancedRef = useRef(false);
@@ -521,7 +542,7 @@ function OnlineDiscussionPhase({
         <div className="flex flex-col gap-2">
           {players.map((p) => (
             <div key={p.id} className="flex items-center gap-3 rounded-lg px-3.5 py-2.5" style={{ border: "1px solid var(--border)", background: "rgba(255,255,255,.015)" }}>
-              <Avatar name={p.display_name} color={tokenColor(p.user_id)} size="sm" />
+              <Avatar name={p.display_name} color={tokenColor(getPlayerIdentity(p))} size="sm" />
               <span className="text-[14px] font-semibold" style={{ fontFamily: "var(--font-head)" }}>{p.display_name}</span>
               <span className="flex-1" />
               <span className="display text-[20px]" style={{ color: "var(--aqua-2)" }}>{p.clue_text || "-"}</span>
@@ -556,7 +577,8 @@ function OnlineVotingPhase({
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [hasVoted, setHasVoted] = useState(false);
-  const [seconds, setSeconds] = useState(30);
+  const voteSettings = (room.settings ?? {}) as Partial<RoomSettings>;
+  const [seconds, setSeconds] = useState(voteSettings.votingTimer ?? 30);
   const resolveTriggered = useRef(false);
 
   useEffect(() => {
@@ -610,7 +632,7 @@ function OnlineVotingPhase({
     toast.success("Vote submitted");
   }
 
-  const otherPlayers = players.filter((p) => p.user_id !== userId);
+  const otherPlayers = players.filter((p) => getPlayerIdentity(p) !== userId);
 
   if (hasVoted) {
     const timeUp = seconds <= 0;
@@ -643,20 +665,21 @@ function OnlineVotingPhase({
 
         <div className="grid grid-cols-[repeat(auto-fill,minmax(130px,1fr))] gap-3">
           {otherPlayers.map((p) => {
-            const picked = selectedId === p.user_id;
+            const playerId = getPlayerIdentity(p);
+            const picked = selectedId === playerId;
             return (
               <button
                 key={p.id}
                 type="button"
-                onClick={() => setSelectedId(p.user_id)}
+                onClick={() => setSelectedId(playerId)}
                 className="vote-card"
                 style={{
                   borderColor: picked ? "var(--heat)" : "var(--border)",
                   background: picked ? "color-mix(in oklab, var(--heat) 12%, transparent)" : "var(--surface)",
                 }}
               >
-                <Avatar name={p.display_name} color={tokenColor(p.user_id)} size="md" />
-                <span className="text-[14px] font-bold" style={{ fontFamily: "var(--font-head)" }}>{p.display_name}</span>
+                <Avatar name={p.display_name} color={tokenColor(playerId)} size="md" />
+                <span className="text-[14px] font-bold" style={{ fontFamily: "var(--font-head)" }}>{p.display_name}{p.is_bot ? " AI" : ""}</span>
                 {picked && <span className="chip chip-heat absolute right-2 top-2" style={{ fontSize: 9 }}>Your vote</span>}
               </button>
             );
@@ -664,7 +687,7 @@ function OnlineVotingPhase({
         </div>
 
         <Button variant="heat" size="lg" className="w-full" disabled={!selectedId || seconds <= 0} onClick={handleVote} isLoading={submitting}>
-          <Icon name="target" size={18} /> {seconds <= 0 ? "Tallying votes" : selectedId ? `Lock vote for ${players.find((p) => p.user_id === selectedId)?.display_name}` : "Pick someone to vote"}
+          <Icon name="target" size={18} /> {seconds <= 0 ? "Tallying votes" : selectedId ? `Lock vote for ${players.find((p) => getPlayerIdentity(p) === selectedId)?.display_name}` : "Pick someone to vote"}
         </Button>
       </div>
     </Stage>
@@ -689,7 +712,7 @@ function OnlineResultsPhase({
 }) {
   const supabase = createClient();
   const [round, setRound] = useState<GameRound | null>(null);
-  const [votes, setVotes] = useState<{ voter_id: string; voted_for_id: string }[]>([]);
+  const [votes, setVotes] = useState<Pick<Database["public"]["Tables"]["votes"]["Row"], "voter_id" | "voter_bot_id" | "voted_for_id" | "voted_for_bot_id">[]>([]);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
@@ -698,7 +721,7 @@ function OnlineResultsPhase({
       if (!room.current_round_id) return;
       const { data: roundData } = await supabase.from("game_rounds").select("*").eq("id", room.current_round_id).single();
       setRound(roundData);
-      const { data: voteData } = await supabase.from("votes").select("voter_id, voted_for_id").eq("round_id", room.current_round_id);
+      const { data: voteData } = await supabase.from("votes").select("voter_id, voter_bot_id, voted_for_id, voted_for_bot_id").eq("round_id", room.current_round_id);
       setVotes(voteData ?? []);
       setLoading(false);
     }
@@ -735,15 +758,24 @@ function OnlineResultsPhase({
   }
 
   const impostorIdSet = new Set(
-    [round.impostor_id, round.second_impostor_id].filter((id): id is string => typeof id === "string" && id.length > 0),
+    [
+      round.impostor_id,
+      round.second_impostor_id,
+      round.impostor_bot_id,
+      round.second_impostor_bot_id,
+    ].filter((id): id is string => typeof id === "string" && id.length > 0),
   );
-  const impostors = players.filter((p) => impostorIdSet.has(p.user_id));
+  const impostors = players.filter((p) => impostorIdSet.has(getPlayerIdentity(p)));
   const groupWon = round.winner === "group";
 
   const voteCounts: Record<string, number> = {};
-  for (const v of votes) voteCounts[v.voted_for_id] = (voteCounts[v.voted_for_id] || 0) + 1;
+  for (const v of votes) {
+    const targetId = getVoteTargetIdentity(v);
+    if (targetId) voteCounts[targetId] = (voteCounts[targetId] || 0) + 1;
+  }
   const myVote = votes.find((v) => v.voter_id === userId);
-  const myVotedName = myVote ? players.find((p) => p.user_id === myVote.voted_for_id)?.display_name : null;
+  const myVotedIdentity = myVote ? getVoteTargetIdentity(myVote) : null;
+  const myVotedName = myVotedIdentity ? players.find((p) => getPlayerIdentity(p) === myVotedIdentity)?.display_name : null;
 
   return (
     <Stage>
@@ -782,8 +814,9 @@ function OnlineResultsPhase({
           <p className="kicker mb-3 text-center">Votes</p>
           <div className="flex flex-col gap-2">
             {players.map((p) => {
-              const isImp = impostorIdSet.has(p.user_id);
-              const count = voteCounts[p.user_id] || 0;
+              const identity = getPlayerIdentity(p);
+              const isImp = impostorIdSet.has(identity);
+              const count = voteCounts[identity] || 0;
               return (
                 <div
                   key={p.id}
@@ -793,8 +826,8 @@ function OnlineResultsPhase({
                     background: isImp ? "color-mix(in oklab, var(--heat) 10%, transparent)" : "rgba(255,255,255,.015)",
                   }}
                 >
-                  <Avatar name={p.display_name} color={tokenColor(p.user_id)} size="sm" role={isImp ? "impostor" : undefined} />
-                  <span className="text-[14px] font-semibold" style={{ fontFamily: "var(--font-head)" }}>{p.display_name}</span>
+                  <Avatar name={p.display_name} color={tokenColor(identity)} size="sm" role={isImp ? "impostor" : undefined} />
+                  <span className="text-[14px] font-semibold" style={{ fontFamily: "var(--font-head)" }}>{p.display_name}{p.is_bot ? " AI" : ""}</span>
                   <span className="flex-1" />
                   <span className="text-[13px] text-muted">{count} vote{count !== 1 ? "s" : ""}</span>
                   {isImp && <span className="chip chip-heat" style={{ fontSize: 9 }}>Impostor</span>}
