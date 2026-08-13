@@ -418,6 +418,17 @@ export default function RoomsPage() {
         <RoomsSpriteImage />
       </section>
 
+      <section className="mt-5 overflow-hidden rounded-lg bg-black">
+        <Image
+          src="/assets/topic-vault-cards.png"
+          alt="Topic vault cards for online tables"
+          width={1600}
+          height={1200}
+          sizes="(min-width: 1024px) 62vw, 92vw"
+          className="mx-auto max-h-[360px] w-full object-contain object-top"
+        />
+      </section>
+
       <GameCard accent="cyan" className="mb-6 mt-7 p-4 sm:p-5">
         <div className="grid gap-4 lg:grid-cols-[1fr_auto] lg:items-center">
           <div>
@@ -786,30 +797,18 @@ function getRoomAction({
 
 function ReadyTablesPanel({ onCreate }: { onCreate: () => void }) {
   return (
-    <GameCard accent="pink" className="overflow-hidden p-4 sm:p-5">
-      <div className="grid gap-5 lg:grid-cols-[1fr_280px] lg:items-center">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <div className="mb-2 flex flex-wrap items-center gap-2">
-              <StatusBadge status="open">Open tables</StatusBadge>
-              <StatusBadge status="live">refreshing live</StatusBadge>
-            </div>
-            <h2 className="text-xl font-bold">A few tables are ready</h2>
-            <p className="mt-1 text-sm text-muted">they show in the list above as real rooms with seats already filled</p>
+    <GameCard accent="pink" className="overflow-hidden p-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <div className="mb-2 flex flex-wrap items-center gap-2">
+            <StatusBadge status="open">Open tables</StatusBadge>
+            <StatusBadge status="live">refreshing live</StatusBadge>
           </div>
-          <Button variant="secondary" className="w-full sm:w-auto" onClick={onCreate}>
-            <Icon name="plus" size={16} /> Create room
-          </Button>
+          <h2 className="text-xl font-bold">Tables refresh here</h2>
         </div>
-        <div className="relative min-h-[180px] overflow-hidden rounded-lg">
-          <Image
-            src="/assets/topic-vault-cards.png"
-            alt="Topic vault cards for online tables"
-            fill
-            sizes="(min-width: 1024px) 280px, 90vw"
-            className="object-cover"
-          />
-        </div>
+        <Button variant="secondary" className="w-full sm:w-auto" onClick={onCreate}>
+          <Icon name="plus" size={16} /> Create room
+        </Button>
       </div>
     </GameCard>
   );

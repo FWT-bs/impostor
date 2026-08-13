@@ -838,10 +838,10 @@ export function HowItWorksStrip({
   const steps =
     mode === "setup"
       ? [
-          { title: "Set the table", text: "Add seats and pick a topic pack", color: "var(--brand)" },
-          { title: "Deal roles", text: "Pass the device clockwise", color: "var(--amber)" },
-          { title: "Spot the bluff", text: "Share clues, save the word", color: "var(--aqua)" },
-          { title: "Chaos is good", text: "Laugh, guess, play again", color: "var(--heat)" },
+          { title: "Set table", text: "Seats and pack", color: "var(--brand)" },
+          { title: "Deal roles", text: "Pass the device", color: "var(--amber)" },
+          { title: "Clues", text: "One word each", color: "var(--aqua)" },
+          { title: "Vote", text: "Find the bluff", color: "var(--heat)" },
         ]
       : [
           { title: "Reveal", text: "Get a secret word", color: "var(--aqua)" },
