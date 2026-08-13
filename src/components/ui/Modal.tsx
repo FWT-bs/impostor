@@ -48,7 +48,7 @@ export function Modal({
       {open ? (
         <motion.div
           key="impostor-modal"
-          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto p-4 pt-6 sm:pt-10"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
@@ -65,7 +65,7 @@ export function Modal({
             aria-modal="true"
             aria-labelledby={titleId}
             className={cn(
-              "relative z-10 w-full max-w-lg rounded-lg border border-border bg-card p-6",
+              "relative z-10 my-auto w-full max-w-lg rounded-lg border border-border bg-card p-5 sm:p-6",
               className,
             )}
             initial={{ opacity: 0, scale: 0.9, y: 20 }}

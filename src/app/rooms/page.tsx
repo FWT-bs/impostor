@@ -7,10 +7,8 @@ import {
   GameCard,
   PageHeader,
   RoomCard,
-  StatusBadge,
   TopicPackGrid,
 } from "@/components/game";
-import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Modal } from "@/components/ui/Modal";
@@ -83,6 +81,7 @@ export default function RoomsPage() {
   const [openRooms, setOpenRooms] = useState<RoomRow[]>([]);
   const [liveRooms, setLiveRooms] = useState<RoomRow[]>([]);
   const [loadingRooms, setLoadingRooms] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [listError, setListError] = useState<string | null>(null);
   const [joinCode, setJoinCode] = useState("");
   const [joining, setJoining] = useState(false);
@@ -275,6 +274,16 @@ export default function RoomsPage() {
     setPreferredDisplayName(value);
   }
 
+  async function handleManualRefresh() {
+    setRefreshing(true);
+    setLoadingRooms(true);
+    try {
+      await refreshAllListings({ silent: false });
+    } finally {
+      setRefreshing(false);
+    }
+  }
+
   async function handleJoin(code: string) {
     const cleanCode = code.trim().toUpperCase();
     if (authLoading) return;
@@ -299,7 +308,8 @@ export default function RoomsPage() {
       }
       setPreferredDisplayName(name);
       void refreshAllListings({ silent: true });
-      router.push(`/rooms/${cleanCode}`);
+      const nextCode = result.data?.room?.code ?? cleanCode;
+      router.push(`/rooms/${nextCode}`);
       router.refresh();
     } finally {
       setJoining(false);
@@ -394,23 +404,15 @@ export default function RoomsPage() {
         <DoodleMark kind="eye" className="left-[37%] top-36 hidden lg:block" color="var(--brand)" size={46} />
         <div>
           <PageHeader
-            eyebrow={<><Icon name="globe" size={15} /> Live multiplayer</>}
             title={
               <>
                 Find a <span className="scribble-word" style={{ "--scribble-color": "var(--heat)" } as CSSProperties}>table</span>
               </>
             }
-            description="Public lobbies, private codes, tables you can rejoin"
             actions={
               <>
                 <Button size="lg" className="w-full sm:w-auto" onClick={() => setShowCreate(true)}>
                   <Icon name="plus" size={20} /> Create room
-                </Button>
-                <Button variant="secondary" size="lg" className="w-full sm:w-auto" onClick={() => {
-                  setLoadingRooms(true);
-                  void refreshAllListings({ silent: false });
-                }}>
-                  <Icon name="refresh" size={20} /> Refresh
                 </Button>
               </>
             }
@@ -420,15 +422,11 @@ export default function RoomsPage() {
       </section>
 
       <GameCard accent="cyan" className="mb-6 mt-7 p-4 sm:p-5">
-        <div className="grid gap-4 lg:grid-cols-[1fr_auto] lg:items-center">
-          <div>
-            <div className="mb-2 flex items-center gap-2">
-              <Badge variant="cyan">Join by code</Badge>
-              <StatusBadge status="live">Synced</StatusBadge>
-            </div>
-            <p className="text-sm text-muted">Four-character invite, straight to the table</p>
+        <div className="grid gap-4 lg:grid-cols-[minmax(0,180px)_minmax(0,1fr)_auto] lg:items-center">
+          <div className="flex items-center">
+            <h2 className="text-xl font-bold">Code</h2>
           </div>
-          <div className="grid gap-2 sm:flex sm:min-w-[360px]">
+          <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto]">
             <Input
               aria-label="Room code"
               placeholder="ABCD"
@@ -438,6 +436,7 @@ export default function RoomsPage() {
               maxLength={4}
             />
             <Button
+              className="sm:min-w-[112px]"
               onClick={() => handleJoin(joinCode)}
               disabled={joinCode.length !== 4 || joining}
               isLoading={joining}
@@ -445,21 +444,26 @@ export default function RoomsPage() {
               Join
             </Button>
           </div>
+          <div className="hidden justify-end lg:flex">
+            <Button variant="secondary" size="sm" onClick={() => void handleManualRefresh()} isLoading={refreshing}>
+              <Icon name="refresh" size={16} /> Refresh
+            </Button>
+          </div>
         </div>
       </GameCard>
 
       <Tabs value={tab} onValueChange={(value) => setTab(value as RoomTab)}>
-        <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <TabsList className="w-full sm:w-auto">
-            <TabsTrigger value="open">Open</TabsTrigger>
-            <TabsTrigger value="live">Live</TabsTrigger>
-            <TabsTrigger value="mine">My rooms</TabsTrigger>
-          </TabsList>
-          <p className="text-sm text-muted">
-            {tab === "open" && "Public lobbies looking for players"}
-            {tab === "live" && "Matches already in round"}
-            {tab === "mine" && "Rooms you're already seated in"}
-          </p>
+        <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+            <TabsList className="w-full sm:w-auto">
+              <TabsTrigger value="open">Open</TabsTrigger>
+              <TabsTrigger value="live">Live</TabsTrigger>
+              <TabsTrigger value="mine">My rooms</TabsTrigger>
+            </TabsList>
+            <Button variant="secondary" size="sm" className="sm:w-auto lg:hidden" onClick={() => void handleManualRefresh()} isLoading={refreshing}>
+              <Icon name="refresh" size={16} /> Refresh
+            </Button>
+          </div>
         </div>
 
         {listError && (
@@ -518,199 +522,164 @@ export default function RoomsPage() {
         </TabsContent>
       </Tabs>
 
-      <Modal open={showCreate} onClose={closeCreateModal} title="Create a room">
-        <div className="space-y-5">
-          <Input
-            label="Display name"
-            value={displayName}
-            onChange={(event) => updateDisplayName(event.target.value)}
-            placeholder="Your name at the table"
-          />
-
-          <div>
-            <label className="mb-2 block text-sm font-semibold text-foreground">Room type</label>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <RoomTypeButton
-                selected={!isPrivate}
-                icon="globe"
-                title="Public"
-                text="Visible in Open rooms"
-                onClick={() => setIsPrivate(false)}
-              />
-              <RoomTypeButton
-                selected={isPrivate}
-                icon="lock"
-                title="Private"
-                text="Join by code only"
-                onClick={() => setIsPrivate(true)}
-              />
-            </div>
-          </div>
-
-          <div className="rounded-lg border border-border bg-background/45 p-4">
-            <label className="mb-3 block text-sm font-semibold text-foreground">
-              Max players ({createMaxPlayers})
-            </label>
-            <div className="flex items-center justify-center gap-4">
-              <Button
-                variant="secondary"
-                size="sm"
-                type="button"
-                onClick={() => setCreateMaxPlayers((count) => Math.max(MIN_ROOM_PLAYERS, count - 1))}
-                disabled={createMaxPlayers <= MIN_ROOM_PLAYERS}
-                className="size-10 rounded-lg p-0"
-              >
-                <Icon name="minus" size={16} />
-              </Button>
-              <span className="display min-w-[2ch] text-center text-4xl text-brand-2">
-                {createMaxPlayers}
-              </span>
-              <Button
-                variant="secondary"
-                size="sm"
-                type="button"
-                onClick={() => setCreateMaxPlayers((count) => Math.min(MAX_ROOM_PLAYERS, count + 1))}
-                disabled={createMaxPlayers >= MAX_ROOM_PLAYERS}
-                className="size-10 rounded-lg p-0"
-              >
-                <Icon name="plus" size={16} />
-              </Button>
-            </div>
-          </div>
-
-          <Input
-            label="Discussion timer (seconds)"
-            type="number"
-            min={30}
-            max={300}
-            value={createDiscussionTimer}
-            onChange={(event) => {
-              const value = Number(event.target.value);
-              if (Number.isFinite(value)) {
-                setCreateDiscussionTimer(Math.min(300, Math.max(30, value)));
-              }
-            }}
-            className="bg-background/65"
-          />
-
-          <Input
-            label="Voting timer (seconds)"
-            type="number"
-            min={15}
-            max={180}
-            value={createVotingTimer}
-            onChange={(event) => {
-              const value = Number(event.target.value);
-              if (Number.isFinite(value)) {
-                setCreateVotingTimer(Math.min(180, Math.max(15, value)));
-              }
-            }}
-            className="bg-background/65"
-          />
-
-          <div>
-            <label className="mb-2 block text-sm font-semibold text-foreground">Impostors</label>
-            <div className="grid grid-cols-3 gap-2 sm:gap-3">
-              <SettingOptionButton
-                selected={createImpostorCount === "auto"}
-                icon="dice"
-                title="Auto"
-                text="scales with seats"
-                onClick={() => setCreateImpostorCount("auto")}
-              />
-              <SettingOptionButton
-                selected={createImpostorCount === 1}
-                icon="mask"
-                title="One"
-                text="classic table"
-                onClick={() => setCreateImpostorCount(1)}
-              />
-              <SettingOptionButton
-                selected={createImpostorCount === 2}
-                icon="eye"
-                title="Two"
-                text="more suspicion"
-                onClick={() => setCreateImpostorCount(2)}
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="mb-2 block text-sm font-semibold text-foreground">Clue style</label>
-            <div className="grid grid-cols-3 gap-2 sm:gap-3">
-              <SettingOptionButton
-                selected={createClueMode === "classic"}
-                icon="chat"
-                title="Classic"
-                text="normal hints"
-                onClick={() => setCreateClueMode("classic")}
-              />
-              <SettingOptionButton
-                selected={createClueMode === "short"}
-                icon="bolt"
-                title="Short"
-                text="tight hints"
-                onClick={() => setCreateClueMode("short")}
-              />
-              <SettingOptionButton
-                selected={createClueMode === "single"}
-                icon="lock"
-                title="One word"
-                text="no rambling"
-                onClick={() => setCreateClueMode("single")}
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="mb-2 block text-sm font-semibold text-foreground">Table mood</label>
-            <div className="grid grid-cols-3 gap-2 sm:gap-3">
-              <SettingOptionButton
-                selected={createBotDifficulty === "easy"}
-                icon="shield"
-                title="Soft"
-                text="safer clues"
-                onClick={() => setCreateBotDifficulty("easy")}
-              />
-              <SettingOptionButton
-                selected={createBotDifficulty === "normal"}
-                icon="eye"
-                title="Quiet"
-                text="balanced"
-                onClick={() => setCreateBotDifficulty("normal")}
-              />
-              <SettingOptionButton
-                selected={createBotDifficulty === "tricky"}
-                icon="mask"
-                title="Shifty"
-                text="less obvious"
-                onClick={() => setCreateBotDifficulty("tricky")}
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="mb-2 block text-sm font-semibold text-foreground">
-              Topic pack <span className="font-normal text-muted">(optional)</span>
-            </label>
-            <TopicPackGrid
-              packs={categories}
-              premiumPacks={premiumCategories}
-              selected={createCategory}
-              lockedWhenPremium={!hasPremium}
-              onSelect={handleCreateCategoryClick}
-              className="max-h-48 overflow-y-auto pr-1"
+      <Modal open={showCreate} onClose={closeCreateModal} title="Create a room" className="max-h-[88vh] max-w-[1180px] overflow-y-auto">
+        <div className="grid gap-6 xl:grid-cols-[minmax(0,1.1fr)_minmax(440px,0.9fr)]">
+          <div className="space-y-5">
+            <Input
+              label="Display name"
+              value={displayName}
+              onChange={(event) => updateDisplayName(event.target.value)}
+              placeholder="Your name at the table"
             />
+
+            <SectionBlock title="Room type">
+              <div className="grid gap-3 sm:grid-cols-2">
+                <RoomTypeButton
+                  selected={!isPrivate}
+                  icon="globe"
+                  title="Public"
+                  text="Visible in Open rooms"
+                  onClick={() => setIsPrivate(false)}
+                />
+                <RoomTypeButton
+                  selected={isPrivate}
+                  icon="lock"
+                  title="Private"
+                  text="Join by code only"
+                  onClick={() => setIsPrivate(true)}
+                />
+              </div>
+            </SectionBlock>
+
+            <SectionBlock title="Topic pack">
+              <TopicPackGrid
+                packs={categories}
+                premiumPacks={premiumCategories}
+                selected={createCategory}
+                lockedWhenPremium={!hasPremium}
+                onSelect={handleCreateCategoryClick}
+                className="max-h-60 overflow-y-auto pr-1"
+              />
+            </SectionBlock>
+
+            <Button
+              size="lg"
+              className="w-full"
+              onClick={handleCreate}
+              isLoading={creating}
+            >
+              Create {isPrivate ? "private" : "public"} room
+            </Button>
           </div>
 
-          <Button
-            size="lg"
-            className="w-full"
-            onClick={handleCreate}
-            isLoading={creating}
-          >
-            Create {isPrivate ? "private" : "public"} room
-          </Button>
+          <div className="space-y-5 xl:sticky xl:top-0">
+            <div className="grid gap-3 md:grid-cols-3">
+              <CounterSetting
+                label="Players"
+                value={createMaxPlayers}
+                min={MIN_ROOM_PLAYERS}
+                max={MAX_ROOM_PLAYERS}
+                onDecrement={() => setCreateMaxPlayers((count) => Math.max(MIN_ROOM_PLAYERS, count - 1))}
+                onIncrement={() => setCreateMaxPlayers((count) => Math.min(MAX_ROOM_PLAYERS, count + 1))}
+              />
+              <CounterSetting
+                label="Discuss"
+                value={createDiscussionTimer}
+                suffix="s"
+                min={30}
+                max={300}
+                onDecrement={() => setCreateDiscussionTimer((value) => Math.max(30, value - 15))}
+                onIncrement={() => setCreateDiscussionTimer((value) => Math.min(300, value + 15))}
+              />
+              <CounterSetting
+                label="Vote"
+                value={createVotingTimer}
+                suffix="s"
+                min={15}
+                max={180}
+                onDecrement={() => setCreateVotingTimer((value) => Math.max(15, value - 5))}
+                onIncrement={() => setCreateVotingTimer((value) => Math.min(180, value + 5))}
+              />
+            </div>
+
+            <SectionBlock title="Impostors">
+              <div className="grid gap-2 md:grid-cols-3 sm:gap-3">
+                <SettingOptionButton
+                  selected={createImpostorCount === "auto"}
+                  icon="dice"
+                  title="Auto"
+                  text="scales with seats"
+                  onClick={() => setCreateImpostorCount("auto")}
+                />
+                <SettingOptionButton
+                  selected={createImpostorCount === 1}
+                  icon="mask"
+                  title="One"
+                  text="classic table"
+                  onClick={() => setCreateImpostorCount(1)}
+                />
+                <SettingOptionButton
+                  selected={createImpostorCount === 2}
+                  icon="eye"
+                  title="Two"
+                  text="more suspicion"
+                  onClick={() => setCreateImpostorCount(2)}
+                />
+              </div>
+            </SectionBlock>
+
+            <SectionBlock title="Clue style">
+              <div className="grid gap-2 md:grid-cols-3 sm:gap-3">
+                <SettingOptionButton
+                  selected={createClueMode === "classic"}
+                  icon="chat"
+                  title="Classic"
+                  text="normal hints"
+                  onClick={() => setCreateClueMode("classic")}
+                />
+                <SettingOptionButton
+                  selected={createClueMode === "short"}
+                  icon="bolt"
+                  title="Short"
+                  text="tight hints"
+                  onClick={() => setCreateClueMode("short")}
+                />
+                <SettingOptionButton
+                  selected={createClueMode === "single"}
+                  icon="lock"
+                  title="One word"
+                  text="no rambling"
+                  onClick={() => setCreateClueMode("single")}
+                />
+              </div>
+            </SectionBlock>
+
+            <SectionBlock title="Table mood">
+              <div className="grid gap-2 md:grid-cols-3 sm:gap-3">
+                <SettingOptionButton
+                  selected={createBotDifficulty === "easy"}
+                  icon="shield"
+                  title="Soft"
+                  text="safer clues"
+                  onClick={() => setCreateBotDifficulty("easy")}
+                />
+                <SettingOptionButton
+                  selected={createBotDifficulty === "normal"}
+                  icon="eye"
+                  title="Quiet"
+                  text="balanced"
+                  onClick={() => setCreateBotDifficulty("normal")}
+                />
+                <SettingOptionButton
+                  selected={createBotDifficulty === "tricky"}
+                  icon="mask"
+                  title="Shifty"
+                  text="less obvious"
+                  onClick={() => setCreateBotDifficulty("tricky")}
+                />
+              </div>
+            </SectionBlock>
+          </div>
         </div>
       </Modal>
 
@@ -812,11 +781,9 @@ function getRoomAction({
 
 function ReadyTablesPanel({ onCreate }: { onCreate: () => void }) {
   return (
-    <GameCard accent="pink" className="overflow-hidden p-4">
+    <GameCard accent="pink" className="overflow-hidden p-4 sm:p-5">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h2 className="text-xl font-bold">Tables refresh here</h2>
-        </div>
+        <h2 className="text-xl font-bold">Need a fresh table?</h2>
         <Button variant="secondary" className="w-full sm:w-auto" onClick={onCreate}>
           <Icon name="plus" size={16} /> Create room
         </Button>
@@ -869,7 +836,6 @@ function LoadingRooms() {
         </svg>
       </div>
       <h2 className="text-xl font-bold">Loading rooms</h2>
-      <p className="mt-2 text-sm text-muted">Fresh seats from the table</p>
     </GameCard>
   );
 }
@@ -923,7 +889,7 @@ function SettingOptionButton({
       type="button"
       onClick={onClick}
       className={cn(
-        "rounded-lg border p-2.5 text-left transition-colors cursor-pointer sm:p-3",
+        "rounded-lg border p-3 text-left transition-colors cursor-pointer sm:p-3",
         selected ? "border-brand/50 bg-brand/14" : "border-border bg-card/65 hover:border-brand/35",
       )}
       aria-pressed={selected}
@@ -934,5 +900,70 @@ function SettingOptionButton({
       <p className="text-sm font-bold text-foreground">{title}</p>
       <p className="mt-0.5 text-[11px] leading-4 text-muted sm:text-xs">{text}</p>
     </button>
+  );
+}
+
+function SectionBlock({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div>
+      <label className="mb-2 block text-sm font-semibold text-foreground">{title}</label>
+      {children}
+    </div>
+  );
+}
+
+function CounterSetting({
+  label,
+  value,
+  suffix,
+  min,
+  max,
+  onDecrement,
+  onIncrement,
+}: {
+  label: string;
+  value: number;
+  suffix?: string;
+  min: number;
+  max: number;
+  onDecrement: () => void;
+  onIncrement: () => void;
+}) {
+  return (
+    <div className="rounded-lg border border-border bg-background/45 p-4">
+      <label className="mb-3 block text-sm font-semibold text-foreground">{label}</label>
+      <div className="flex items-center justify-center gap-3">
+        <Button
+          variant="secondary"
+          size="sm"
+          type="button"
+          onClick={onDecrement}
+          disabled={value <= min}
+          className="size-10 rounded-lg p-0"
+        >
+          <Icon name="minus" size={16} />
+        </Button>
+        <span className="display min-w-[2ch] text-center text-4xl text-brand-2">
+          {value}
+          {suffix ? <span className="ml-1 text-2xl">{suffix}</span> : null}
+        </span>
+        <Button
+          variant="secondary"
+          size="sm"
+          type="button"
+          onClick={onIncrement}
+          disabled={value >= max}
+          className="size-10 rounded-lg p-0"
+        >
+          <Icon name="plus" size={16} />
+        </Button>
+      </div>
+    </div>
   );
 }

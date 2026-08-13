@@ -1,5 +1,5 @@
 import { createAdminClient } from "@/lib/supabase/admin";
-import { AI_TABLES } from "@/lib/bots/tables";
+import { AI_TABLES, getAiTable } from "@/lib/bots/tables";
 import { getActiveRoomCutoffIso } from "@/lib/rooms/stale";
 import type { Database } from "@/lib/supabase/types";
 
@@ -84,6 +84,119 @@ async function ensureBotHost(admin: AdminClient): Promise<string> {
   );
 
   return data.user.id;
+}
+
+export async function resetSeededBotRoom(
+  admin: AdminClient,
+  roomId: string,
+  tableId: string,
+) {
+  const table = getAiTable(tableId);
+  if (!table) return;
+
+  const botHostId = await ensureBotHost(admin);
+  const bots = await ensureBotProfiles(admin, table.bots);
+  if (bots.length < table.bots.length) {
+    throw new Error(`Could not restore seeded room ${tableId}`);
+  }
+
+  const { data: room } = await admin
+    .from("rooms")
+    .select("id, current_round_id")
+    .eq("id", roomId)
+    .returns<Pick<Room, "id" | "current_round_id">[]>()
+    .maybeSingle();
+
+  if (!room) return;
+
+  if (room.current_round_id) {
+    await Promise.all([
+      admin.from("votes").delete().eq("round_id", room.current_round_id),
+      admin.from("player_secrets").delete().eq("round_id", room.current_round_id),
+      admin.from("game_rounds").delete().eq("id", room.current_round_id),
+    ]);
+  }
+
+  const desiredBotIds = new Set(bots.map((bot) => bot.id));
+  const { data: players } = await admin
+    .from("room_players")
+    .select("id, bot_id, is_bot")
+    .eq("room_id", roomId)
+    .returns<Pick<RoomPlayer, "id" | "bot_id" | "is_bot">[]>();
+
+  const staleBotRowIds = (players ?? [])
+    .filter((player) => player.is_bot && player.bot_id && !desiredBotIds.has(player.bot_id))
+    .map((player) => player.id);
+
+  if (staleBotRowIds.length > 0) {
+    await admin.from("room_players").delete().in("id", staleBotRowIds);
+  }
+
+  const existingBotIds = new Set(
+    (players ?? [])
+      .filter((player) => player.is_bot && player.bot_id)
+      .map((player) => player.bot_id as string),
+  );
+
+  const missingBots = bots.filter((bot) => !existingBotIds.has(bot.id));
+  if (missingBots.length > 0) {
+    await admin.from("room_players").insert(
+      missingBots.map((bot, index) => ({
+        room_id: roomId,
+        user_id: null,
+        bot_id: bot.id,
+        is_bot: true,
+        display_name: bot.name,
+        is_host: false,
+        is_ready: true,
+        player_order: index,
+        clue_text: null,
+      })),
+    );
+  }
+
+  await Promise.all([
+    admin.from("room_players").delete().eq("room_id", roomId).eq("is_bot", false),
+    ...bots.map((bot, index) =>
+      admin
+        .from("room_players")
+        .update({
+          display_name: bot.name,
+          is_host: false,
+          is_ready: true,
+          player_order: index,
+          clue_text: null,
+        })
+        .eq("room_id", roomId)
+        .eq("bot_id", bot.id),
+    ),
+    admin
+      .from("rooms")
+      .update({
+        host_id: botHostId,
+        status: "waiting",
+        phase: "lobby",
+        current_turn_index: 0,
+        current_round_id: null,
+        max_players: table.maxPlayers,
+        settings: {
+          ...table.settings,
+          aiTable: true,
+          aiSeeded: true,
+          aiTableId: table.id,
+          tableLabel: table.label,
+        },
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", roomId),
+  ]);
+
+  await admin.from("chat_messages").insert({
+    room_id: roomId,
+    user_id: null,
+    display_name: "Game",
+    text: `${table.label} is open.`,
+  });
 }
 
 function isWaitingSeed(room: SeededRoom | null) {

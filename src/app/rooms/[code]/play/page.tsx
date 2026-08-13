@@ -92,6 +92,10 @@ export default function OnlinePlayPage({ params }: { params: Promise<{ code: str
   const topic = secret?.topic ?? settings.category ?? "Mixed";
 
   async function handleLeave() {
+    await fetch(`/api/rooms/${code}/leave`, {
+      method: "POST",
+      credentials: "include",
+    }).catch(() => {});
     router.push("/rooms");
   }
 
@@ -153,11 +157,10 @@ export default function OnlinePlayPage({ params }: { params: Promise<{ code: str
               loading={secretLoading}
               roomId={room.id}
               isHost={isHost}
-              sendMessage={sendMessage}
             />
           )}
           {room.phase === "clue_phase" && (
-            <OnlineCluePhase code={code} room={room} players={players} userId={user.id} secret={secret} sendMessage={sendMessage} myDisplayName={myPlayer?.display_name ?? ""} />
+            <OnlineCluePhase code={code} room={room} players={players} userId={user.id} secret={secret} myDisplayName={myPlayer?.display_name ?? ""} />
           )}
           {room.phase === "discussion" && (
             <OnlineDiscussionPhase room={room} players={players} isHost={isHost} sendMessage={sendMessage} />
@@ -194,13 +197,11 @@ function OnlineRoleReveal({
   loading,
   roomId,
   isHost,
-  sendMessage,
 }: {
   secret: PlayerSecret | null;
   loading: boolean;
   roomId: string;
   isHost: boolean;
-  sendMessage: SendMessage;
 }) {
   const [revealed, setRevealed] = useState(false);
   const [countdown, setCountdown] = useState<number | null>(null);
@@ -245,11 +246,8 @@ function OnlineRoleReveal({
         .eq("id", roomId)
         .eq("phase", "role_reveal");
     }, delay);
-    if (isHost) {
-      sendMessage("Clue phase starting, prove you know the word", "system", "Game");
-    }
     return () => clearTimeout(t);
-  }, [countdown, isHost, roomId, sendMessage]);
+  }, [countdown, isHost, roomId]);
 
   if (loading) {
     return (
@@ -348,15 +346,12 @@ function OnlineCluePhase({
   players,
   userId,
   secret,
-  sendMessage,
-  myDisplayName,
 }: {
   code: string;
   room: Room;
   players: RoomPlayer[];
   userId: string;
   secret: PlayerSecret | null;
-  sendMessage: SendMessage;
   myDisplayName: string;
 }) {
   const [clue, setClue] = useState("");
@@ -364,18 +359,6 @@ function OnlineCluePhase({
   const currentPlayer = players[room.current_turn_index];
   const isMyTurn = currentPlayer?.user_id === userId;
   const myClue = players.find((p) => p.user_id === userId)?.clue_text;
-  const announcedRef = useRef<number>(-1);
-
-  useEffect(() => {
-    const idx = room.current_turn_index;
-    if (idx === announcedRef.current) return;
-    const player = players[idx];
-    if (!player) return;
-    announcedRef.current = idx;
-    if (player.user_id === userId) {
-      sendMessage(`${player.display_name} is choosing their hint.`, "system", "Game");
-    }
-  }, [room.current_turn_index, players, userId, sendMessage]);
 
   async function handleSubmitClue() {
     if (!clue.trim()) return;
@@ -392,10 +375,6 @@ function OnlineCluePhase({
     if (!res.ok) {
       toast.error((data as { error?: string }).error || "Failed to submit clue");
       return;
-    }
-    sendMessage(`${myDisplayName} gave the hint "${submittedClue}".`, "system", "Game");
-    if ((data as { allDone?: boolean }).allDone) {
-      sendMessage("All hints in, discussion starting", "system", "Game");
     }
     setClue("");
   }
@@ -419,9 +398,9 @@ function OnlineCluePhase({
                 background: `color-mix(in oklab, ${isImpostor ? "var(--amber)" : "var(--aqua)"} 8%, transparent)`,
               }}
             >
-              <div className="kicker" style={{ fontSize: 9, marginBottom: 5, whiteSpace: "nowrap", color: isImpostor ? "var(--amber)" : "var(--aqua-2)" }}>
-                {isImpostor ? "Category" : "Word"}
-              </div>
+            <div className="kicker" style={{ fontSize: 9, marginBottom: 5, whiteSpace: "nowrap", color: isImpostor ? "var(--amber)" : "var(--aqua-2)" }}>
+              {isImpostor ? "Category" : "Word"}
+            </div>
               <div className="display" style={{ fontSize: 22, color: "var(--text)", lineHeight: 1 }}>{reminder}</div>
             </div>
           )}
@@ -461,7 +440,7 @@ function OnlineCluePhase({
 
         {isMyTurn && !myClue ? (
           <div className="answer-bar pop-in">
-            <p className="kicker mb-2" style={{ color: "var(--aqua-2)" }}>Your turn: type your clue</p>
+            <p className="kicker mb-2" style={{ color: "var(--aqua-2)" }}>Your one-word hint</p>
             <div className="flex gap-2">
               <input
                 autoFocus
@@ -477,12 +456,12 @@ function OnlineCluePhase({
               </Button>
             </div>
           </div>
-        ) : (
-          <div className="flex items-center justify-center gap-2 p-3.5 text-[13.5px] text-muted">
-            {myClue ? (
-              <><Icon name="check" size={15} style={{ color: "var(--emerald)" }} /> Clue locked, waiting for the table</>
+          ) : (
+            <div className="flex items-center justify-center gap-2 p-3.5 text-[13.5px] text-muted">
+              {myClue ? (
+              <><Icon name="check" size={15} style={{ color: "var(--emerald)" }} /> Hint locked, waiting for the table</>
             ) : (
-              <><span className="typing"><i /><i /><i /></span> Waiting for {currentPlayer?.display_name ?? "someone"}</>
+              <><span className="typing"><i /><i /><i /></span> Waiting for {currentPlayer?.display_name ?? "someone"} to type</>
             )}
           </div>
         )}
@@ -888,7 +867,6 @@ function ChatPanel({
         <span className="flex items-center gap-2 text-[14px] font-bold">
           <Icon name="chat" size={16} /> Table chat
         </span>
-        <span className="chip">Room chat</span>
       </div>
 
       <div className="chat-scroll">

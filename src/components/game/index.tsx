@@ -462,6 +462,7 @@ export function PricingCard({
   featured,
   cta,
   badge,
+  children,
 }: {
   name: string;
   price: string;
@@ -470,6 +471,7 @@ export function PricingCard({
   featured?: boolean;
   cta: ReactNode;
   badge?: ReactNode;
+  children?: ReactNode;
 }) {
   return (
     <GameCard
@@ -497,6 +499,7 @@ export function PricingCard({
             </li>
           ))}
         </ul>
+        {children}
         {cta}
       </div>
     </GameCard>

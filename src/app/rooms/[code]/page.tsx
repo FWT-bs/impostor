@@ -6,11 +6,9 @@ import { toast } from "sonner";
 import { Header } from "@/components/layout/Header";
 import { Button } from "@/components/ui/Button";
 import { Avatar } from "@/components/ui/Avatar";
-import { Chip } from "@/components/ui/Chip";
 import { Icon } from "@/components/ui/Icon";
 import { useAuth } from "@/lib/hooks/use-auth";
 import { useRoom } from "@/lib/hooks/use-room";
-import { createClient } from "@/lib/supabase/client";
 import { cn, tokenColor } from "@/lib/utils";
 import { postJson } from "@/lib/api-fetch";
 import { getAuthAvatarColor, getAuthDisplayName } from "@/lib/auth-display-name";
@@ -82,8 +80,10 @@ export default function LobbyPage({ params }: { params: Promise<{ code: string }
 
   async function handleLeave() {
     if (!myPlayer) return;
-    const supabase = createClient();
-    await supabase.from("room_players").delete().eq("id", myPlayer.id);
+    await fetch(`/api/rooms/${code}/leave`, {
+      method: "POST",
+      credentials: "include",
+    });
     router.push("/rooms");
   }
 
@@ -99,6 +99,11 @@ export default function LobbyPage({ params }: { params: Promise<{ code: string }
       });
       if (!result.ok) {
         toast.error(result.errorMessage);
+        return;
+      }
+      const nextCode = result.data?.room?.code;
+      if (nextCode && nextCode !== code.toUpperCase()) {
+        router.replace(`/rooms/${nextCode}`);
         return;
       }
       router.refresh();
@@ -159,129 +164,60 @@ export default function LobbyPage({ params }: { params: Promise<{ code: string }
   return (
     <>
       <Header user={headerUser} />
-      <main className="mx-auto max-w-[980px] px-5 pt-28 pb-20">
-        <div className="mb-1.5">
-          <Chip icon={room.is_private ? "lock" : "globe"} tone="brand">
-            {room.is_private ? "Private room" : "Public room"}
-          </Chip>
-        </div>
-        <h1 className="mb-7 text-[44px] leading-none">Your room is ready</h1>
-
-        <div className="grid items-start gap-[18px] lg:grid-cols-[1.15fr_1fr]">
-          {/* Left: code and players */}
-          <div className="flex flex-col gap-4">
-            <div className="card card-pad glow-ring text-center">
-              <p className="kicker mb-2.5">Share this code</p>
-              <div
-                className="display"
-                style={{
-                  fontSize: 76,
-                  letterSpacing: 0,
-                  color: "var(--brand-2)",
-                }}
-              >
-                {room.code}
-              </div>
-              <div className="mt-3.5 flex items-center justify-center gap-2">
-                <Button variant="secondary" size="sm" onClick={copyCode}>
-                  <Icon name={copied ? "check" : "copy"} size={15} /> {copied ? "Copied!" : "Copy code"}
-                </Button>
-                <Button variant="secondary" size="sm" onClick={copyLink}>
-                  <Icon name="send" size={15} /> Invite link
-                </Button>
-              </div>
-            </div>
-
-            <div className="card card-pad">
-              <div className="mb-4 flex items-center justify-between">
-                <h3 className="text-base">Players</h3>
-                <span className="chip">{players.length}/{room.max_players} joined</span>
-              </div>
-              <div className="grid grid-cols-[repeat(auto-fill,minmax(80px,1fr))] gap-4">
-                {players.map((p, i) => (
-                  <div key={p.id} className="pop-in flex flex-col items-center gap-2" style={{ animationDelay: `${i * 0.06}s` }}>
-                    <div className="relative">
-                      <Avatar name={p.display_name} color={tokenColor(getPlayerIdentity(p))} size="lg" you={p.user_id === user?.id} />
-                      {isHost && !p.is_host && (
-                        <button
-                          type="button"
-                          onClick={() => handleKick(p.id)}
-                          aria-label={`Kick ${p.display_name}`}
-                          className="token-badge cursor-pointer"
-                          style={{ color: "var(--heat)" }}
-                        >
-                          <Icon name="x" size={11} stroke={2.6} />
-                        </button>
-                      )}
-                    </div>
-                    <span
-                      className="max-w-[80px] truncate text-center text-[13px] font-semibold"
-                      style={{ color: p.user_id === user?.id ? "var(--brand-2)" : "var(--text)" }}
-                    >
-                      {p.display_name}
-                    </span>
-                    {p.is_host ? (
-                      <span className="chip chip-brand" style={{ fontSize: 9.5, padding: "3px 8px" }}>
-                        <Icon name="crown" size={10} /> Host
-                      </span>
-                    ) : p.is_bot ? (
-                      <span className="chip chip-heat" style={{ fontSize: 9.5, padding: "3px 8px" }}>
-                        <Icon name="mask" size={10} /> Ready
-                      </span>
-                    ) : (
-                      <span
-                        className="chip"
-                        style={{
-                          fontSize: 9.5,
-                          padding: "3px 8px",
-                          color: p.is_ready ? "var(--emerald)" : "var(--muted)",
-                          borderColor: p.is_ready ? "color-mix(in oklab, var(--emerald) 40%, transparent)" : "var(--border)",
-                        }}
-                      >
-                        {p.is_ready ? "Ready" : "Waiting"}
-                      </span>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
+      <main className="mx-auto max-w-[1280px] px-5 pb-20 pt-24 sm:pt-28">
+        <div className="mb-5 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+          <div>
+            <h1 className="text-[40px] leading-none sm:text-[52px]">Room {room.code}</h1>
           </div>
+          <div className="flex flex-wrap gap-2">
+            <Button variant="secondary" size="sm" onClick={copyCode}>
+              <Icon name={copied ? "check" : "copy"} size={15} /> {copied ? "Copied" : "Copy code"}
+            </Button>
+            <Button variant="secondary" size="sm" onClick={copyLink}>
+              <Icon name="send" size={15} /> Invite link
+            </Button>
+          </div>
+        </div>
 
-          {/* Right: round info and action */}
-          <div className="flex flex-col gap-4">
+        <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
+          <section className="card card-pad">
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+              <h2 className="text-xl font-bold">Seats</h2>
+              <PlainStat label="Joined" value={`${players.length}/${room.max_players}`} />
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
+              {players.map((p, i) => (
+                <SeatCard
+                  key={p.id}
+                  player={p}
+                  index={i}
+                  isMe={p.user_id === user?.id}
+                  canKick={isHost && !p.is_host}
+                  onKick={() => handleKick(p.id)}
+                />
+              ))}
+              {Array.from({ length: Math.max(0, room.max_players - players.length) }).map((_, index) => (
+                <EmptySeat key={`empty-${index}`} index={players.length + index} />
+              ))}
+            </div>
+          </section>
+
+          <aside className="grid gap-4">
             <div className="card card-pad">
-              <h3 className="mb-[18px] text-base">Round setup</h3>
-              <Setting label="Topic pack">
-                <Chip tone="brand" icon="dice">{settings.category || "Mixed"}</Chip>
-              </Setting>
-              <Setting label="Discussion timer">
-                <Chip icon="clock">{settings.discussionTimer ? `${settings.discussionTimer}s` : "60s"}</Chip>
-              </Setting>
-              <Setting label="Voting timer">
-                <Chip icon="vote">{settings.votingTimer ? `${settings.votingTimer}s` : "30s"}</Chip>
-              </Setting>
-              <Setting label="Impostors">
-                <Chip icon="mask">{describeImpostorCount(settings.impostorCount)}</Chip>
-              </Setting>
-              <Setting label="Clue style">
-                <Chip icon="chat">{settings.clueMode === "single" ? "One word" : settings.clueMode === "short" ? "Short" : "Classic"}</Chip>
-              </Setting>
-              {settings.aiTable && (
-                <Setting label="Table">
-                  <Chip tone="heat" icon="eye">{settings.tableLabel ?? "Ready table"}</Chip>
-                </Setting>
-              )}
-              <Setting label="Max players">
-                <span className="display text-[28px]" style={{ color: "var(--brand-2)" }}>{room.max_players}</span>
-              </Setting>
-              <Setting label="Minimum to start" last>
-                <Chip>3 players</Chip>
-              </Setting>
+              <h2 className="mb-4 text-xl font-bold">Setup</h2>
+              <div className="grid gap-2">
+                <SetupRow icon="dice" label="Topic pack" value={settings.category || "Mixed"} />
+                <SetupRow icon="clock" label="Discussion" value={settings.discussionTimer ? `${settings.discussionTimer}s` : "60s"} />
+                <SetupRow icon="vote" label="Voting" value={settings.votingTimer ? `${settings.votingTimer}s` : "30s"} />
+                <SetupRow icon="mask" label="Impostors" value={describeImpostorCount(settings.impostorCount)} />
+                <SetupRow icon="chat" label="Clues" value={settings.clueMode === "single" ? "One word" : settings.clueMode === "short" ? "Short" : "Classic"} />
+                {settings.aiTable && <SetupRow icon="eye" label="Table" value={settings.tableLabel ?? "Ready table"} tone="heat" />}
+              </div>
             </div>
 
             {!user ? (
               <div className="card card-pad text-center">
-                <p className="mb-4 text-sm text-muted">Sign in to join this room</p>
+                <p className="mb-4 text-sm text-muted">Sign in to join</p>
                 <div className="flex gap-3">
                   <Button variant="secondary" size="lg" className="flex-1" asChild>
                     <Link href={loginWithNext(pathname)}>Sign in</Link>
@@ -300,7 +236,6 @@ export default function LobbyPage({ params }: { params: Promise<{ code: string }
                 <Button variant="primary" size="lg" className="w-full" onClick={handleStart} disabled={!canStartNow} isLoading={starting}>
                   <Icon name="play" size={18} fill /> {canStartNow ? "Start round" : `Need ${playersNeeded} more`}
                 </Button>
-                <p className="text-center text-[12.5px] text-muted">stats only count real players</p>
               </>
             ) : (
               <div className="card card-pad flex items-center justify-between">
@@ -338,29 +273,92 @@ export default function LobbyPage({ params }: { params: Promise<{ code: string }
                 Leave room
               </Button>
             )}
-          </div>
+          </aside>
         </div>
       </main>
     </>
   );
 }
 
-function Setting({ label, children, last }: { label: string; children: React.ReactNode; last?: boolean }) {
+type RoomPlayer = ReturnType<typeof useRoom>["players"][number];
+
+function SeatCard({
+  player,
+  index,
+  isMe,
+  canKick,
+  onKick,
+}: {
+  player: RoomPlayer;
+  index: number;
+  isMe: boolean;
+  canKick: boolean;
+  onKick: () => void;
+}) {
   return (
-    <div
-      style={{
-        paddingBottom: last ? 0 : 16,
-        marginBottom: last ? 0 : 16,
-        borderBottom: last ? "none" : "1px solid var(--border)",
-      }}
-    >
-      <p
-        className="mb-2.5 text-[13px] font-semibold uppercase"
-        style={{ color: "var(--muted)", letterSpacing: ".06em" }}
-      >
-        {label}
-      </p>
-      {children}
+    <div className={cn("flex items-center gap-3 rounded-lg border border-border bg-background/50 p-3", isMe && "border-brand/45 bg-brand/10")}>
+      <Avatar name={player.display_name} color={tokenColor(getPlayerIdentity(player))} size="md" you={isMe} />
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-sm font-bold">{player.display_name}</p>
+        <p className="text-xs text-muted">
+          Seat {index + 1} · {player.is_host ? "host" : player.is_ready || player.is_bot ? "ready" : "waiting"}
+        </p>
+      </div>
+      {canKick && (
+        <button
+          type="button"
+          onClick={onKick}
+          aria-label={`Kick ${player.display_name}`}
+          className="grid size-9 place-items-center rounded-lg border border-border text-heat transition-colors hover:border-heat/45 hover:bg-heat/10"
+        >
+          <Icon name="x" size={15} />
+        </button>
+      )}
+    </div>
+  );
+}
+
+function EmptySeat({ index }: { index: number }) {
+  return (
+    <div className="flex items-center gap-3 rounded-lg border border-dashed border-border bg-background/25 p-3 text-muted">
+      <div className="grid size-10 place-items-center rounded-lg border border-border bg-background/40">
+        <Icon name="plus" size={16} />
+      </div>
+      <div>
+        <p className="text-sm font-bold">Open seat</p>
+        <p className="text-xs">Seat {index + 1}</p>
+      </div>
+    </div>
+  );
+}
+
+function SetupRow({
+  icon,
+  label,
+  value,
+  tone = "brand",
+}: {
+  icon: "dice" | "clock" | "vote" | "mask" | "chat" | "eye";
+  label: string;
+  value: string;
+  tone?: "brand" | "heat";
+}) {
+  return (
+    <div className="grid grid-cols-[34px_minmax(0,1fr)_auto] items-center gap-3 rounded-lg border border-border bg-background/45 px-3 py-2.5">
+      <div className={cn("grid size-8 place-items-center rounded-lg border", tone === "heat" ? "border-heat/35 text-heat-2" : "border-brand/35 text-brand-2")}>
+        <Icon name={icon} size={16} />
+      </div>
+      <span className="text-sm text-muted">{label}</span>
+      <span className="max-w-[150px] truncate text-right text-sm font-bold text-foreground">{value}</span>
+    </div>
+  );
+}
+
+function PlainStat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-lg border border-border bg-background/45 px-3 py-2 text-right">
+      <p className="text-[11px] font-bold uppercase text-muted">{label}</p>
+      <p className="text-lg font-black text-brand-2">{value}</p>
     </div>
   );
 }

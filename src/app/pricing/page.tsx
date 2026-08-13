@@ -3,12 +3,10 @@
 import {
   AppShell,
   DoodleMark,
-  GameCard,
   PageHeader,
   PricingCard,
   TopicPackChip,
 } from "@/components/game";
-import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
 import { loginWithNext } from "@/lib/auth-path";
@@ -112,22 +110,12 @@ export default function PricingPage() {
         <DoodleMark kind="shh" className="left-[34%] top-[45%] hidden lg:block" color="var(--heat)" size={50} rotate={8} />
         <div>
           <PageHeader
-            eyebrow={<><Icon name="crown" size={15} /> Imposter+</>}
             title={
               <>
                 Unlock the <span className="scribble-word" style={{ "--scribble-color": "var(--heat)" } as CSSProperties}>full</span> table
               </>
             }
-            description="The locked topic drawer, more packs, better room priority, a badge for regulars"
-            actions={
-              <Button size="lg" className="w-full sm:w-auto" onClick={isPremium ? handleManageBilling : handleUpgrade} isLoading={loading}>
-                <Icon name="crown" size={20} /> {isPremium ? "Manage Imposter+" : "Join Imposter+"}
-              </Button>
-            }
           />
-          <p className="ml-2 mt-2 max-w-[20ch] rotate-[-3deg] font-display text-xl leading-tight text-brand sm:ml-6 sm:text-2xl">
-            More chaos, better games
-          </p>
         </div>
         <TopicVaultImage />
       </section>
@@ -138,33 +126,12 @@ export default function PricingPage() {
         </div>
       )}
 
-      <section className="mb-8 mt-8">
-        <GameCard accent="pink" className="overflow-hidden p-5 sm:p-6">
-          <div className="relative z-[1] mb-5 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-            <div>
-              <Badge variant="locked"><Icon name="lock" size={13} /> Locked packs</Badge>
-              <h2 className="mt-3 text-2xl font-bold sm:text-3xl">The topic drawer</h2>
-              <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted">
-                Oddly specific packs, argument-friendly categories, built for bluffing
-              </p>
-            </div>
-            <Badge variant="pink">40+ total</Badge>
-          </div>
-          <div className="relative z-[1] flex flex-wrap gap-2">
-            {PREMIUM_PACKS.map((pack) => (
-              <TopicPackChip key={pack} name={pack} locked premium />
-            ))}
-          </div>
-        </GameCard>
-      </section>
-
-      <section className="grid gap-5 lg:grid-cols-2">
+      <section className="mt-8 grid gap-5 lg:grid-cols-2">
         <PricingCard
           name="Free"
           price="$0"
           description="Everything for a table tonight"
           features={FREE_FEATURES}
-          badge={<Badge variant="secondary">Current base game</Badge>}
           cta={
             <Button variant="secondary" size="lg" className="w-full" disabled>
               {isPremium ? "Included" : "Current plan"}
@@ -178,7 +145,6 @@ export default function PricingPage() {
           description="Bigger tables, fresher packs, a little more room to bluff"
           features={PREMIUM_FEATURES}
           featured
-          badge={<Badge variant={isPremium ? "live" : "pink"}>{isPremium ? "Active" : "Unlock"}</Badge>}
           cta={
             isPremium ? (
               <Button variant="secondary" size="lg" className="w-full" onClick={handleManageBilling} isLoading={loading}>
@@ -191,13 +157,24 @@ export default function PricingPage() {
               </Button>
             )
           }
-        />
-      </section>
-
-      <section className="mt-8 grid gap-4 md:grid-cols-3">
-        <MiniUnlock icon="dice" title="Sharper replay value" text="New categories, same simple rules" />
-        <MiniUnlock icon="globe" title="Priority room creation" text="Fresh rooms moving faster when the lobby is busy" />
-        <MiniUnlock icon="trophy" title="Better memory" text="Match history for the next game night" />
+        >
+          <div className="mb-6 rounded-lg border border-heat/30 bg-heat/8 p-4">
+            <div className="mb-3 flex flex-wrap items-end justify-between gap-2">
+              <div>
+                <h4 className="text-lg font-bold">The topic drawer</h4>
+                <p className="mt-1 text-sm leading-6 text-muted">
+                  Oddly specific packs, argument-friendly categories, built for bluffing
+                </p>
+              </div>
+              <span className="text-sm font-black text-heat-2">40+ total</span>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {PREMIUM_PACKS.map((pack) => (
+                <TopicPackChip key={pack} name={pack} locked premium className="bg-background/70" />
+              ))}
+            </div>
+          </div>
+        </PricingCard>
       </section>
     </AppShell>
   );
@@ -218,25 +195,5 @@ function TopicVaultImage() {
         />
       </div>
     </aside>
-  );
-}
-
-function MiniUnlock({
-  icon,
-  title,
-  text,
-}: {
-  icon: "dice" | "globe" | "trophy";
-  title: string;
-  text: string;
-}) {
-  return (
-    <GameCard accent="cyan" className="p-5" hover={false}>
-      <div className="mb-4 grid size-11 place-items-center rounded-lg border border-border bg-background/60 text-aqua-2">
-        <Icon name={icon} size={22} />
-      </div>
-      <h3 className="text-lg font-bold">{title}</h3>
-      <p className="mt-2 text-sm leading-relaxed text-muted">{text}</p>
-    </GameCard>
   );
 }

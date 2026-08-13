@@ -130,13 +130,6 @@ export async function POST(
       .eq("id", room.id)
       .eq("phase", "clue_phase");
 
-    await admin.from("chat_messages").insert({
-      room_id: room.id,
-      user_id: null,
-      display_name: "Game",
-      text: `${currentPlayer.display_name} gave the hint "${clue}"`,
-    });
-
     return NextResponse.json({ acted: true, kind: "clue", allDone });
   }
 
