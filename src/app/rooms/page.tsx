@@ -418,17 +418,6 @@ export default function RoomsPage() {
         <RoomsSpriteImage />
       </section>
 
-      <section className="mt-5 overflow-hidden rounded-lg bg-black">
-        <Image
-          src="/assets/topic-vault-cards.png"
-          alt="Topic vault cards for online tables"
-          width={1600}
-          height={1200}
-          sizes="(min-width: 1024px) 62vw, 92vw"
-          className="mx-auto max-h-[360px] w-full object-contain object-top"
-        />
-      </section>
-
       <GameCard accent="cyan" className="mb-6 mt-7 p-4 sm:p-5">
         <div className="grid gap-4 lg:grid-cols-[1fr_auto] lg:items-center">
           <div>
@@ -732,12 +721,12 @@ function RoomsSpriteImage() {
     <aside className="relative mx-auto w-full max-w-[700px] justify-self-center lg:justify-self-end">
       <div className="art-frame rooms-art-frame">
         <Image
-          src="/assets/online-room-board.png"
-          alt="Open online room board with seats, join code, and topic cards"
-          width={1448}
-          height={1086}
+          src="/assets/topic-vault-cards.png"
+          alt="Topic vault cards for online tables"
+          width={1600}
+          height={1200}
           sizes="(min-width: 1024px) 54vw, 92vw"
-          className="reference-art"
+          className="reference-art max-h-[520px] object-contain object-top"
         />
       </div>
     </aside>

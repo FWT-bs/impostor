@@ -57,7 +57,7 @@ export function Modal({
           <button
             type="button"
             aria-label="Close dialog"
-            className="absolute inset-0 bg-background/80 backdrop-blur-lg"
+            className="absolute inset-0 bg-black/92"
             onClick={onClose}
           />
           <motion.div
