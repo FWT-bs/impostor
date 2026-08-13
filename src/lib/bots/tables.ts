@@ -32,7 +32,7 @@ export const AI_TABLES: AiTable[] = [
   {
     id: "red",
     label: "Red herring",
-    code: "RED?",
+    code: "RUSE",
     topic: "Random pack",
     bots: ["Nova", "Theo"],
     maxPlayers: 7,

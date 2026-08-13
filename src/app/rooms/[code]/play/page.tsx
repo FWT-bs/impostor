@@ -301,8 +301,9 @@ function OnlineRoleReveal({
               No secret word, blend in and survive the vote
             </p>
             <div className="role-chip">
-              <span className="kicker" style={{ fontSize: 10 }}>Your only hint: the topic</span>
+              <span className="kicker" style={{ fontSize: 10 }}>Category</span>
               <span className="display" style={{ fontSize: 34, color: "var(--amber)" }}>{secret?.topic}</span>
+              <span className="text-[12px] font-bold text-muted">Word: ???</span>
             </div>
           </>
         ) : (
@@ -313,9 +314,10 @@ function OnlineRoleReveal({
               You know the word, clue carefully
             </p>
             <div className="role-chip">
-              <span className="kicker" style={{ fontSize: 10 }}>The secret word</span>
+              <span className="kicker" style={{ fontSize: 10 }}>Category</span>
+              <span className="display" style={{ fontSize: 30, color: "var(--amber)" }}>{secret?.topic}</span>
+              <span className="kicker" style={{ fontSize: 10 }}>Word</span>
               <span className="display" style={{ fontSize: 38, color: "var(--text)" }}>{secret?.secret_word}</span>
-              <span className="text-[12px] text-muted">Topic: {secret?.topic}</span>
             </div>
           </>
         )}
@@ -418,7 +420,7 @@ function OnlineCluePhase({
               }}
             >
               <div className="kicker" style={{ fontSize: 9, marginBottom: 5, whiteSpace: "nowrap", color: isImpostor ? "var(--amber)" : "var(--aqua-2)" }}>
-                {isImpostor ? "Your topic" : "Your word"}
+                {isImpostor ? "Category" : "Word"}
               </div>
               <div className="display" style={{ fontSize: 22, color: "var(--text)", lineHeight: 1 }}>{reminder}</div>
             </div>
@@ -800,7 +802,7 @@ function OnlineResultsPhase({
             <span className="display text-[26px]" style={{ color: "var(--aqua-2)" }}>{round.secret_word}</span>
           </div>
           <div className="result-stat">
-            <span className="kicker" style={{ fontSize: 9 }}>Topic</span>
+            <span className="kicker" style={{ fontSize: 9 }}>Category</span>
             <span className="display text-[26px]" style={{ color: "var(--amber)" }}>{round.topic}</span>
           </div>
           <div className="result-stat">

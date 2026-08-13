@@ -12,7 +12,6 @@ import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
 import { Logo } from "@/components/ui/Logo";
-import { AI_TABLES } from "@/lib/bots/tables";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/lib/hooks/use-auth";
 import { getAuthAvatarColor, getAuthDisplayName } from "@/lib/auth-display-name";
@@ -42,12 +41,30 @@ function getRoomTopic(settings: unknown): string {
   return "Random pack";
 }
 
+async function refreshSeededRooms() {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 4500);
+  try {
+    await fetch("/api/rooms/ai/ensure", {
+      method: "POST",
+      cache: "no-store",
+      signal: controller.signal,
+    });
+  } catch (error) {
+    console.warn("ensure rooms:", error);
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
 export default function HomePage() {
   const pathname = usePathname();
   const { user, profile } = useAuth();
   const [liveRooms, setLiveRooms] = useState<LiveRoom[]>([]);
 
   const fetchRooms = useCallback(async () => {
+    await refreshSeededRooms();
+
     const supabase = createClient();
     const { data: open } = await supabase
       .from("rooms")
@@ -95,25 +112,14 @@ export default function HomePage() {
       }
     : null;
 
-  const realRooms = liveRooms.map((room) => ({
+  const rooms = liveRooms.map((room) => ({
     code: room.code,
     players: room.room_players.length,
     max: room.max_players,
     status: room.status,
     topic: getRoomTopic(room.settings),
-    ai: false,
   }));
-  const rooms = realRooms.length > 0
-    ? realRooms
-    : AI_TABLES.slice(0, 3).map((table) => ({
-        code: table.code,
-        players: table.bots.length,
-        max: table.maxPlayers,
-        status: "waiting",
-        topic: table.topic ?? "Random pack",
-        ai: true,
-      }));
-  const playingNow = realRooms.reduce((sum, room) => sum + room.players, 0);
+  const playingNow = rooms.reduce((sum, room) => sum + room.players, 0);
 
   return (
     <AppShell user={userSlot} mainClassName="max-w-7xl">
@@ -152,7 +158,7 @@ export default function HomePage() {
 
           <div className="grid max-w-2xl grid-cols-3 gap-3 sm:gap-5">
             <GameStat icon="users" value={String(playingNow)} label="players live" />
-            <GameStat icon="trophy" value={String(realRooms.length)} label="rooms open" />
+            <GameStat icon="trophy" value={String(rooms.length)} label="rooms open" />
             <GameStat icon="chair" value="3-10" label="seats per game" />
           </div>
         </div>

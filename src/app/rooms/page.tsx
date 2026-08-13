@@ -18,7 +18,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/Tabs";
 import { Icon, type IconName } from "@/components/ui/Icon";
 import { loginWithNext } from "@/lib/auth-path";
 import { postJson } from "@/lib/api-fetch";
-import { AI_TABLES, type AiTable } from "@/lib/bots/tables";
 import { getAuthAvatarColor, getAuthDisplayName } from "@/lib/auth-display-name";
 import { getCategories, getPremiumCategories } from "@/lib/game/words";
 import { useAuth } from "@/lib/hooks/use-auth";
@@ -57,6 +56,22 @@ type RoomRow = {
 
 type RoomTab = "open" | "live" | "mine";
 
+async function refreshSeededRooms() {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 4500);
+  try {
+    await fetch("/api/rooms/ai/ensure", {
+      method: "POST",
+      cache: "no-store",
+      signal: controller.signal,
+    });
+  } catch (error) {
+    console.warn("ensure ai rooms:", error);
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
 export default function RoomsPage() {
   const router = useRouter();
   const pathname = usePathname();
@@ -73,7 +88,6 @@ export default function RoomsPage() {
   const [joining, setJoining] = useState(false);
   const [showCreate, setShowCreate] = useState(false);
   const [creating, setCreating] = useState(false);
-  const [joiningAiTable, setJoiningAiTable] = useState<string | null>(null);
   const [displayName, setDisplayName] = useState("");
   const [isPrivate, setIsPrivate] = useState(false);
   const [createMaxPlayers, setCreateMaxPlayers] = useState(8);
@@ -170,6 +184,8 @@ export default function RoomsPage() {
     async (opts?: { silent?: boolean }) => {
       if (!opts?.silent) setListError(null);
       try {
+        await refreshSeededRooms();
+
         const [openRes, liveRes, myRes] = await Promise.all([
           loadOpenRooms(),
           loadLiveRooms(),
@@ -345,42 +361,6 @@ export default function RoomsPage() {
     }
   }
 
-  async function handleJoinAiTable(table: AiTable) {
-    if (authLoading) return;
-    if (!user) {
-      toast.error("Sign in to join this table");
-      router.push(loginWithNext(pathname));
-      return;
-    }
-    setJoiningAiTable(table.id);
-    try {
-      const name =
-        displayName.trim() ||
-        profile?.username?.trim() ||
-        getAuthDisplayName(user, profile) ||
-        "Host";
-      const result = await postJson<{ room: { code: string } }>(
-        "/api/rooms/ai/join",
-        { tableId: table.id, displayName: name },
-      );
-      if (!result.ok) {
-        toast.error(result.errorMessage);
-        return;
-      }
-      const code = result.data?.room?.code;
-      if (!code) {
-        toast.error("Table opened, response incomplete");
-        return;
-      }
-      setPreferredDisplayName(name);
-      void refreshAllListings({ silent: true });
-      router.push(`/rooms/${code}`);
-      router.refresh();
-    } finally {
-      setJoiningAiTable(null);
-    }
-  }
-
   function closeCreateModal() {
     setShowCreate(false);
     setCreating(false);
@@ -530,13 +510,7 @@ export default function RoomsPage() {
               )}
 
               {tab === "open" && (
-                <AiTablesGrid
-                  tables={AI_TABLES}
-                  joiningTableId={joiningAiTable}
-                  authLoading={authLoading}
-                  onJoin={handleJoinAiTable}
-                  onCreate={() => setShowCreate(true)}
-                />
+                <ReadyTablesPanel onCreate={() => setShowCreate(true)} />
               )}
             </div>
           )}
@@ -747,8 +721,8 @@ function RoomsSpriteImage() {
     <aside className="relative mx-auto w-full max-w-[700px] justify-self-center lg:justify-self-end">
       <div className="art-frame rooms-art-frame">
         <Image
-          src="/assets/topic-vault-board.png"
-          alt="Players around a mystery table with a magnifying glass over the hidden impostor"
+          src="/assets/online-room-board.png"
+          alt="Open online room board with seats, join code, and topic cards"
           width={1448}
           height={1086}
           sizes="(min-width: 1024px) 54vw, 92vw"
@@ -810,71 +784,34 @@ function getRoomAction({
   );
 }
 
-function AiTablesGrid({
-  tables,
-  joiningTableId,
-  authLoading,
-  onJoin,
-  onCreate,
-}: {
-  tables: AiTable[];
-  joiningTableId: string | null;
-  authLoading: boolean;
-  onJoin: (table: AiTable) => void;
-  onCreate: () => void;
-}) {
+function ReadyTablesPanel({ onCreate }: { onCreate: () => void }) {
   return (
-    <div className="space-y-4">
-      <GameCard accent="pink" className="p-4 sm:p-5">
+    <GameCard accent="pink" className="overflow-hidden p-4 sm:p-5">
+      <div className="grid gap-5 lg:grid-cols-[1fr_280px] lg:items-center">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <div className="mb-2 flex flex-wrap items-center gap-2">
               <StatusBadge status="open">Open tables</StatusBadge>
-              <StatusBadge status="live">ready now</StatusBadge>
+              <StatusBadge status="live">refreshing live</StatusBadge>
             </div>
             <h2 className="text-xl font-bold">A few tables are ready</h2>
-            <p className="mt-1 text-sm text-muted">sit down and the room opens with seats already filled</p>
+            <p className="mt-1 text-sm text-muted">they show in the list above as real rooms with seats already filled</p>
           </div>
           <Button variant="secondary" className="w-full sm:w-auto" onClick={onCreate}>
             <Icon name="plus" size={16} /> Create room
           </Button>
         </div>
-      </GameCard>
-
-      <div className="grid gap-4 lg:grid-cols-3">
-        {tables.map((table) => (
-          <GameCard key={table.id} accent="cyan" className="p-4 sm:p-5">
-            <div className="mb-3 flex items-start justify-between gap-3">
-              <div>
-                <span className="display text-2xl text-brand sm:text-3xl">{table.code}</span>
-                <h3 className="mt-1 text-lg font-bold">{table.label}</h3>
-              </div>
-              <StatusBadge status="open">Open</StatusBadge>
-            </div>
-            <p className="min-h-[40px] text-sm text-muted">{table.note}</p>
-            <div className="my-4 flex flex-wrap gap-2">
-              <span className="chip"><Icon name="users" size={12} /> {table.bots.length}/{table.maxPlayers}</span>
-              <span className="chip"><Icon name="dice" size={12} /> {table.topic ?? "Random"}</span>
-            </div>
-            <div className="mb-4 flex flex-wrap gap-2">
-              {table.bots.map((bot, index) => (
-                <span key={bot} className="chip" style={{ color: index === 0 ? "var(--emerald)" : "var(--amber)" }}>
-                  {bot}
-                </span>
-              ))}
-            </div>
-            <Button
-              className="w-full"
-              onClick={() => onJoin(table)}
-              disabled={authLoading || joiningTableId !== null}
-              isLoading={joiningTableId === table.id}
-            >
-              <Icon name="plus" size={17} /> Join table
-            </Button>
-          </GameCard>
-        ))}
+        <div className="relative min-h-[180px] overflow-hidden rounded-lg">
+          <Image
+            src="/assets/topic-vault-cards.png"
+            alt="Topic vault cards for online tables"
+            fill
+            sizes="(min-width: 1024px) 280px, 90vw"
+            className="object-cover"
+          />
+        </div>
       </div>
-    </div>
+    </GameCard>
   );
 }
 
@@ -921,8 +858,8 @@ function LoadingRooms() {
           <path className="opacity-90" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
         </svg>
       </div>
-      <h2 className="text-xl font-bold">Scanning lobby list</h2>
-      <p className="mt-2 text-sm text-muted">Fresh room status from the table</p>
+      <h2 className="text-xl font-bold">Loading rooms</h2>
+      <p className="mt-2 text-sm text-muted">Fresh seats from the table</p>
     </GameCard>
   );
 }

@@ -2,47 +2,11 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getAiTable } from "@/lib/bots/tables";
+import { ensureBotProfiles } from "@/lib/bots/seeded-rooms";
 import { generateRoomCode } from "@/lib/utils";
 import type { Database } from "@/lib/supabase/types";
 
 type Room = Database["public"]["Tables"]["rooms"]["Row"];
-type BotProfile = Database["public"]["Tables"]["bot_profiles"]["Row"];
-
-const BOT_FALLBACK_COLORS = ["#22c55e", "#facc15", "#ef4444", "#2563eb", "#34d399", "#f97316"];
-
-async function ensureBotProfiles(
-  admin: ReturnType<typeof createAdminClient>,
-  names: string[],
-): Promise<BotProfile[]> {
-  const { data: existing } = await admin
-    .from("bot_profiles")
-    .select("*")
-    .in("name", names)
-    .returns<BotProfile[]>();
-
-  const found = new Map((existing ?? []).map((bot) => [bot.name, bot]));
-  const missing = names.filter((name) => !found.has(name));
-
-  if (missing.length > 0) {
-    const { data: inserted } = await admin
-      .from("bot_profiles")
-      .insert(
-        missing.map((name, index) => ({
-          name,
-          avatar_color: BOT_FALLBACK_COLORS[index % BOT_FALLBACK_COLORS.length],
-          personality: "steady",
-        })),
-      )
-      .select("*")
-      .returns<BotProfile[]>();
-
-    for (const bot of inserted ?? []) found.set(bot.name, bot);
-  }
-
-  return names
-    .map((name) => found.get(name))
-    .filter((bot): bot is BotProfile => Boolean(bot));
-}
 
 export async function POST(request: Request) {
   const supabase = await createClient();

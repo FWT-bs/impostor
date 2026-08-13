@@ -6,9 +6,15 @@ import type { Database } from "@/lib/supabase/types";
 
 type Room = Database["public"]["Tables"]["rooms"]["Row"];
 type RoomPlayer = Database["public"]["Tables"]["room_players"]["Row"];
-type RoomWithPlayers = Room & { room_players: Pick<RoomPlayer, "id">[] };
+type RoomWithPlayers = Room & {
+  room_players: Pick<RoomPlayer, "id" | "user_id" | "is_bot">[];
+};
 
 const noStore = { "Cache-Control": "private, no-store, max-age=0" as const };
+
+function isSeededRoom(settings: unknown) {
+  return Boolean(settings && typeof settings === "object" && (settings as { aiSeeded?: unknown }).aiSeeded === true);
+}
 
 export async function POST(request: Request) {
   const supabase = await createClient();
@@ -45,7 +51,7 @@ export async function POST(request: Request) {
   }
   const { data: room, error: roomError } = await admin
     .from("rooms")
-    .select("*, room_players(id)")
+    .select("*, room_players(id, user_id, is_bot)")
     .eq("code", code)
     .eq("status", "waiting")
     .gte("updated_at", getActiveRoomCutoffIso())
@@ -76,6 +82,14 @@ export async function POST(request: Request) {
     .maybeSingle();
 
   if (existingPlayer) {
+    const hasHumanHost = room.room_players?.some((player) => player.user_id && !player.is_bot) ?? false;
+    if (isSeededRoom(room.settings) && !hasHumanHost) {
+      await admin.from("rooms").update({ host_id: user.id }).eq("id", room.id);
+      await admin
+        .from("room_players")
+        .update({ is_host: true, is_ready: true })
+        .eq("id", existingPlayer.id);
+    }
     return NextResponse.json({ room }, { headers: noStore });
   }
 
@@ -92,12 +106,15 @@ export async function POST(request: Request) {
       `Player_${user.id.slice(0, 6)}`;
   }
 
-  const { error: joinError } = await supabase.from("room_players").insert({
+  const hasHumanPlayers = room.room_players?.some((player) => player.user_id && !player.is_bot) ?? false;
+  const shouldClaimSeededTable = isSeededRoom(room.settings) && !hasHumanPlayers;
+
+  const { error: joinError } = await admin.from("room_players").insert({
     room_id: room.id,
     user_id: user.id,
     display_name: displayName,
-    is_host: false,
-    is_ready: false,
+    is_host: shouldClaimSeededTable,
+    is_ready: shouldClaimSeededTable,
     player_order: playerCount,
   });
 
@@ -106,6 +123,10 @@ export async function POST(request: Request) {
       { error: joinError.message },
       { status: 500, headers: noStore }
     );
+  }
+
+  if (shouldClaimSeededTable) {
+    await admin.from("rooms").update({ host_id: user.id }).eq("id", room.id);
   }
 
   return NextResponse.json({ room }, { headers: noStore });

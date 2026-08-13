@@ -91,8 +91,9 @@ function RoleCard({ isImpostor, secret, topic, onNext, last }: { isImpostor: boo
             <h2 className="display" style={{ fontSize: 46, color: "var(--heat)" }}>IMPOSTER</h2>
             <p className="mx-auto mt-1 max-w-[320px] text-[14.5px] text-muted">No secret word, blend in and survive the vote</p>
             <div className="role-chip">
-              <span className="kicker" style={{ fontSize: 10 }}>Your only hint: the topic</span>
+              <span className="kicker" style={{ fontSize: 10 }}>Category</span>
               <span className="display" style={{ fontSize: 34, color: "var(--amber)" }}>{topic}</span>
+              <span className="text-[12px] font-bold text-muted">Word: ???</span>
             </div>
           </>
         ) : (
@@ -101,9 +102,10 @@ function RoleCard({ isImpostor, secret, topic, onNext, last }: { isImpostor: boo
             <h2 className="display" style={{ fontSize: 46, color: "var(--aqua)" }}>CREW</h2>
             <p className="mx-auto mt-1 max-w-[320px] text-[14.5px] text-muted">You know the word, clue carefully</p>
             <div className="role-chip">
-              <span className="kicker" style={{ fontSize: 10 }}>The secret word</span>
+              <span className="kicker" style={{ fontSize: 10 }}>Category</span>
+              <span className="display" style={{ fontSize: 30, color: "var(--amber)" }}>{topic}</span>
+              <span className="kicker" style={{ fontSize: 10 }}>Word</span>
               <span className="display" style={{ fontSize: 38, color: "var(--text)" }}>{secret}</span>
-              <span className="text-[12px] text-muted">Topic · {topic}</span>
             </div>
           </>
         )}
@@ -282,7 +284,7 @@ function ResultsPhase() {
             <span className="display text-[26px]" style={{ color: "var(--aqua-2)" }}>{secretWord}</span>
           </div>
           <div className="result-stat">
-            <span className="kicker" style={{ fontSize: 9 }}>Topic</span>
+            <span className="kicker" style={{ fontSize: 9 }}>Category</span>
             <span className="display text-[26px]" style={{ color: "var(--amber)" }}>{topic}</span>
           </div>
         </div>

@@ -11,6 +11,7 @@ const CATEGORY_CLUES: Record<string, string[]> = {
   Music: ["rhythm", "stage", "chorus", "tempo", "vinyl", "radio"],
   Nature: ["trail", "leaf", "wild", "river", "season", "forest"],
   Places: ["map", "street", "ticket", "visit", "border", "city"],
+  Jobs: ["work", "skill", "uniform", "shift", "office", "career"],
   Professions: ["work", "skill", "uniform", "shift", "office", "career"],
   Sports: ["match", "team", "coach", "whistle", "field", "trophy"],
   Technology: ["screen", "signal", "device", "code", "battery", "update"],
@@ -28,6 +29,33 @@ const CATEGORY_CLUES: Record<string, string[]> = {
   Action: ["match", "team", "coach", "field", "trophy", "move"],
   "Modern life": ["screen", "signal", "device", "battery", "update", "digital"],
   "Getting around": ["ride", "road", "engine", "trip", "speed", "wheels"],
+};
+
+const CREW_WORD_CLUES: Record<string, { vague: string[]; normal: string[]; strong: string[]; tooObvious: string[] }> = {
+  Pilot: {
+    vague: ["uniform", "travel", "training"],
+    normal: ["landing", "altitude", "controls"],
+    strong: ["runway", "cockpit"],
+    tooObvious: ["airplane", "fly"],
+  },
+  Doctor: {
+    vague: ["shift", "care", "training"],
+    normal: ["clinic", "diagnosis", "stethoscope"],
+    strong: ["patient", "hospital"],
+    tooObvious: ["medicine", "doctor"],
+  },
+  Teacher: {
+    vague: ["routine", "lesson", "group"],
+    normal: ["classroom", "homework", "gradebook"],
+    strong: ["students", "school"],
+    tooObvious: ["teach", "teacher"],
+  },
+  Chef: {
+    vague: ["heat", "timing", "taste"],
+    normal: ["recipe", "kitchen", "plating"],
+    strong: ["cook", "restaurant"],
+    tooObvious: ["chef", "cooking"],
+  },
 };
 
 const SAFE_GENERIC_CLUES = [
@@ -80,20 +108,23 @@ export function chooseBotClue({
   clueMode?: ClueMode;
 }): string {
   const topicPool = CATEGORY_CLUES[topic] ?? SAFE_GENERIC_CLUES;
-  const salt = `${botName}:${topic}:${secretWord ?? "impostor"}:${difficulty}`;
 
   if (role === "impostor") {
+    const salt = `${botName}:${topic}:category-only:${difficulty}`;
     const pool = difficulty === "tricky" ? [...topicPool, ...VAGUE_IMPOSTOR_CLUES] : VAGUE_IMPOSTOR_CLUES;
     return normalizeClue(pick(pool, salt), clueMode);
   }
 
-  const word = (secretWord ?? "").toLowerCase();
-  const wordHints = [
-    ...topicPool,
-    word.length >= 8 ? "specific" : "simple",
-    word.includes(" ") ? "phrase" : "single",
-    word.length % 2 === 0 ? "even" : "odd",
-  ];
+  const clueMetadata = secretWord ? CREW_WORD_CLUES[secretWord] : null;
+  const metadataPool = clueMetadata
+    ? difficulty === "easy"
+      ? [...clueMetadata.vague, ...clueMetadata.normal]
+      : difficulty === "tricky"
+        ? [...clueMetadata.normal, ...clueMetadata.strong]
+        : clueMetadata.normal
+    : [];
+  const wordHints = metadataPool.length > 0 ? metadataPool : topicPool;
+  const salt = `${botName}:${topic}:${secretWord ?? "crew"}:${difficulty}`;
 
   return normalizeClue(pick(wordHints, salt), clueMode);
 }

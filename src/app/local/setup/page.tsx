@@ -261,6 +261,25 @@ export default function LocalSetupPage() {
         <HowItWorksStrip mode="setup" />
       </section>
 
+      <section className="mt-8 grid gap-5 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
+        <GameCard accent="pink" className="p-5 sm:p-6">
+          <Badge variant="pink">Hidden roles</Badge>
+          <h2 className="mt-3 text-2xl font-bold">Same table energy, no online room needed</h2>
+          <p className="mt-2 text-sm leading-relaxed text-muted">
+            Category shown to everyone, word kept for crew, one impostor working from the edges
+          </p>
+        </GameCard>
+        <div className="relative min-h-[240px] overflow-hidden rounded-lg sm:min-h-[320px]">
+          <Image
+            src="/assets/online-room-board.png"
+            alt="Impostor table with ready seats, clue cards, and topic cards"
+            fill
+            sizes="(min-width: 1024px) 54vw, 92vw"
+            className="object-cover"
+          />
+        </div>
+      </section>
+
       <Modal open={showAuthModal} onClose={() => setShowAuthModal(false)} title="Premium topic pack">
         <div className="space-y-4 text-center">
           <div className="mx-auto grid size-16 place-items-center rounded-lg border border-heat/40 bg-heat/12 text-heat-2">
