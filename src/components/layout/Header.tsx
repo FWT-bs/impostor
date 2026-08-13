@@ -41,6 +41,7 @@ export function Header({ user: userProp, authSlot, className }: HeaderProps) {
   const loginHref = loginWithNext(pathname);
   const signupHref = signupWithNext(pathname);
   const isAnonymous = Boolean(authUser?.is_anonymous);
+  const isPremium = Boolean(profile?.is_premium);
 
   // Use the explicit prop if provided, otherwise derive from auth state
   const user: HeaderUser | null =
@@ -99,7 +100,7 @@ export function Header({ user: userProp, authSlot, className }: HeaderProps) {
         {/* Logo */}
         <Link href="/" className="group flex items-center">
           <div>
-            <Logo size={28} />
+            <Logo size={28} premium={isPremium} />
           </div>
         </Link>
 

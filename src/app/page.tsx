@@ -266,7 +266,7 @@ function HeroTabletopImage() {
       <div className="art-frame hero-image-frame">
         <Image
           src="/assets/tabletop-hero-board.png"
-          alt="Imposter tabletop board with crew word, player cards, clue notebook, and a red impostor hint card"
+          alt="Crew and impostor figures holding word and hint cards on a black background"
           width={1448}
           height={1086}
           priority

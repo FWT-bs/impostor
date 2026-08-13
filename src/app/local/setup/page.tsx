@@ -288,7 +288,7 @@ function RoundPreviewImage() {
     <div className="art-frame setup-art-frame mb-5">
       <Image
         src="/assets/round-preview-panel.png"
-        alt="Round preview showing four seats around one hidden impostor"
+        alt="Round preview with three crew players and one red impostor around a hidden role circle"
         width={1024}
         height={1536}
         sizes="(min-width: 1024px) 38vw, 92vw"

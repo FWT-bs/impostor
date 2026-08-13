@@ -3,6 +3,23 @@ import type { WordEntry } from "@/types/game";
 
 const allWords: WordEntry[] = wordData as WordEntry[];
 
+const BROAD_TOPIC_HINTS: Record<string, string> = {
+  Animals: "Living things",
+  "Body Parts": "The body",
+  Clothing: "Style",
+  Food: "Food and drinks",
+  Games: "Play",
+  "Household Items": "Everyday stuff",
+  Movies: "Entertainment",
+  Music: "Sound",
+  Nature: "The outdoors",
+  Places: "Places",
+  Professions: "People and work",
+  Sports: "Action",
+  Technology: "Modern life",
+  Vehicles: "Getting around",
+};
+
 export function getCategories(): string[] {
   const cats = new Set(allWords.map((w) => w.category));
   return Array.from(cats).sort();
@@ -35,9 +52,19 @@ export function pickWord(
   const candidates = available.length > 0 ? available : pool;
 
   const pick = candidates[Math.floor(Math.random() * candidates.length)];
-  return pick;
+  return {
+    ...pick,
+    entry: {
+      ...pick.entry,
+      topic: getTopicHint(pick.entry),
+    },
+  };
 }
 
 export function getTotalWordCount(): number {
   return allWords.length;
+}
+
+function getTopicHint(entry: WordEntry): string {
+  return BROAD_TOPIC_HINTS[entry.category] ?? entry.category;
 }

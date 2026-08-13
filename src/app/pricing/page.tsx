@@ -209,7 +209,7 @@ function TopicVaultImage() {
       <div className="art-frame pricing-art-frame">
         <Image
           src="/assets/topic-vault-board.png"
-          alt="Topic vault board with locked premium packs in green, red, cream, and gold"
+          alt="Players around a mystery table with a magnifying glass over the hidden impostor"
           width={1448}
           height={1086}
           sizes="(min-width: 1024px) 56vw, 92vw"
