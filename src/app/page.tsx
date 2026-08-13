@@ -21,7 +21,7 @@ import { getActiveRoomCutoffIso } from "@/lib/rooms/stale";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState, type CSSProperties } from "react";
+import { useCallback, useEffect, useState, type CSSProperties } from "react";
 
 type LiveRoom = {
   id: string;
@@ -47,24 +47,46 @@ export default function HomePage() {
   const { user, profile } = useAuth();
   const [liveRooms, setLiveRooms] = useState<LiveRoom[]>([]);
 
+  const fetchRooms = useCallback(async () => {
+    const supabase = createClient();
+    const { data: open } = await supabase
+      .from("rooms")
+      .select("id, code, max_players, status, phase, updated_at, settings, room_players(id)")
+      .eq("is_private", false)
+      .in("status", ["waiting", "playing"])
+      .neq("phase", "results")
+      .gte("updated_at", getActiveRoomCutoffIso())
+      .order("updated_at", { ascending: false })
+      .limit(6);
+    setLiveRooms((open ?? []) as LiveRoom[]);
+  }, []);
+
   useEffect(() => {
     const supabase = createClient();
-    async function fetchRooms() {
-      const { data: open } = await supabase
-        .from("rooms")
-        .select("id, code, max_players, status, phase, updated_at, settings, room_players(id)")
-        .eq("is_private", false)
-        .in("status", ["waiting", "playing"])
-        .neq("phase", "results")
-        .gte("updated_at", getActiveRoomCutoffIso())
-        .order("updated_at", { ascending: false })
-        .limit(6);
-      setLiveRooms((open ?? []) as LiveRoom[]);
+    let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+    function scheduleRefresh() {
+      if (debounceTimer) clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => {
+        debounceTimer = null;
+        void fetchRooms();
+      }, 350);
     }
-    void fetchRooms();
-    const poll = setInterval(fetchRooms, 15000);
-    return () => clearInterval(poll);
-  }, []);
+
+    scheduleRefresh();
+    const channel = supabase
+      .channel("home-public-rooms")
+      .on("postgres_changes", { event: "*", schema: "public", table: "rooms" }, scheduleRefresh)
+      .on("postgres_changes", { event: "*", schema: "public", table: "room_players" }, scheduleRefresh)
+      .subscribe((status) => {
+        if (status === "SUBSCRIBED" || status === "CHANNEL_ERROR") scheduleRefresh();
+      });
+    const poll = setInterval(() => void fetchRooms(), 15000);
+    return () => {
+      if (debounceTimer) clearTimeout(debounceTimer);
+      clearInterval(poll);
+      supabase.removeChannel(channel);
+    };
+  }, [fetchRooms]);
 
   const userSlot = user
     ? {
@@ -91,7 +113,6 @@ export default function HomePage() {
         topic: table.topic ?? "Random pack",
         ai: true,
       }));
-  const showingAiTables = realRooms.length === 0;
   const playingNow = realRooms.reduce((sum, room) => sum + room.players, 0);
 
   return (
@@ -178,7 +199,7 @@ export default function HomePage() {
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <div>
             <p className="text-sm font-semibold text-muted">Room browser</p>
-            <h2 className="mt-3 text-3xl font-bold">{showingAiTables ? "Practice tables" : "Open tables"}</h2>
+            <h2 className="mt-3 text-3xl font-bold">Open tables</h2>
           </div>
           <Button variant="secondary" asChild>
             <Link href="/rooms">See all rooms</Link>
@@ -192,10 +213,10 @@ export default function HomePage() {
                 players={room.players}
                 maxPlayers={room.max}
                 status={room.status === "playing" ? "live" : "open"}
-                topic={room.ai ? `${room.topic} · AI table` : room.topic}
+                topic={room.topic}
                 action={
                   <Button size="sm" variant={room.status === "playing" ? "secondary" : "primary"} asChild>
-                    <Link href="/rooms">{room.ai ? "Open" : room.status === "playing" ? "Watch code" : "Join"}</Link>
+                    <Link href="/rooms">{room.status === "playing" ? "Watch code" : "Join"}</Link>
                   </Button>
                 }
               />

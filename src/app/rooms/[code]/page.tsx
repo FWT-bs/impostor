@@ -226,7 +226,7 @@ export default function LobbyPage({ params }: { params: Promise<{ code: string }
                       </span>
                     ) : p.is_bot ? (
                       <span className="chip chip-heat" style={{ fontSize: 9.5, padding: "3px 8px" }}>
-                        <Icon name="mask" size={10} /> AI
+                        <Icon name="mask" size={10} /> Ready
                       </span>
                     ) : (
                       <span
@@ -267,8 +267,8 @@ export default function LobbyPage({ params }: { params: Promise<{ code: string }
                 <Chip icon="chat">{settings.clueMode === "single" ? "One word" : settings.clueMode === "short" ? "Short" : "Classic"}</Chip>
               </Setting>
               {settings.aiTable && (
-                <Setting label="AI seats">
-                  <Chip tone="heat" icon="eye">{settings.tableLabel ?? "Practice table"}</Chip>
+                <Setting label="Table">
+                  <Chip tone="heat" icon="eye">{settings.tableLabel ?? "Ready table"}</Chip>
                 </Setting>
               )}
               <Setting label="Max players">
@@ -300,7 +300,7 @@ export default function LobbyPage({ params }: { params: Promise<{ code: string }
                 <Button variant="primary" size="lg" className="w-full" onClick={handleStart} disabled={!canStartNow} isLoading={starting}>
                   <Icon name="play" size={18} fill /> {canStartNow ? "Start round" : `Need ${playersNeeded} more`}
                 </Button>
-                <p className="text-center text-[12.5px] text-muted">bots are labeled, stats only count real players</p>
+                <p className="text-center text-[12.5px] text-muted">stats only count real players</p>
               </>
             ) : (
               <div className="card card-pad flex items-center justify-between">

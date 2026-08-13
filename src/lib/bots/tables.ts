@@ -27,7 +27,7 @@ export const AI_TABLES: AiTable[] = [
       clueMode: "classic",
       botDifficulty: "normal",
     },
-    note: "two bots waiting, starts when you sit down",
+    note: "two seats filled, starts when you sit down",
   },
   {
     id: "red",
@@ -44,7 +44,7 @@ export const AI_TABLES: AiTable[] = [
       clueMode: "short",
       botDifficulty: "tricky",
     },
-    note: "a little sharper, still clearly AI",
+    note: "a little sharper, still easy to join",
   },
   {
     id: "vault",

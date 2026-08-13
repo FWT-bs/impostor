@@ -48,7 +48,7 @@ export default function RootLayout({
         <script
           dangerouslySetInnerHTML={{
             __html:
-              "try{var t=localStorage.getItem('impostor-theme');var d=t?t==='dark':true;document.documentElement.dataset.theme=d?'tabletop-dark':'tabletop'}catch(e){}",
+              "try{document.documentElement.dataset.theme='tabletop-dark';localStorage.setItem('impostor-theme','dark')}catch(e){}",
           }}
         />
         <div className="bg-field" aria-hidden />

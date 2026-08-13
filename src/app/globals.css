@@ -820,36 +820,23 @@ textarea,
   position: relative;
   overflow: hidden;
   border-radius: 30px;
-  border: 1px solid var(--border);
+  border: 0;
   background: #000;
   isolation: isolate;
-  box-shadow:
-    0 24px 70px rgba(3, 12, 7, 0.22),
-    0 0 0 1px rgba(24, 185, 100, 0.10);
+  box-shadow: none;
   transition:
     transform 220ms ease,
-    border-color 220ms ease,
     box-shadow 220ms ease,
     filter 220ms ease;
 }
 
 .art-frame::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  border-radius: inherit;
-  box-shadow:
-    inset 0 0 0 1px rgba(255, 255, 255, 0.08),
-    inset 0 -50px 80px rgba(0, 0, 0, 0.18);
+  content: none;
 }
 
 .art-frame:hover {
   transform: translateY(-3px);
-  border-color: color-mix(in oklab, var(--brand) 38%, var(--border));
-  box-shadow:
-    0 30px 82px rgba(3, 12, 7, 0.28),
-    0 0 0 1px rgba(24, 185, 100, 0.18);
+  box-shadow: none;
   filter: saturate(1.03);
 }
 
@@ -875,17 +862,11 @@ textarea,
 }
 
 [data-theme="tabletop-dark"] .art-frame {
-  border-color: rgba(53, 216, 121, 0.22);
-  box-shadow:
-    0 30px 90px rgba(0, 0, 0, 0.72),
-    0 0 0 1px rgba(53, 216, 121, 0.16);
+  box-shadow: none;
 }
 
 [data-theme="tabletop-dark"] .art-frame:hover {
-  border-color: rgba(255, 81, 71, 0.38);
-  box-shadow:
-    0 34px 96px rgba(0, 0, 0, 0.78),
-    0 0 0 1px rgba(255, 81, 71, 0.18);
+  box-shadow: none;
 }
 
 [data-theme="tabletop-dark"] .tabletop-main::before {

@@ -197,7 +197,7 @@ export async function POST(
       room_id: room.id,
       user_id: null,
       display_name: "Game",
-      text: "AI votes are in",
+      text: "Votes are in",
     });
   }
 

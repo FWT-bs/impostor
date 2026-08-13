@@ -2,7 +2,6 @@
 
 import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
-import { Icon } from "@/components/ui/Icon";
 import { Logo } from "@/components/ui/Logo";
 import { useAuth } from "@/lib/hooks/use-auth";
 import { cn } from "@/lib/utils";
@@ -35,8 +34,6 @@ export interface HeaderProps {
 export function Header({ user: userProp, authSlot, className }: HeaderProps) {
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
-  const [darkMode, setDarkMode] = useState(true);
-  const [themeReady, setThemeReady] = useState(false);
   const { user: authUser, profile } = useAuth();
   const loginHref = loginWithNext(pathname);
   const signupHref = signupWithNext(pathname);
@@ -65,21 +62,6 @@ export function Header({ user: userProp, authSlot, className }: HeaderProps) {
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [menuOpen]);
-
-  useEffect(() => {
-    const frame = window.requestAnimationFrame(() => {
-      setDarkMode(document.documentElement.dataset.theme === "tabletop-dark");
-      setThemeReady(true);
-    });
-    return () => window.cancelAnimationFrame(frame);
-  }, []);
-
-  useEffect(() => {
-    if (!themeReady) return;
-    const theme = darkMode ? "tabletop-dark" : "tabletop";
-    document.documentElement.dataset.theme = theme;
-    window.localStorage.setItem("impostor-theme", darkMode ? "dark" : "light");
-  }, [darkMode, themeReady]);
 
   return (
     <motion.header
@@ -138,17 +120,6 @@ export function Header({ user: userProp, authSlot, className }: HeaderProps) {
 
         {/* Right side */}
         <div className="flex items-center gap-2 sm:gap-3">
-          <button
-            type="button"
-            className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-border bg-card/80 px-3 text-[13px] font-extrabold text-foreground transition-colors hover:bg-card-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/70"
-            aria-label={darkMode ? "Use light mode" : "Use dark mode"}
-            aria-pressed={darkMode}
-            onClick={() => setDarkMode((value) => !value)}
-          >
-            <Icon name={darkMode ? "eye" : "mask"} size={16} stroke={2.15} />
-            <span className="hidden sm:inline">{darkMode ? "Light" : "Dark"}</span>
-          </button>
-
           {authSlot ?? (
             <div className="flex items-center gap-2 sm:gap-3">
               {user && (

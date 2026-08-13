@@ -136,7 +136,7 @@ export default function OnlinePlayPage({ params }: { params: Promise<{ code: str
                   className="max-w-[72px] truncate text-[11.5px] font-semibold"
                   style={{ fontFamily: "var(--font-head)", color: p.user_id === user.id ? "var(--brand-2)" : "var(--muted)" }}
                 >
-                  {p.is_bot ? `${p.display_name} AI` : p.display_name}
+                  {p.display_name}
                 </span>
               </div>
             );
@@ -440,13 +440,13 @@ function OnlineCluePhase({
               >
                 <Avatar name={p.display_name} color={tokenColor(getPlayerIdentity(p))} size="sm" you={p.user_id === userId} />
                 <span className="text-[14px] font-semibold" style={{ fontFamily: "var(--font-head)", color: p.user_id === userId ? "var(--brand-2)" : "var(--text)" }}>
-                  {p.display_name}{p.is_bot ? " AI" : ""}
+                  {p.display_name}
                 </span>
                 <span className="flex-1" />
                 {clueText ? (
                   <span className="display text-[20px]" style={{ color: "var(--aqua-2)" }}>{clueText}</span>
                 ) : isTurn ? (
-                  <span className="chip chip-aqua" style={{ fontSize: 10 }}>{p.is_bot ? "AI thinking" : "thinking"}</span>
+                  <span className="chip chip-aqua" style={{ fontSize: 10 }}>thinking</span>
                 ) : (
                   <span className="text-[12.5px] text-muted">waiting</span>
                 )}
@@ -679,7 +679,7 @@ function OnlineVotingPhase({
                 }}
               >
                 <Avatar name={p.display_name} color={tokenColor(playerId)} size="md" />
-                <span className="text-[14px] font-bold" style={{ fontFamily: "var(--font-head)" }}>{p.display_name}{p.is_bot ? " AI" : ""}</span>
+                <span className="text-[14px] font-bold" style={{ fontFamily: "var(--font-head)" }}>{p.display_name}</span>
                 {picked && <span className="chip chip-heat absolute right-2 top-2" style={{ fontSize: 9 }}>Your vote</span>}
               </button>
             );
@@ -827,7 +827,7 @@ function OnlineResultsPhase({
                   }}
                 >
                   <Avatar name={p.display_name} color={tokenColor(identity)} size="sm" role={isImp ? "impostor" : undefined} />
-                  <span className="text-[14px] font-semibold" style={{ fontFamily: "var(--font-head)" }}>{p.display_name}{p.is_bot ? " AI" : ""}</span>
+                  <span className="text-[14px] font-semibold" style={{ fontFamily: "var(--font-head)" }}>{p.display_name}</span>
                   <span className="flex-1" />
                   <span className="text-[13px] text-muted">{count} vote{count !== 1 ? "s" : ""}</span>
                   {isImp && <span className="chip chip-heat" style={{ fontSize: 9 }}>Impostor</span>}

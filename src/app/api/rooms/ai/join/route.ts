@@ -59,7 +59,7 @@ export async function POST(request: Request) {
   const table = typeof body.tableId === "string" ? getAiTable(body.tableId) : null;
 
   if (!table) {
-    return NextResponse.json({ error: "AI table not found" }, { status: 404 });
+    return NextResponse.json({ error: "Table not found" }, { status: 404 });
   }
 
   const requestedDisplayName: string = typeof body.displayName === "string" ? body.displayName.trim() : "";
@@ -89,7 +89,7 @@ export async function POST(request: Request) {
 
   const bots = await ensureBotProfiles(admin, table.bots);
   if (bots.length < 2) {
-    return NextResponse.json({ error: "Could not seat AI players" }, { status: 500 });
+    return NextResponse.json({ error: "Could not seat players" }, { status: 500 });
   }
 
   let room: Room | null = null;
@@ -129,7 +129,7 @@ export async function POST(request: Request) {
 
   if (roomError || !room) {
     return NextResponse.json(
-      { error: roomError?.message ?? "Failed to create AI table" },
+      { error: roomError?.message ?? "Failed to create table" },
       { status: 500 },
     );
   }
@@ -167,7 +167,7 @@ export async function POST(request: Request) {
     room_id: room.id,
     user_id: null,
     display_name: "Game",
-    text: `${table.label} opened with AI seats. Real players can still join.`,
+    text: `${table.label} opened. More players can still join.`,
   });
 
   return NextResponse.json(

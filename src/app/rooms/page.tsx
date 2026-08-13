@@ -348,7 +348,7 @@ export default function RoomsPage() {
   async function handleJoinAiTable(table: AiTable) {
     if (authLoading) return;
     if (!user) {
-      toast.error("Sign in to join an AI table");
+      toast.error("Sign in to join this table");
       router.push(loginWithNext(pathname));
       return;
     }
@@ -369,7 +369,7 @@ export default function RoomsPage() {
       }
       const code = result.data?.room?.code;
       if (!code) {
-        toast.error("AI table opened, response incomplete");
+        toast.error("Table opened, response incomplete");
         return;
       }
       setPreferredDisplayName(name);
@@ -490,47 +490,55 @@ export default function RoomsPage() {
         <TabsContent value={tab} className="mt-0">
           {loadingRooms ? (
             <LoadingRooms />
-          ) : displayRooms.length === 0 && tab === "open" ? (
-            <AiTablesGrid
-              tables={AI_TABLES}
-              joiningTableId={joiningAiTable}
-              authLoading={authLoading}
-              onJoin={handleJoinAiTable}
-              onCreate={() => setShowCreate(true)}
-            />
-          ) : displayRooms.length === 0 ? (
-            <EmptyRooms tab={tab} signedIn={Boolean(user)} onCreate={() => setShowCreate(true)} />
           ) : (
-            <AnimatePresence mode="popLayout">
-              <div className="grid gap-4 lg:grid-cols-2">
-                {displayRooms.map((room, index) => (
-                  <motion.div
-                    key={`${tab}-${room.id}`}
-                    layout
-                    initial={{ opacity: 0, y: 12 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -12 }}
-                    transition={{ delay: index * 0.025, duration: 0.26, ease: [0.16, 1, 0.3, 1] }}
-                  >
-                    <RoomCard
-                      code={room.code}
-                      players={room.room_players.length}
-                      maxPlayers={room.max_players}
-                      status={tab === "live" ? "live" : tab === "mine" ? "mine" : "open"}
-                      topic={getRoomTopic(room.settings)}
-                      action={getRoomAction({
-                        tab,
-                        room,
-                        joining,
-                        authLoading,
-                        onJoin: () => handleJoin(room.code),
-                        onEnter: () => enterMyRoom(room),
-                      })}
-                    />
-                  </motion.div>
-                ))}
-              </div>
-            </AnimatePresence>
+            <div className="space-y-5">
+              {displayRooms.length === 0 ? (
+                tab === "open" ? null : (
+                  <EmptyRooms tab={tab} signedIn={Boolean(user)} onCreate={() => setShowCreate(true)} />
+                )
+              ) : (
+                <AnimatePresence mode="popLayout">
+                  <div className="grid gap-4 lg:grid-cols-2">
+                    {displayRooms.map((room, index) => (
+                      <motion.div
+                        key={`${tab}-${room.id}`}
+                        layout
+                        initial={{ opacity: 0, y: 12 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -12 }}
+                        transition={{ delay: index * 0.025, duration: 0.26, ease: [0.16, 1, 0.3, 1] }}
+                      >
+                        <RoomCard
+                          code={room.code}
+                          players={room.room_players.length}
+                          maxPlayers={room.max_players}
+                          status={tab === "live" ? "live" : tab === "mine" ? "mine" : "open"}
+                          topic={getRoomTopic(room.settings)}
+                          action={getRoomAction({
+                            tab,
+                            room,
+                            joining,
+                            authLoading,
+                            onJoin: () => handleJoin(room.code),
+                            onEnter: () => enterMyRoom(room),
+                          })}
+                        />
+                      </motion.div>
+                    ))}
+                  </div>
+                </AnimatePresence>
+              )}
+
+              {tab === "open" && (
+                <AiTablesGrid
+                  tables={AI_TABLES}
+                  joiningTableId={joiningAiTable}
+                  authLoading={authLoading}
+                  onJoin={handleJoinAiTable}
+                  onCreate={() => setShowCreate(true)}
+                />
+              )}
+            </div>
           )}
         </TabsContent>
       </Tabs>
@@ -680,13 +688,13 @@ export default function RoomsPage() {
           </div>
 
           <div>
-            <label className="mb-2 block text-sm font-semibold text-foreground">AI table mood</label>
+            <label className="mb-2 block text-sm font-semibold text-foreground">Table mood</label>
             <div className="grid gap-3 sm:grid-cols-3">
               <SettingOptionButton
                 selected={createBotDifficulty === "easy"}
                 icon="shield"
                 title="Soft"
-                text="safer bots"
+                text="safer clues"
                 onClick={() => setCreateBotDifficulty("easy")}
               />
               <SettingOptionButton
@@ -821,14 +829,14 @@ function AiTablesGrid({
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <div className="mb-2 flex flex-wrap items-center gap-2">
-              <StatusBadge status="open">AI tables</StatusBadge>
-              <StatusBadge status="live">clearly labeled</StatusBadge>
+              <StatusBadge status="open">Open tables</StatusBadge>
+              <StatusBadge status="live">ready now</StatusBadge>
             </div>
-            <h2 className="text-xl font-bold">No public tables yet, so here are practice seats</h2>
-            <p className="mt-1 text-sm text-muted">bots wait in the lobby, real players can join after you open one</p>
+            <h2 className="text-xl font-bold">A few tables are ready</h2>
+            <p className="mt-1 text-sm text-muted">sit down and the room opens with seats already filled</p>
           </div>
           <Button variant="secondary" onClick={onCreate}>
-            <Icon name="plus" size={16} /> Create human room
+            <Icon name="plus" size={16} /> Create room
           </Button>
         </div>
       </GameCard>
@@ -841,11 +849,10 @@ function AiTablesGrid({
                 <span className="display text-3xl text-brand">{table.code}</span>
                 <h3 className="mt-1 text-lg font-bold">{table.label}</h3>
               </div>
-              <StatusBadge status="open">AI table</StatusBadge>
+              <StatusBadge status="open">Open</StatusBadge>
             </div>
             <p className="min-h-[40px] text-sm text-muted">{table.note}</p>
             <div className="my-4 flex flex-wrap gap-2">
-              <span className="chip"><Icon name="mask" size={12} /> {table.bots.length} bots</span>
               <span className="chip"><Icon name="users" size={12} /> {table.bots.length}/{table.maxPlayers}</span>
               <span className="chip"><Icon name="dice" size={12} /> {table.topic ?? "Random"}</span>
             </div>
@@ -862,7 +869,7 @@ function AiTablesGrid({
               disabled={authLoading || joiningTableId !== null}
               isLoading={joiningTableId === table.id}
             >
-              <Icon name="plus" size={17} /> Join AI table
+              <Icon name="plus" size={17} /> Join table
             </Button>
           </GameCard>
         ))}
