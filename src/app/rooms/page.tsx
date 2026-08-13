@@ -739,8 +739,8 @@ function RoomsSpriteImage() {
     <aside className="relative mx-auto w-full max-w-[700px] justify-self-center lg:justify-self-end">
       <div className="art-frame rooms-art-frame">
         <Image
-          src="/assets/imposter-sprite-sheet.png"
-          alt="Imposter game pieces, room cards, clue cards, spy icons, and topic pack tiles"
+          src="/assets/topic-vault-board.png"
+          alt="Players around a mystery table with a magnifying glass over the hidden impostor"
           width={1448}
           height={1086}
           sizes="(min-width: 1024px) 54vw, 92vw"

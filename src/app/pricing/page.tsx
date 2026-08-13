@@ -206,14 +206,15 @@ export default function PricingPage() {
 function TopicVaultImage() {
   return (
     <aside className="relative mx-auto w-full max-w-[720px] justify-self-center lg:justify-self-end">
-      <div className="art-frame pricing-art-frame">
+      <div className="art-frame pricing-art-frame grid min-h-[360px] place-items-center p-10 sm:min-h-[460px]">
         <Image
-          src="/assets/topic-vault-board.png"
-          alt="Players around a mystery table with a magnifying glass over the hidden impostor"
-          width={1448}
-          height={1086}
-          sizes="(min-width: 1024px) 56vw, 92vw"
-          className="reference-art"
+          src="/assets/imposter-premium-logo.png"
+          alt="Imposter Plus logo"
+          width={1254}
+          height={1254}
+          sizes="(min-width: 1024px) 34vw, 72vw"
+          className="h-auto w-full max-w-[420px]"
+          priority
         />
       </div>
     </aside>

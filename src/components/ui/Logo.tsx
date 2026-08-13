@@ -21,6 +21,7 @@ export function Logo({
   const logoSrc = premium
     ? "/assets/imposter-premium-logo.png"
     : "/assets/imposter-basic-logo.png";
+  const imageScale = premium ? 1.22 : 1.32;
 
   return (
     <span className={`inline-flex items-center gap-2 ${className ?? ""}`}>
@@ -39,9 +40,9 @@ export function Logo({
           fill
           sizes={`${size}px`}
           priority={size >= 28}
-          className="object-cover"
+          className="object-contain"
           style={{
-            transform: premium ? "scale(1.72)" : "scale(1.92)",
+            transform: `scale(${imageScale})`,
           }}
         />
       </span>
