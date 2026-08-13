@@ -87,6 +87,7 @@ export default function RoomsPage() {
   const [joinCode, setJoinCode] = useState("");
   const [joining, setJoining] = useState(false);
   const [showCreate, setShowCreate] = useState(false);
+  const [premiumPromptPack, setPremiumPromptPack] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
   const [displayName, setDisplayName] = useState("");
   const [isPrivate, setIsPrivate] = useState(false);
@@ -368,7 +369,7 @@ export default function RoomsPage() {
 
   function handleCreateCategoryClick(cat: string | null) {
     if (cat && premiumCategories.has(cat) && !hasPremium) {
-      toast.error("Upgrade to Premium to unlock this pack");
+      setPremiumPromptPack(cat);
       return;
     }
     setCreateCategory((current) => (current === cat ? null : cat));
@@ -712,6 +713,31 @@ export default function RoomsPage() {
           </Button>
         </div>
       </Modal>
+
+      <Modal open={Boolean(premiumPromptPack)} onClose={() => setPremiumPromptPack(null)} title="Imposter+">
+        <div className="space-y-5 text-center">
+          <div className="mx-auto grid size-16 place-items-center rounded-lg border border-heat/45 bg-heat/14 text-heat-2 shadow-[0_0_36px_rgba(255,55,48,0.24)]">
+            <Icon name="crown" size={30} />
+          </div>
+          <div>
+            <h3 className="text-2xl font-bold">Unlock {premiumPromptPack}</h3>
+            <p className="mx-auto mt-2 max-w-sm text-sm leading-6 text-muted">
+              More packs, room priority, match history
+            </p>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Button variant="secondary" onClick={() => setPremiumPromptPack(null)}>
+              Maybe later
+            </Button>
+            <Button
+              className="bg-brand text-black hover:bg-brand-2"
+              onClick={() => router.push("/pricing")}
+            >
+              Unlock packs <Icon name="arrow" size={17} />
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </AppShell>
   );
 }
@@ -789,10 +815,6 @@ function ReadyTablesPanel({ onCreate }: { onCreate: () => void }) {
     <GameCard accent="pink" className="overflow-hidden p-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <div className="mb-2 flex flex-wrap items-center gap-2">
-            <StatusBadge status="open">Open tables</StatusBadge>
-            <StatusBadge status="live">refreshing live</StatusBadge>
-          </div>
           <h2 className="text-xl font-bold">Tables refresh here</h2>
         </div>
         <Button variant="secondary" className="w-full sm:w-auto" onClick={onCreate}>

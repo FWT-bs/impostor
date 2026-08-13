@@ -4,10 +4,8 @@ import {
   AppShell,
   DoodleMark,
   GameCard,
-  HowItWorksStrip,
   PageHeader,
   PlayerToken,
-  SetupStepper,
   StatusBadge,
   TopicPackGrid,
 } from "@/components/game";
@@ -27,22 +25,16 @@ import { useMemo, useState, type CSSProperties, type ReactNode } from "react";
 const MIN_PLAYERS = 3;
 const MAX_PLAYERS = 10;
 
-const STEPS = [
-  { label: "Number of players", description: "Set the seats" },
-  { label: "Player names", description: "Name the table" },
-  { label: "Topic pack", description: "Pick the clue lane" },
-  { label: "Start round", description: "Deal the roles" },
-];
-
 export default function LocalSetupPage() {
   const router = useRouter();
   const pathname = usePathname();
   const initGame = useLocalGameStore((s) => s.initGame);
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const categories = useMemo(() => getCategories(), []);
   const premiumCats = useMemo(() => getPremiumCategories(), []);
 
   const isGuest = !user || user.is_anonymous;
+  const hasPremium = profile?.is_premium ?? false;
 
   const [activeStep, setActiveStep] = useState(0);
   const [playerCount, setPlayerCount] = useState(4);
@@ -52,6 +44,7 @@ export default function LocalSetupPage() {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [blockedCategory, setBlockedCategory] = useState<string | null>(null);
+  const [helpCard, setHelpCard] = useState<"players" | "names" | "topics" | "start" | "preview" | null>(null);
 
   function updateName(index: number, value: string) {
     setActiveStep(1);
@@ -64,7 +57,7 @@ export default function LocalSetupPage() {
 
   function handleCategoryClick(cat: string | null) {
     setActiveStep(2);
-    if (cat && premiumCats.has(cat) && isGuest) {
+    if (cat && premiumCats.has(cat) && !hasPremium) {
       setBlockedCategory(cat);
       setShowAuthModal(true);
       return;
@@ -98,11 +91,11 @@ export default function LocalSetupPage() {
 
           <div className="grid gap-4">
           <SetupSection
-            step={1}
             title="Number of players"
-            text="Three to ten seats, one impostor dealt in secret"
+            text="Three to ten seats"
             active={activeStep === 0}
             onFocus={() => setActiveStep(0)}
+            onHelp={() => setHelpCard("players")}
           >
             <div className="flex items-center justify-center gap-4 rounded-2xl border border-border bg-card/65 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.26)] sm:gap-6 sm:p-6">
               <button
@@ -148,11 +141,11 @@ export default function LocalSetupPage() {
           </SetupSection>
 
           <SetupSection
-            step={2}
             title="Player names"
-            text="Player tokens, seat labels, no spreadsheet feeling"
+            text="Names for the table"
             active={activeStep === 1}
             onFocus={() => setActiveStep(1)}
+            onHelp={() => setHelpCard("names")}
           >
             <motion.div layout className="grid gap-3 sm:grid-cols-2">
               {Array.from({ length: playerCount }).map((_, index) => (
@@ -177,40 +170,40 @@ export default function LocalSetupPage() {
           </SetupSection>
 
           <SetupSection
-            step={3}
             title="Topic pack"
-            text="Random for chaos, premium packs marked before the round"
+            text="Pick a lane"
             active={activeStep === 2}
             onFocus={() => setActiveStep(2)}
+            onHelp={() => setHelpCard("topics")}
           >
             <TopicPackGrid
               packs={categories}
               premiumPacks={premiumCats}
               selected={selectedCategory}
-              lockedWhenPremium={isGuest}
+              lockedWhenPremium={!hasPremium}
               onSelect={handleCategoryClick}
             />
-            {isGuest && (
+            {!hasPremium && (
               <p className="mt-4 flex items-center gap-2 text-sm text-muted">
-                <Icon name="lock" size={14} className="text-heat-2" />
-                Locked packs need an account.{" "}
+                <Icon name="crown" size={14} className="text-heat-2" />
+                Locked packs live in Imposter+.{" "}
                 <button
                   type="button"
-                  onClick={() => router.push(signupWithNext(pathname))}
+                  onClick={() => router.push(isGuest ? signupWithNext(pathname) : "/pricing")}
                   className="cursor-pointer font-semibold text-brand-2 transition-colors hover:text-foreground"
                 >
-                  Sign up free
+                  Unlock packs
                 </button>
               </p>
             )}
           </SetupSection>
 
           <SetupSection
-            step={4}
             title="Start round"
-            text="Pass clockwise, reveal only when each player is ready"
+            text="Deal when everyone's set"
             active={activeStep === 3}
             onFocus={() => setActiveStep(3)}
+            onHelp={() => setHelpCard("start")}
           >
             <div className="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-center">
               <div className="rounded-2xl border border-border bg-card/65 p-4">
@@ -239,7 +232,8 @@ export default function LocalSetupPage() {
               className="mx-auto max-h-[300px] w-full object-contain object-top"
             />
           </div>
-          <GameCard accent="cyan" className="p-5">
+          <GameCard accent="cyan" className="relative p-5">
+            <HelpButton onClick={() => setHelpCard("preview")} />
             <div className="mb-5 flex items-center justify-between gap-3">
               <div>
                 <Badge variant="cyan">Tonight&apos;s table</Badge>
@@ -260,33 +254,67 @@ export default function LocalSetupPage() {
                 ))}
               </div>
             </div>
-            <div className="mt-5">
-              <SetupStepper steps={STEPS} active={activeStep} />
-            </div>
           </GameCard>
         </aside>
       </section>
 
-      <section className="mt-8">
-        <HowItWorksStrip mode="setup" />
-      </section>
-
-      <Modal open={showAuthModal} onClose={() => setShowAuthModal(false)} title="Premium topic pack">
+      <Modal open={showAuthModal} onClose={() => setShowAuthModal(false)} title="Imposter+">
         <div className="space-y-4 text-center">
           <div className="mx-auto grid size-16 place-items-center rounded-lg border border-heat/40 bg-heat/12 text-heat-2">
             <Icon name="crown" size={30} />
           </div>
           <p className="text-foreground">
-            <span className="font-bold text-brand-2">{blockedCategory}</span> is locked right now
+            Unlock <span className="font-bold text-brand-2">{blockedCategory}</span>
           </p>
-          <p className="text-sm text-muted">Free account, premium packs, stats kept safe</p>
-          <div className="flex gap-3">
-            <Button variant="secondary" className="flex-1" onClick={() => router.push(loginWithNext(pathname))}>Log in</Button>
-            <Button className="flex-1" onClick={() => router.push(signupWithNext(pathname))}>Sign up free</Button>
-          </div>
+          <p className="text-sm text-muted">More packs, saved stats, regular table perks</p>
+          {isGuest ? (
+            <div className="flex gap-3">
+              <Button variant="secondary" className="flex-1" onClick={() => router.push(loginWithNext(pathname))}>Log in</Button>
+              <Button className="flex-1" onClick={() => router.push(signupWithNext(pathname))}>Sign up free</Button>
+            </div>
+          ) : (
+            <Button className="w-full bg-brand text-black hover:bg-brand-2" onClick={() => router.push("/pricing")}>
+              Unlock packs <Icon name="arrow" size={17} />
+            </Button>
+          )}
           <button onClick={() => setShowAuthModal(false)} className="cursor-pointer text-sm text-muted transition-colors hover:text-foreground">
             Maybe later
           </button>
+        </div>
+      </Modal>
+
+      <Modal open={Boolean(helpCard)} onClose={() => setHelpCard(null)} title="Quick help">
+        <div className="space-y-4">
+          {helpCard === "players" && (
+            <>
+              <p>Pick how many seats are in tonight&apos;s round.</p>
+              <p className="text-muted">Three is the minimum. Bigger tables feel messier, louder, and a little trickier.</p>
+            </>
+          )}
+          {helpCard === "names" && (
+            <>
+              <p>Type the names you want on the role cards.</p>
+              <p className="text-muted">Seat order matters because the device gets passed around in that same order.</p>
+            </>
+          )}
+          {helpCard === "topics" && (
+            <>
+              <p>Pick one pack or leave it on Random.</p>
+              <p className="text-muted">Crew sees the category and the word. The impostor only sees the category.</p>
+            </>
+          )}
+          {helpCard === "start" && (
+            <>
+              <p>Press start, then pass the device around the table.</p>
+              <p className="text-muted">Each player checks their card privately, then the clue round begins.</p>
+            </>
+          )}
+          {helpCard === "preview" && (
+            <>
+              <p>This panel is just a quick snapshot of the round you&apos;re building.</p>
+              <p className="text-muted">Player count, pack, impostor count, and seat order update as you change things.</p>
+            </>
+          )}
         </div>
       </Modal>
     </AppShell>
@@ -309,31 +337,29 @@ function RoundPreviewImage() {
 }
 
 function SetupSection({
-  step,
   title,
   text,
   active,
   onFocus,
+  onHelp,
   children,
 }: {
-  step: number;
   title: string;
   text: string;
   active: boolean;
   onFocus: () => void;
+  onHelp: () => void;
   children: ReactNode;
 }) {
   return (
     <GameCard
       accent={active ? "purple" : "cyan"}
-      className="p-5 sm:p-6"
+      className="relative p-5 sm:p-6"
       onMouseEnter={onFocus}
       onFocus={onFocus}
     >
+      <HelpButton onClick={onHelp} />
       <div className="mb-5 flex items-start gap-4">
-        <span className="grid size-11 shrink-0 place-items-center rounded-full bg-brand text-lg font-black text-white shadow-[0_8px_18px_rgba(24,185,100,0.22)]">
-          {step}
-        </span>
         <div>
           <h2 className="text-2xl font-bold">{title}</h2>
           <p className="mt-1 text-sm leading-relaxed text-muted">{text}</p>
@@ -341,6 +367,19 @@ function SetupSection({
       </div>
       {children}
     </GameCard>
+  );
+}
+
+function HelpButton({ onClick }: { onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="absolute right-4 top-4 grid size-9 place-items-center rounded-full border border-border bg-background/80 text-muted transition-colors hover:border-brand/40 hover:text-foreground"
+      aria-label="Open quick help"
+    >
+      <span className="text-base font-black">?</span>
+    </button>
   );
 }
 

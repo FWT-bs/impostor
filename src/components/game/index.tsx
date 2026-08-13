@@ -286,9 +286,8 @@ export function TopicPackChip({
       )}
       aria-pressed={selected}
     >
-      {locked ? <Icon name="lock" size={13} /> : premium ? <Icon name="crown" size={13} /> : <Icon name="dice" size={13} />}
+      <Icon name={premium ? "crown" : locked ? "lock" : "dice"} size={13} className={premium ? "text-heat-2" : undefined} />
       <span>{name}</span>
-      {premium && !locked && <span className="text-xs font-semibold text-heat-2">Premium</span>}
     </button>
   );
 }
@@ -394,6 +393,7 @@ export function RoomCard({
   topic,
   action,
   className,
+  showStatus = false,
 }: {
   code: string;
   players: number;
@@ -402,6 +402,7 @@ export function RoomCard({
   topic?: string;
   action?: ReactNode;
   className?: string;
+  showStatus?: boolean;
 }) {
   const fill = Math.min(100, Math.round((players / maxPlayers) * 100));
   return (
@@ -410,7 +411,7 @@ export function RoomCard({
         <div className="min-w-0 flex-1">
           <div className="mb-2 flex flex-wrap items-center gap-2">
             <span className="display text-2xl text-brand sm:text-3xl">{code}</span>
-            <StatusBadge status={status}>{status === "mine" ? "Your table" : status}</StatusBadge>
+            {showStatus && <StatusBadge status={status}>{status === "mine" ? "Your table" : status}</StatusBadge>}
           </div>
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted">
             <span>{players}/{maxPlayers} players</span>

@@ -3,12 +3,9 @@
 import {
   AppShell,
   DoodleMark,
-  GameCard,
-  HowItWorksStrip,
   PageHeader,
   RoomCard,
 } from "@/components/game";
-import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
 import { Logo } from "@/components/ui/Logo";
@@ -129,9 +126,6 @@ export default function HomePage() {
         <DoodleMark kind="mask" className="left-[32%] top-[52%] hidden lg:block" color="var(--heat)" size={50} rotate={8} />
         <div className="relative z-[1]">
           <PageHeader
-            eyebrow={
-              <span>The party game of bluff & trust</span>
-            }
             title={
               <>
                 Spot the <span className="scribble-word" style={{ "--scribble-color": "var(--heat)" } as CSSProperties}>lie</span>
@@ -166,15 +160,10 @@ export default function HomePage() {
         <HeroTabletopImage />
       </section>
 
-      <section className="py-6">
-        <HowItWorksStrip />
-      </section>
-
       <section className="py-7 sm:py-8">
         <div className="mb-5 flex items-end justify-between gap-4">
           <div>
-            <Badge variant="default">Choose your table</Badge>
-            <h2 className="mt-3 text-3xl font-bold sm:text-4xl">Game modes</h2>
+            <h2 className="text-3xl font-bold sm:text-4xl">Game modes</h2>
           </div>
           <Link href="/rooms" className="hidden items-center gap-2 text-sm font-semibold text-muted transition-colors hover:text-foreground sm:flex">
             Browse rooms <Icon name="arrow" size={16} />
@@ -184,18 +173,21 @@ export default function HomePage() {
           <ModeLink
             href="/local/setup"
             title="Pass and play"
-            text="One device, one room, no account gate"
+            imageSrc="/assets/round-preview-panel.png"
+            imageAlt="Pass and play preview with a hidden impostor seat"
           />
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-1">
             <ModeLink
               href="/rooms"
               title="Private room"
-              text="A code for your group, no public table"
+              imageSrc="/assets/online-room-board.png"
+              imageAlt="Private room card with join code and ready seats"
             />
             <ModeLink
               href="/rooms"
               title="Public match"
-              text="Open rooms when a table needs another seat"
+              imageSrc="/assets/imposter-circle-hero.png"
+              imageAlt="Public match with one impostor hidden among the table"
             />
           </div>
         </div>
@@ -204,8 +196,7 @@ export default function HomePage() {
       <section className="py-8">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <div>
-            <p className="text-sm font-semibold text-muted">Room browser</p>
-            <h2 className="mt-3 text-2xl font-bold sm:text-3xl">Open tables</h2>
+            <h2 className="text-2xl font-bold sm:text-3xl">Open tables</h2>
           </div>
           <Button variant="secondary" asChild>
             <Link href="/rooms">See all rooms</Link>
@@ -230,29 +221,6 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="py-10">
-        <GameCard accent="pink" className="overflow-hidden p-6 sm:p-8">
-          <div className="relative z-[1] flex flex-col justify-between gap-6 lg:flex-row lg:items-center">
-            <div className="max-w-2xl">
-              <Badge variant="pink"><Icon name="crown" size={13} /> Imposter+</Badge>
-              <h2 className="mt-4 text-2xl font-bold sm:text-3xl">Unlock the full table</h2>
-              <p className="mt-3 text-muted">
-                More topic packs, room priority, match history, a badge for regulars
-              </p>
-            </div>
-            <div className="flex flex-col gap-3 sm:min-w-[220px]">
-              <div className="flex items-end gap-2">
-                <span className="display text-5xl">$3</span>
-                <span className="pb-2 text-muted">/ month</span>
-              </div>
-              <Button asChild>
-                <Link href="/pricing">Unlock packs <Icon name="arrow" size={17} /></Link>
-              </Button>
-            </div>
-          </div>
-        </GameCard>
-      </section>
-
       {!user && (
         <section className="border-t border-border py-10 text-center">
           <h2 className="text-2xl font-bold">Save your table reads</h2>
@@ -269,6 +237,32 @@ export default function HomePage() {
           </div>
         </section>
       )}
+
+      <section className="pb-12 pt-8">
+        <div className="relative overflow-hidden rounded-2xl border border-brand/55 bg-[radial-gradient(circle_at_12%_15%,rgba(255,55,48,0.26),transparent_34%),radial-gradient(circle_at_88%_85%,rgba(47,213,111,0.32),transparent_38%),#050705] p-6 shadow-[0_0_60px_rgba(47,213,111,0.18)] sm:p-8">
+          <div className="absolute inset-x-8 top-0 h-1 rounded-full bg-brand" />
+          <div className="relative z-[1] flex flex-col justify-between gap-7 lg:flex-row lg:items-center">
+            <div className="max-w-2xl">
+              <div className="mb-4 grid size-12 place-items-center rounded-lg border border-heat/45 bg-heat/14 text-heat-2">
+                <Icon name="crown" size={24} />
+              </div>
+              <h2 className="text-3xl font-bold sm:text-4xl">Unlock the full table</h2>
+              <p className="mt-3 max-w-[62ch] text-muted">
+                More packs, room priority, match history, a badge for regulars
+              </p>
+            </div>
+            <div className="flex flex-col gap-3 sm:min-w-[250px]">
+              <div className="flex items-end gap-2">
+                <span className="display text-5xl text-white">$3</span>
+                <span className="pb-2 text-muted">/ month</span>
+              </div>
+              <Button className="bg-brand text-black hover:bg-brand-2" asChild>
+                <Link href="/pricing">Unlock packs <Icon name="arrow" size={17} /></Link>
+              </Button>
+            </div>
+          </div>
+        </div>
+      </section>
 
       <Footer />
     </AppShell>
@@ -308,23 +302,32 @@ function HeroTabletopImage() {
 function ModeLink({
   href,
   title,
-  text,
+  imageSrc,
+  imageAlt,
 }: {
   href: string;
   title: string;
-  text: string;
+  imageSrc: string;
+  imageAlt: string;
 }) {
   return (
     <Link
       href={href}
-      className="group block rounded-2xl border border-border bg-card/80 p-4 shadow-[0_12px_26px_rgba(7,22,42,0.07)] transition-all duration-200 hover:-translate-y-0.5 hover:border-brand/42 hover:bg-card-hover hover:shadow-[0_16px_34px_rgba(24,185,100,0.12)] sm:p-5"
+      className="group block overflow-hidden rounded-2xl border border-border bg-card/80 p-4 shadow-[0_12px_26px_rgba(7,22,42,0.07)] transition-all duration-200 hover:-translate-y-0.5 hover:border-brand/42 hover:bg-card-hover hover:shadow-[0_16px_34px_rgba(24,185,100,0.12)] sm:p-5"
     >
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h3 className="text-lg font-bold sm:text-xl">{title}</h3>
-          <p className="mt-2 max-w-[52ch] text-sm leading-6 text-muted">{text}</p>
-        </div>
-        <Icon name="arrow" size={18} className="mt-1 text-muted transition-transform duration-200 group-hover:translate-x-1 group-hover:text-brand" />
+      <div className="flex items-center justify-between gap-4">
+        <h3 className="text-lg font-bold sm:text-xl">{title}</h3>
+        <Icon name="arrow" size={18} className="shrink-0 text-muted transition-transform duration-200 group-hover:translate-x-1 group-hover:text-brand" />
+      </div>
+      <div className="mt-4 overflow-hidden rounded-xl bg-black/60">
+        <Image
+          src={imageSrc}
+          alt={imageAlt}
+          width={1600}
+          height={1200}
+          sizes="(min-width: 1024px) 32vw, 92vw"
+          className="h-40 w-full object-cover object-top transition-transform duration-300 group-hover:scale-[1.02] sm:h-44"
+        />
       </div>
     </Link>
   );
