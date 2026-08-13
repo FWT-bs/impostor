@@ -28,7 +28,7 @@ export function AppShell({
   return (
     <div className={cn("tabletop-page min-h-screen", className)}>
       <NavBar user={user} />
-      <main className={cn("tabletop-main mx-auto w-full max-w-7xl px-5 pb-16 pt-28 sm:px-8 lg:px-10", mainClassName)}>
+      <main className={cn("tabletop-main mx-auto w-full max-w-7xl px-4 pb-12 pt-24 sm:px-6 sm:pb-16 sm:pt-28 lg:px-10", mainClassName)}>
         {children}
       </main>
     </div>
@@ -73,7 +73,7 @@ export function PageHeader({
           </p>
         )}
       </div>
-      {actions && <div className="flex flex-wrap gap-4">{actions}</div>}
+      {actions && <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:flex-wrap sm:gap-4">{actions}</div>}
     </div>
   );
 }
@@ -407,15 +407,15 @@ export function RoomCard({
   return (
     <GameCard className={cn("p-4 sm:p-5", className)} accent={status === "live" ? "lime" : "purple"}>
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <div className="mb-2 flex flex-wrap items-center gap-2">
-            <span className="display text-3xl text-brand">{code}</span>
+            <span className="display text-2xl text-brand sm:text-3xl">{code}</span>
             <StatusBadge status={status}>{status === "mine" ? "Your table" : status}</StatusBadge>
           </div>
-          <div className="flex flex-wrap items-center gap-3 text-sm text-muted">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted">
             <span>{players}/{maxPlayers} players</span>
             <span className="text-muted-2">/</span>
-            <span>{topic || "Random pack"}</span>
+            <span className="min-w-0 max-w-full truncate">{topic || "Random pack"}</span>
           </div>
           <div className="mt-3 h-2.5 w-full max-w-[260px] overflow-hidden rounded-full bg-surface-3/75">
             <span
@@ -424,7 +424,7 @@ export function RoomCard({
             />
           </div>
         </div>
-        {action && <div className="shrink-0">{action}</div>}
+        {action && <div className="grid shrink-0 sm:block [&>*]:w-full sm:[&>*]:w-auto">{action}</div>}
       </div>
     </GameCard>
   );

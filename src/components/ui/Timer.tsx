@@ -80,7 +80,7 @@ export function Timer({
       </svg>
       <span
         className={cn(
-          "absolute font-heading text-lg font-bold tabular-nums",
+          "absolute font-display text-lg font-bold tabular-nums",
           percentRemaining > 50 && "text-brand-2",
           percentRemaining > 25 && percentRemaining <= 50 && "text-orange",
           percentRemaining <= 25 && "text-rose",

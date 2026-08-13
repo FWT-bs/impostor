@@ -52,7 +52,7 @@ function RoleRevealPhase() {
     <div>
       <div className="mb-7 flex items-center justify-between">
         <Chip icon="users" tone="brand">{topic} · pass &amp; play</Chip>
-        <span className="text-[13px] font-semibold text-muted" style={{ fontFamily: "var(--font-head)" }}>
+        <span className="text-[13px] font-semibold text-muted">
           {currentIdx + 1} / {players.length}
         </span>
       </div>
@@ -133,7 +133,7 @@ function SpeakingPhase() {
             <div key={p.id} className="flex items-center gap-3 rounded-lg px-3.5 py-2.5" style={{ border: "1px solid var(--border)", background: "rgba(255,255,255,.015)" }}>
               <span className="w-5 text-xs text-muted">{i + 1}.</span>
               <Avatar name={p.name} color={tokenColor(p.id)} size="sm" />
-              <span className="text-[14px] font-semibold" style={{ fontFamily: "var(--font-head)" }}>{p.name}</span>
+              <span className="text-[14px] font-semibold">{p.name}</span>
               <span className="ml-auto flex items-center gap-1 text-xs" style={{ color: "var(--emerald)" }}>
                 <Icon name="check" size={13} stroke={2.6} /> spoke
               </span>
@@ -242,7 +242,7 @@ function VotingPhase() {
               style={{ borderColor: picked ? "var(--heat)" : "var(--border)", background: picked ? "color-mix(in oklab, var(--heat) 12%, transparent)" : "var(--surface)" }}
             >
               <Avatar name={p.name} color={tokenColor(p.id)} size="md" />
-              <span className="text-[14px] font-bold" style={{ fontFamily: "var(--font-head)" }}>{p.name}</span>
+              <span className="text-[14px] font-bold">{p.name}</span>
               {picked && <span className="chip chip-heat absolute right-2 top-2" style={{ fontSize: 9 }}>Your vote</span>}
             </button>
           );
@@ -303,7 +303,7 @@ function ResultsPhase() {
                   }}
                 >
                   <Avatar name={p.name} color={tokenColor(p.id)} size="sm" role={isImp ? "impostor" : undefined} />
-                  <span className="text-[14px] font-semibold" style={{ fontFamily: "var(--font-head)" }}>{p.name}</span>
+                  <span className="text-[14px] font-semibold">{p.name}</span>
                   <span className="flex-1" />
                   <span className="text-[13px] text-muted">{p.votesReceived} vote{p.votesReceived !== 1 ? "s" : ""}</span>
                   {isImp && <span className="chip chip-heat" style={{ fontSize: 9 }}>Impostor</span>}

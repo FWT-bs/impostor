@@ -147,7 +147,7 @@ export default function ProfilePage() {
               <p className="text-[10px] uppercase text-muted/60 mb-3">
                 Agent record
               </p>
-              <h1 className="font-heading text-4xl text-foreground mb-2">Finish setup</h1>
+              <h1 className="font-display text-4xl text-foreground mb-2">Finish setup</h1>
               <p className="text-sm text-muted max-w-md mx-auto">
                 You&apos;re signed in, but there&apos;s no player row in the database yet (often a missed trigger).
                 Create your profile here with the same permissions as normal signup.
@@ -377,7 +377,7 @@ export default function ProfilePage() {
                   Remove photo
                 </button>
               )}
-              <h2 className="font-heading text-3xl text-foreground mb-1">
+              <h2 className="font-display text-3xl text-foreground mb-1">
                 {activeProfile.username}
               </h2>
               <p className="text-sm text-muted mb-1">
@@ -398,7 +398,7 @@ export default function ProfilePage() {
                 className="mb-6"
               >
                 <Card padding="lg" className="border-2 border-border">
-                  <h3 className="font-heading text-lg text-foreground mb-4">Customize</h3>
+                  <h3 className="font-display text-lg text-foreground mb-4">Customize</h3>
                   <Input
                     label="Username"
                     value={username}
@@ -446,7 +446,7 @@ export default function ProfilePage() {
                 onClick={() => setSettingsOpen((o) => !o)}
                 className="w-full flex items-center justify-between cursor-pointer"
               >
-                <h3 className="font-heading text-xl text-foreground">Settings</h3>
+                <h3 className="font-display text-xl text-foreground">Settings</h3>
                 <motion.svg
                   className="size-5 text-muted"
                   fill="none"
@@ -543,14 +543,14 @@ export default function ProfilePage() {
             </Card>
 
             <Card padding="lg" className="mb-6 border-2 border-border">
-              <h3 className="font-heading text-xl text-foreground mb-5">Statistics</h3>
+              <h3 className="font-display text-xl text-foreground mb-5">Statistics</h3>
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
                 {statConfig.map((s) => (
                   <div
                     key={s.key}
                     className="rounded-lg border border-border bg-card-hover/50 px-3 py-3 text-center transition-all duration-200 hover:border-brand/28"
                   >
-                    <p className={cn("font-heading text-2xl", s.color || "text-foreground")}>
+                    <p className={cn("font-display text-2xl", s.color || "text-foreground")}>
                       {getStatValue(s.key)}
                     </p>
                     <p className="text-[11px] text-muted mt-1 uppercase">

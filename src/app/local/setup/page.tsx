@@ -82,7 +82,7 @@ export default function LocalSetupPage() {
 
   return (
     <AppShell mainClassName="max-w-7xl">
-      <section className="relative grid items-start gap-8 lg:grid-cols-[1.15fr_0.85fr]">
+      <section className="relative grid items-start gap-7 lg:grid-cols-[1.15fr_0.85fr] lg:gap-8">
         <DoodleMark kind="eye" className="left-[52%] top-12 hidden lg:block" color="var(--aqua)" size={42} />
         <DoodleMark kind="shh" className="left-[67%] top-28 hidden lg:block" color="var(--heat)" size={48} rotate={8} />
         <div>
@@ -104,7 +104,7 @@ export default function LocalSetupPage() {
             active={activeStep === 0}
             onFocus={() => setActiveStep(0)}
           >
-            <div className="flex items-center justify-center gap-6 rounded-2xl border border-border bg-card/65 p-6 shadow-[inset_0_1px_0_rgba(255,255,255,0.26)]">
+            <div className="flex items-center justify-center gap-4 rounded-2xl border border-border bg-card/65 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.26)] sm:gap-6 sm:p-6">
               <button
                 type="button"
                 onClick={() => {
@@ -125,12 +125,12 @@ export default function LocalSetupPage() {
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -10 }}
                     transition={{ duration: 0.18 }}
-                    className="display block text-5xl text-foreground"
+                    className="display block text-4xl text-foreground sm:text-5xl"
                   >
                     {playerCount}
                   </motion.span>
                 </AnimatePresence>
-                <p className="text-sm font-semibold text-muted">players seated</p>
+                <p className="text-xs font-semibold text-muted sm:text-sm">players seated</p>
               </div>
               <button
                 type="button"
@@ -219,7 +219,7 @@ export default function LocalSetupPage() {
                   {playerCount} players / {selectedCategory || "Random pack"} / 1 impostor
                 </p>
               </div>
-              <Button size="lg" onClick={handleStart}>
+              <Button size="lg" className="w-full sm:w-auto" onClick={handleStart}>
                 <Icon name="play" size={18} fill /> Start round
               </Button>
             </div>

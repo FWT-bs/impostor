@@ -117,7 +117,7 @@ export default function HomePage() {
 
   return (
     <AppShell user={userSlot} mainClassName="max-w-7xl">
-      <section className="relative grid min-h-[calc(100dvh-8rem)] items-center gap-10 py-10 lg:grid-cols-[0.9fr_1.1fr] lg:py-14">
+      <section className="relative grid items-center gap-8 py-6 sm:gap-10 sm:py-10 lg:min-h-[calc(100dvh-8rem)] lg:grid-cols-[0.9fr_1.1fr] lg:py-14">
         <DoodleMark kind="shh" className="left-1 top-20 sm:-left-5" color="var(--heat)" size={38} />
         <DoodleMark kind="eye" className="left-[42%] top-14 hidden lg:block" color="var(--text)" size={48} />
         <DoodleMark kind="mask" className="left-[32%] top-[52%] hidden lg:block" color="var(--heat)" size={50} rotate={8} />
@@ -140,17 +140,17 @@ export default function HomePage() {
             }
             actions={
               <>
-                <Button size="lg" className="min-w-[240px]" asChild>
+                <Button size="lg" className="w-full sm:min-w-[240px] sm:w-auto" asChild>
                   <Link href="/local/setup"><Icon name="users" size={21} /> Start local game</Link>
                 </Button>
-                <Button variant="secondary" size="lg" className="min-w-[230px]" asChild>
+                <Button variant="secondary" size="lg" className="w-full sm:min-w-[230px] sm:w-auto" asChild>
                   <Link href="/rooms"><Icon name="globe" size={21} /> Join online room</Link>
                 </Button>
               </>
             }
           />
 
-          <div className="grid max-w-2xl gap-5 sm:grid-cols-3">
+          <div className="grid max-w-2xl grid-cols-3 gap-3 sm:gap-5">
             <GameStat icon="users" value={String(playingNow)} label="players live" />
             <GameStat icon="trophy" value={String(realRooms.length)} label="rooms open" />
             <GameStat icon="chair" value="3-10" label="seats per game" />
@@ -164,11 +164,11 @@ export default function HomePage() {
         <HowItWorksStrip />
       </section>
 
-      <section className="py-8">
+      <section className="py-7 sm:py-8">
         <div className="mb-5 flex items-end justify-between gap-4">
           <div>
             <Badge variant="default">Choose your table</Badge>
-            <h2 className="mt-3 text-4xl font-bold">Game modes</h2>
+            <h2 className="mt-3 text-3xl font-bold sm:text-4xl">Game modes</h2>
           </div>
           <Link href="/rooms" className="hidden items-center gap-2 text-sm font-semibold text-muted transition-colors hover:text-foreground sm:flex">
             Browse rooms <Icon name="arrow" size={16} />
@@ -199,7 +199,7 @@ export default function HomePage() {
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <div>
             <p className="text-sm font-semibold text-muted">Room browser</p>
-            <h2 className="mt-3 text-3xl font-bold">Open tables</h2>
+            <h2 className="mt-3 text-2xl font-bold sm:text-3xl">Open tables</h2>
           </div>
           <Button variant="secondary" asChild>
             <Link href="/rooms">See all rooms</Link>
@@ -229,7 +229,7 @@ export default function HomePage() {
           <div className="relative z-[1] flex flex-col justify-between gap-6 lg:flex-row lg:items-center">
             <div className="max-w-2xl">
               <Badge variant="pink"><Icon name="crown" size={13} /> Imposter+</Badge>
-              <h2 className="mt-4 text-3xl font-bold">Unlock the full table</h2>
+              <h2 className="mt-4 text-2xl font-bold sm:text-3xl">Unlock the full table</h2>
               <p className="mt-3 text-muted">
                 More topic packs, room priority, match history, a badge for regulars
               </p>
@@ -274,8 +274,8 @@ function GameStat({ icon, value, label }: { icon: "users" | "trophy" | "chair"; 
     <div className="flex items-center gap-3">
       <Icon name={icon} size={29} className={icon === "trophy" ? "text-heat" : "text-brand"} />
       <div>
-        <p className="font-display text-3xl leading-none text-foreground">{value}</p>
-        <p className="text-sm font-extrabold leading-4 text-muted">{label}</p>
+        <p className="font-display text-2xl leading-none text-foreground sm:text-3xl">{value}</p>
+        <p className="text-xs font-extrabold leading-4 text-muted sm:text-sm">{label}</p>
       </div>
     </div>
   );
@@ -311,11 +311,11 @@ function ModeLink({
   return (
     <Link
       href={href}
-      className="group block rounded-[18px] border border-border bg-card/80 p-5 shadow-[0_12px_26px_rgba(7,22,42,0.07)] transition-all duration-200 hover:-translate-y-0.5 hover:border-brand/42 hover:bg-card-hover hover:shadow-[0_16px_34px_rgba(24,185,100,0.12)]"
+      className="group block rounded-2xl border border-border bg-card/80 p-4 shadow-[0_12px_26px_rgba(7,22,42,0.07)] transition-all duration-200 hover:-translate-y-0.5 hover:border-brand/42 hover:bg-card-hover hover:shadow-[0_16px_34px_rgba(24,185,100,0.12)] sm:p-5"
     >
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h3 className="text-xl font-bold">{title}</h3>
+          <h3 className="text-lg font-bold sm:text-xl">{title}</h3>
           <p className="mt-2 max-w-[52ch] text-sm leading-6 text-muted">{text}</p>
         </div>
         <Icon name="arrow" size={18} className="mt-1 text-muted transition-transform duration-200 group-hover:translate-x-1 group-hover:text-brand" />

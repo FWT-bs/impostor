@@ -216,7 +216,7 @@ export default function LobbyPage({ params }: { params: Promise<{ code: string }
                     </div>
                     <span
                       className="max-w-[80px] truncate text-center text-[13px] font-semibold"
-                      style={{ fontFamily: "var(--font-head)", color: p.user_id === user?.id ? "var(--brand-2)" : "var(--text)" }}
+                      style={{ color: p.user_id === user?.id ? "var(--brand-2)" : "var(--text)" }}
                     >
                       {p.display_name}
                     </span>
@@ -356,7 +356,7 @@ function Setting({ label, children, last }: { label: string; children: React.Rea
     >
       <p
         className="mb-2.5 text-[13px] font-semibold uppercase"
-        style={{ fontFamily: "var(--font-head)", color: "var(--muted)", letterSpacing: ".06em" }}
+        style={{ color: "var(--muted)", letterSpacing: ".06em" }}
       >
         {label}
       </p>

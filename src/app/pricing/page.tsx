@@ -106,7 +106,7 @@ export default function PricingPage() {
 
   return (
     <AppShell user={userSlot} mainClassName="max-w-6xl">
-      <section className="relative grid items-center gap-8 lg:grid-cols-[0.82fr_1.18fr]">
+      <section className="relative grid items-center gap-7 lg:grid-cols-[0.82fr_1.18fr] lg:gap-8">
         <DoodleMark kind="lock" className="-left-4 top-12" color="var(--brand)" size={44} />
         <DoodleMark kind="mask" className="left-[42%] top-8 hidden lg:block" color="var(--text)" size={50} />
         <DoodleMark kind="shh" className="left-[34%] top-[45%] hidden lg:block" color="var(--heat)" size={50} rotate={8} />
@@ -120,12 +120,12 @@ export default function PricingPage() {
             }
             description="The locked topic drawer, more packs, better room priority, a badge for regulars"
             actions={
-              <Button size="lg" onClick={isPremium ? handleManageBilling : handleUpgrade} isLoading={loading}>
+              <Button size="lg" className="w-full sm:w-auto" onClick={isPremium ? handleManageBilling : handleUpgrade} isLoading={loading}>
                 <Icon name="crown" size={20} /> {isPremium ? "Manage Imposter+" : "Join Imposter+"}
               </Button>
             }
           />
-          <p className="ml-6 mt-2 max-w-[20ch] rotate-[-3deg] font-display text-2xl leading-tight text-brand">
+          <p className="ml-2 mt-2 max-w-[20ch] rotate-[-3deg] font-display text-xl leading-tight text-brand sm:ml-6 sm:text-2xl">
             More chaos, better games
           </p>
         </div>
@@ -143,7 +143,7 @@ export default function PricingPage() {
           <div className="relative z-[1] mb-5 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
             <div>
               <Badge variant="locked"><Icon name="lock" size={13} /> Locked packs</Badge>
-              <h2 className="mt-3 text-3xl font-bold">The topic drawer</h2>
+              <h2 className="mt-3 text-2xl font-bold sm:text-3xl">The topic drawer</h2>
               <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted">
                 Oddly specific packs, argument-friendly categories, built for bluffing
               </p>
@@ -206,14 +206,14 @@ export default function PricingPage() {
 function TopicVaultImage() {
   return (
     <aside className="relative mx-auto w-full max-w-[720px] justify-self-center lg:justify-self-end">
-      <div className="art-frame pricing-art-frame grid min-h-[360px] place-items-center p-10 sm:min-h-[460px]">
+      <div className="art-frame pricing-art-frame grid min-h-[260px] place-items-center p-6 sm:min-h-[460px] sm:p-10">
         <Image
           src="/assets/imposter-premium-logo.png"
           alt="Imposter Plus logo"
           width={1254}
           height={1254}
           sizes="(min-width: 1024px) 34vw, 72vw"
-          className="h-auto w-full max-w-[420px]"
+          className="h-auto w-full max-w-[260px] sm:max-w-[420px]"
           priority
         />
       </div>

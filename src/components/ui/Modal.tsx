@@ -77,7 +77,7 @@ export function Modal({
             <div className="mb-4 flex items-start justify-between gap-4">
               <h2
                 id={titleId}
-              className="font-heading text-xl font-bold text-foreground"
+              className="font-display text-xl font-bold text-foreground"
               >
                 {title}
               </h2>

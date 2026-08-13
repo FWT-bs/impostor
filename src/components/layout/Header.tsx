@@ -66,12 +66,12 @@ export function Header({ user: userProp, authSlot, className }: HeaderProps) {
   return (
     <motion.header
       className={cn(
-        "fixed inset-x-0 top-4 z-40 px-3 sm:px-8",
+        "fixed inset-x-0 top-3 z-40 px-3 sm:top-4 sm:px-8",
         className,
       )}
     >
       <div
-        className="mx-auto flex h-16 max-w-[1500px] items-center justify-between gap-4 rounded-[18px] border px-4 shadow-[0_12px_34px_rgba(7,22,42,0.08)] sm:h-[72px] sm:px-6"
+        className="mx-auto flex h-14 max-w-[1500px] items-center justify-between gap-2 rounded-2xl border px-3 shadow-[0_12px_34px_rgba(7,22,42,0.08)] sm:h-[72px] sm:gap-4 sm:px-6"
         style={{
           borderColor: "var(--border)",
           background: "color-mix(in oklab, var(--surface) 94%, transparent)",
@@ -80,9 +80,9 @@ export function Header({ user: userProp, authSlot, className }: HeaderProps) {
         }}
       >
         {/* Logo */}
-        <Link href="/" className="group flex items-center">
-          <div>
-            <Logo size={28} premium={isPremium} />
+        <Link href="/" className="group flex min-w-0 items-center">
+          <div className="grid size-10 shrink-0 place-items-center overflow-hidden rounded-xl sm:size-auto sm:overflow-visible">
+            <Logo size={24} premium={isPremium} />
           </div>
         </Link>
 
@@ -119,13 +119,13 @@ export function Header({ user: userProp, authSlot, className }: HeaderProps) {
         </nav>
 
         {/* Right side */}
-        <div className="flex items-center gap-2 sm:gap-3">
+        <div className="flex min-w-0 items-center gap-2 sm:gap-3">
           {authSlot ?? (
             <div className="flex items-center gap-2 sm:gap-3">
               {user && (
                 <Link
                   href="/profile"
-                  className="group flex items-center gap-2 rounded-xl border border-transparent py-1.5 pl-1.5 pr-3 transition-all duration-200 hover:border-border hover:bg-card-hover sm:gap-2.5"
+                  className="group flex min-w-0 items-center gap-2 rounded-xl border border-transparent py-1.5 pl-1.5 pr-2 transition-all duration-200 hover:border-border hover:bg-card-hover sm:gap-2.5 sm:pr-3"
                 >
                   <Avatar name={user.username} color={user.avatarColor} size="sm" />
                   <span className="hidden max-w-[130px] truncate text-[13px] font-medium text-foreground transition-colors group-hover:text-brand-2 sm:inline">
@@ -210,7 +210,7 @@ export function Header({ user: userProp, authSlot, className }: HeaderProps) {
               backdropFilter: "blur(20px)",
             }}
           >
-            <nav className="flex flex-col px-4 py-3" aria-label="Mobile">
+            <nav className="flex flex-col px-3 py-3" aria-label="Mobile">
               {nav.map(({ href, label }) => {
                 const active =
                   href === "/"
@@ -222,7 +222,7 @@ export function Header({ user: userProp, authSlot, className }: HeaderProps) {
                       href={href}
                       onClick={() => setMenuOpen(false)}
                       className={cn(
-                        "block rounded-md px-4 py-3 text-sm font-medium transition-all duration-200",
+                        "block rounded-xl px-4 py-3.5 text-sm font-semibold transition-all duration-200",
                         active
                           ? "bg-brand/12 text-brand-2"
                           : "text-muted hover:text-foreground hover:bg-card-hover",

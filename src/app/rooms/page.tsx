@@ -408,7 +408,7 @@ export default function RoomsPage() {
 
   return (
     <AppShell user={userSlot} mainClassName="max-w-7xl">
-      <section className="relative grid items-center gap-8 lg:grid-cols-[0.9fr_1.1fr]">
+      <section className="relative grid items-center gap-7 lg:grid-cols-[0.9fr_1.1fr]">
         <DoodleMark kind="mask" className="-left-8 bottom-4" color="var(--heat)" size={38} rotate={-11} />
         <DoodleMark kind="eye" className="left-[37%] top-36 hidden lg:block" color="var(--brand)" size={46} />
         <div>
@@ -422,10 +422,10 @@ export default function RoomsPage() {
             description="Public lobbies, private codes, tables you can rejoin"
             actions={
               <>
-                <Button size="lg" onClick={() => setShowCreate(true)}>
+                <Button size="lg" className="w-full sm:w-auto" onClick={() => setShowCreate(true)}>
                   <Icon name="plus" size={20} /> Create room
                 </Button>
-                <Button variant="secondary" size="lg" onClick={() => {
+                <Button variant="secondary" size="lg" className="w-full sm:w-auto" onClick={() => {
                   setLoadingRooms(true);
                   void refreshAllListings({ silent: false });
                 }}>
@@ -447,13 +447,13 @@ export default function RoomsPage() {
             </div>
             <p className="text-sm text-muted">Four-character invite, straight to the table</p>
           </div>
-          <div className="flex gap-2 sm:min-w-[360px]">
+          <div className="grid gap-2 sm:flex sm:min-w-[360px]">
             <Input
               aria-label="Room code"
               placeholder="ABCD"
               value={joinCode}
               onChange={(event) => setJoinCode(event.target.value.toUpperCase())}
-              className="h-14 bg-navy text-center text-2xl font-black uppercase tracking-normal text-white placeholder:text-white/50"
+              className="h-14 bg-navy text-center text-xl font-black uppercase tracking-normal text-white placeholder:text-white/50 sm:text-2xl"
               maxLength={4}
             />
             <Button
@@ -469,7 +469,7 @@ export default function RoomsPage() {
 
       <Tabs value={tab} onValueChange={(value) => setTab(value as RoomTab)}>
         <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <TabsList>
+          <TabsList className="w-full sm:w-auto">
             <TabsTrigger value="open">Open</TabsTrigger>
             <TabsTrigger value="live">Live</TabsTrigger>
             <TabsTrigger value="mine">My rooms</TabsTrigger>
@@ -488,7 +488,7 @@ export default function RoomsPage() {
         )}
 
         <TabsContent value={tab} className="mt-0">
-          {loadingRooms ? (
+          {loadingRooms && tab !== "open" ? (
             <LoadingRooms />
           ) : (
             <div className="space-y-5">
@@ -635,7 +635,7 @@ export default function RoomsPage() {
 
           <div>
             <label className="mb-2 block text-sm font-semibold text-foreground">Impostors</label>
-            <div className="grid gap-3 sm:grid-cols-3">
+            <div className="grid grid-cols-3 gap-2 sm:gap-3">
               <SettingOptionButton
                 selected={createImpostorCount === "auto"}
                 icon="dice"
@@ -662,7 +662,7 @@ export default function RoomsPage() {
 
           <div>
             <label className="mb-2 block text-sm font-semibold text-foreground">Clue style</label>
-            <div className="grid gap-3 sm:grid-cols-3">
+            <div className="grid grid-cols-3 gap-2 sm:gap-3">
               <SettingOptionButton
                 selected={createClueMode === "classic"}
                 icon="chat"
@@ -689,7 +689,7 @@ export default function RoomsPage() {
 
           <div>
             <label className="mb-2 block text-sm font-semibold text-foreground">Table mood</label>
-            <div className="grid gap-3 sm:grid-cols-3">
+            <div className="grid grid-cols-3 gap-2 sm:gap-3">
               <SettingOptionButton
                 selected={createBotDifficulty === "easy"}
                 icon="shield"
@@ -724,7 +724,7 @@ export default function RoomsPage() {
               selected={createCategory}
               lockedWhenPremium={!hasPremium}
               onSelect={handleCreateCategoryClick}
-              className="max-h-44 overflow-y-auto pr-1"
+              className="max-h-48 overflow-y-auto pr-1"
             />
           </div>
 
@@ -835,7 +835,7 @@ function AiTablesGrid({
             <h2 className="text-xl font-bold">A few tables are ready</h2>
             <p className="mt-1 text-sm text-muted">sit down and the room opens with seats already filled</p>
           </div>
-          <Button variant="secondary" onClick={onCreate}>
+          <Button variant="secondary" className="w-full sm:w-auto" onClick={onCreate}>
             <Icon name="plus" size={16} /> Create room
           </Button>
         </div>
@@ -846,7 +846,7 @@ function AiTablesGrid({
           <GameCard key={table.id} accent="cyan" className="p-4 sm:p-5">
             <div className="mb-3 flex items-start justify-between gap-3">
               <div>
-                <span className="display text-3xl text-brand">{table.code}</span>
+                <span className="display text-2xl text-brand sm:text-3xl">{table.code}</span>
                 <h3 className="mt-1 text-lg font-bold">{table.label}</h3>
               </div>
               <StatusBadge status="open">Open</StatusBadge>
@@ -945,7 +945,7 @@ function RoomTypeButton({
       type="button"
       onClick={onClick}
       className={cn(
-        "rounded-lg border p-4 text-left transition-colors cursor-pointer",
+        "rounded-lg border p-3 text-left transition-colors cursor-pointer sm:p-4",
         selected ? "border-brand/50 bg-brand/14" : "border-border bg-card/65 hover:border-brand/35",
       )}
     >
@@ -976,7 +976,7 @@ function SettingOptionButton({
       type="button"
       onClick={onClick}
       className={cn(
-        "rounded-lg border p-3 text-left transition-colors cursor-pointer",
+        "rounded-lg border p-2.5 text-left transition-colors cursor-pointer sm:p-3",
         selected ? "border-brand/50 bg-brand/14" : "border-border bg-card/65 hover:border-brand/35",
       )}
       aria-pressed={selected}
@@ -985,7 +985,7 @@ function SettingOptionButton({
         <Icon name={icon} size={17} />
       </div>
       <p className="text-sm font-bold text-foreground">{title}</p>
-      <p className="mt-0.5 text-xs text-muted">{text}</p>
+      <p className="mt-0.5 text-[11px] leading-4 text-muted sm:text-xs">{text}</p>
     </button>
   );
 }

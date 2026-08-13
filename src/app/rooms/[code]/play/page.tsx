@@ -134,7 +134,7 @@ export default function OnlinePlayPage({ params }: { params: Promise<{ code: str
                 </div>
                 <span
                   className="max-w-[72px] truncate text-[11.5px] font-semibold"
-                  style={{ fontFamily: "var(--font-head)", color: p.user_id === user.id ? "var(--brand-2)" : "var(--muted)" }}
+                  style={{ color: p.user_id === user.id ? "var(--brand-2)" : "var(--muted)" }}
                 >
                   {p.display_name}
                 </span>
@@ -439,7 +439,7 @@ function OnlineCluePhase({
                 }}
               >
                 <Avatar name={p.display_name} color={tokenColor(getPlayerIdentity(p))} size="sm" you={p.user_id === userId} />
-                <span className="text-[14px] font-semibold" style={{ fontFamily: "var(--font-head)", color: p.user_id === userId ? "var(--brand-2)" : "var(--text)" }}>
+                <span className="text-[14px] font-semibold" style={{ color: p.user_id === userId ? "var(--brand-2)" : "var(--text)" }}>
                   {p.display_name}
                 </span>
                 <span className="flex-1" />
@@ -543,7 +543,7 @@ function OnlineDiscussionPhase({
           {players.map((p) => (
             <div key={p.id} className="flex items-center gap-3 rounded-lg px-3.5 py-2.5" style={{ border: "1px solid var(--border)", background: "rgba(255,255,255,.015)" }}>
               <Avatar name={p.display_name} color={tokenColor(getPlayerIdentity(p))} size="sm" />
-              <span className="text-[14px] font-semibold" style={{ fontFamily: "var(--font-head)" }}>{p.display_name}</span>
+              <span className="text-[14px] font-semibold">{p.display_name}</span>
               <span className="flex-1" />
               <span className="display text-[20px]" style={{ color: "var(--aqua-2)" }}>{p.clue_text || "-"}</span>
             </div>
@@ -679,7 +679,7 @@ function OnlineVotingPhase({
                 }}
               >
                 <Avatar name={p.display_name} color={tokenColor(playerId)} size="md" />
-                <span className="text-[14px] font-bold" style={{ fontFamily: "var(--font-head)" }}>{p.display_name}</span>
+                <span className="text-[14px] font-bold">{p.display_name}</span>
                 {picked && <span className="chip chip-heat absolute right-2 top-2" style={{ fontSize: 9 }}>Your vote</span>}
               </button>
             );
@@ -827,7 +827,7 @@ function OnlineResultsPhase({
                   }}
                 >
                   <Avatar name={p.display_name} color={tokenColor(identity)} size="sm" role={isImp ? "impostor" : undefined} />
-                  <span className="text-[14px] font-semibold" style={{ fontFamily: "var(--font-head)" }}>{p.display_name}</span>
+                  <span className="text-[14px] font-semibold">{p.display_name}</span>
                   <span className="flex-1" />
                   <span className="text-[13px] text-muted">{count} vote{count !== 1 ? "s" : ""}</span>
                   {isImp && <span className="chip chip-heat" style={{ fontSize: 9 }}>Impostor</span>}
@@ -883,7 +883,7 @@ function ChatPanel({
   return (
     <div className="card flex flex-col overflow-hidden">
       <div className="flex items-center justify-between gap-2 px-3.5 py-3" style={{ borderBottom: "1px solid var(--border)" }}>
-        <span className="flex items-center gap-2 text-[14px] font-bold" style={{ fontFamily: "var(--font-head)" }}>
+        <span className="flex items-center gap-2 text-[14px] font-bold">
           <Icon name="chat" size={16} /> Table chat
         </span>
         <span className="chip">Room chat</span>
@@ -903,7 +903,7 @@ function ChatPanel({
             <div key={m.id} className="flex items-start gap-2" style={{ flexDirection: isYou ? "row-reverse" : "row" }}>
               <Avatar name={m.displayName} color={tokenColor(m.userId)} size="xs" you={isYou} />
               <div style={{ maxWidth: "78%" }}>
-                <div className="mb-0.5 text-[10.5px] font-semibold" style={{ color: "var(--muted-2)", fontFamily: "var(--font-head)", textAlign: isYou ? "right" : "left" }}>
+                <div className="mb-0.5 text-[10.5px] font-semibold" style={{ color: "var(--muted-2)", textAlign: isYou ? "right" : "left" }}>
                   {m.displayName}
                 </div>
                 <div

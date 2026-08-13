@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Nunito, Outfit } from "next/font/google";
+import { Outfit } from "next/font/google";
 import { Toaster } from "sonner";
 import { MotionConfig } from "framer-motion";
 import { ImposterIntro } from "@/components/intro/ImposterIntro";
@@ -7,13 +7,7 @@ import { AuthProvider } from "@/components/providers/auth-provider";
 import "./globals.css";
 
 const outfit = Outfit({
-  variable: "--font-display-face",
-  subsets: ["latin"],
-  weight: ["600", "700", "800", "900"],
-});
-
-const nunito = Nunito({
-  variable: "--font-body-face",
+  variable: "--font-app-face",
   subsets: ["latin"],
   weight: ["400", "500", "600", "700", "800", "900"],
 });
@@ -42,7 +36,7 @@ export default function RootLayout({
       data-theme="tabletop-dark"
       data-scroll-behavior="smooth"
       suppressHydrationWarning
-      className={`${outfit.variable} ${nunito.variable} h-full antialiased`}
+      className={`${outfit.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-background text-foreground">
         <script

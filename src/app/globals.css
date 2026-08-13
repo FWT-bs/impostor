@@ -54,16 +54,16 @@
   --rose:        var(--heat);
 
   /* font fallbacks so any un-migrated reference still resolves to the new type */
-  --font-bebas:    var(--font-display-face);
-  --font-rajdhani: var(--font-body-face);
-  --font-inter:    var(--font-body-face);
+  --font-bebas:    var(--font-app-face);
+  --font-rajdhani: var(--font-app-face);
+  --font-inter:    var(--font-app-face);
 }
 
 /* ---- Font presets ---- */
 :root {
-  --font-display: var(--font-display-face), system-ui, sans-serif;
-  --font-head:    var(--font-body-face), system-ui, sans-serif;
-  --font-body:    var(--font-body-face), system-ui, sans-serif;
+  --font-display: var(--font-app-face), system-ui, sans-serif;
+  --font-head:    var(--font-app-face), system-ui, sans-serif;
+  --font-body:    var(--font-app-face), system-ui, sans-serif;
   --display-track: 0;
 }
 
@@ -145,9 +145,9 @@
   --color-danger: var(--heat);
   --color-success: var(--emerald);
 
-  --font-heading: var(--font-body-face);
-  --font-sans: var(--font-body-face);
-  --font-display: var(--font-display-face);
+  --font-heading: var(--font-app-face);
+  --font-sans: var(--font-app-face);
+  --font-display: var(--font-app-face);
 }
 
 * { box-sizing: border-box; }
@@ -766,7 +766,7 @@ textarea,
 .tabletop-title {
   font-family: var(--font-display);
   color: var(--text);
-  font-size: 4.75rem;
+  font-size: clamp(2.45rem, 7.4vw, 4.75rem);
   line-height: 1.02;
   letter-spacing: 0;
   text-wrap: balance;
@@ -849,6 +849,11 @@ textarea,
 
 .hero-image-frame {
   border-radius: 32px;
+}
+
+.hero-image {
+  max-height: min(62dvh, 660px);
+  object-fit: contain;
 }
 
 .setup-art-frame {
@@ -1258,7 +1263,7 @@ textarea,
 }
 
 @media (max-width: 1200px) {
-  .tabletop-title { font-size: 4.15rem; }
+  .tabletop-title { font-size: clamp(2.35rem, 7vw, 4.15rem); }
 }
 
 @media (max-width: 900px) {
@@ -1273,12 +1278,58 @@ textarea,
     padding-top: 16px;
   }
 
-  .tabletop-title { font-size: 3.35rem; }
+  .tabletop-title { font-size: clamp(2.25rem, 10vw, 3.35rem); }
   .tabletop-copy { font-size: 1rem; }
 }
 
 @media (max-width: 560px) {
-  .tabletop-title { font-size: 2.65rem; }
+  body {
+    background: #000;
+  }
+
+  .tabletop-page-header {
+    margin-bottom: 1.5rem;
+  }
+
+  .tabletop-page-header > .space-y-4 {
+    gap: 0.85rem;
+  }
+
+  .tabletop-eyebrow {
+    padding: 7px 12px;
+    font-size: 0.78rem;
+  }
+
+  .tabletop-title {
+    font-size: clamp(2.1rem, 12.2vw, 2.95rem);
+    line-height: 1.04;
+  }
+
+  .tabletop-copy {
+    max-width: 34ch;
+    font-size: 0.96rem;
+    line-height: 1.52;
+  }
+
+  .hero-image-frame,
+  .pricing-art-frame,
+  .rooms-art-frame {
+    border-radius: 22px;
+  }
+
+  .hero-image {
+    max-height: 42dvh;
+  }
+
+  .how-strip {
+    border-radius: 18px;
+    padding: 18px;
+  }
+
+  .paper-card,
+  .paper-card-soft {
+    border-radius: 16px;
+  }
 }
 
 /* ============================================================
