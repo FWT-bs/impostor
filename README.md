@@ -76,6 +76,15 @@ STRIPE_WEBHOOK_SECRET=
 STRIPE_PREMIUM_PRICE_ID=
 ```
 
+Stripe premium uses hosted Checkout for the `Imposter+` subscription and
+Customer Portal for billing management. Configure the webhook endpoint at
+`https://imposterlive.com/api/stripe/webhook` with these events:
+`checkout.session.completed`, `customer.subscription.created`,
+`customer.subscription.updated`, `customer.subscription.deleted`,
+`invoice.payment_succeeded`, and `invoice.payment_failed`.
+Also enable the Customer Portal in Stripe Billing settings so `/profile`
+can open billing management for subscribers.
+
 For guest play, enable anonymous sign-ins in Supabase Auth.
 
 Run migrations:

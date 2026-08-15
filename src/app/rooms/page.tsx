@@ -5,7 +5,6 @@ import {
   DoodleMark,
   EmptyState,
   GameCard,
-  PageHeader,
   RoomCard,
   TopicPackGrid,
 } from "@/components/game";
@@ -399,71 +398,54 @@ export default function RoomsPage() {
 
   return (
     <AppShell user={userSlot} mainClassName="max-w-7xl">
-      <section className="relative grid items-center gap-7 lg:grid-cols-[0.9fr_1.1fr]">
+      <section className="relative grid items-center gap-8 py-4 lg:grid-cols-[minmax(360px,0.72fr)_minmax(520px,1fr)] lg:gap-12">
         <DoodleMark kind="mask" className="-left-8 bottom-4" color="var(--heat)" size={38} rotate={-11} />
         <DoodleMark kind="eye" className="left-[37%] top-36 hidden lg:block" color="var(--brand)" size={46} />
-        <div>
-          <PageHeader
-            title={
-              <>
-                Find a <span className="scribble-word" style={{ "--scribble-color": "var(--heat)" } as CSSProperties}>table</span>
-              </>
-            }
-            actions={
-              <>
-                <Button size="lg" className="w-full sm:w-auto" onClick={() => setShowCreate(true)}>
-                  <Icon name="plus" size={20} /> Create room
-                </Button>
-              </>
-            }
-          />
+        <div className="max-w-xl">
+          <h1 className="tabletop-title">
+            Find a <span className="scribble-word" style={{ "--scribble-color": "var(--heat)" } as CSSProperties}>table</span>
+          </h1>
+
+          <Button size="lg" className="mt-7 w-full max-w-[300px] sm:w-auto" onClick={() => setShowCreate(true)}>
+            <Icon name="plus" size={22} /> Create room
+          </Button>
+
+          <div className="mt-9 max-w-[360px]">
+            <p className="mb-3 text-sm font-bold text-muted">Have a code?</p>
+            <div className="grid grid-cols-[58px_minmax(0,1fr)_68px] overflow-hidden rounded-xl border border-border bg-card/80 p-0.5 shadow-[0_16px_34px_rgba(0,0,0,0.22)] sm:grid-cols-[64px_minmax(0,1fr)_76px]">
+              <div className="grid place-items-center border-r border-border text-xs font-bold text-muted sm:text-sm">Code</div>
+              <Input
+                aria-label="Room code"
+                placeholder="ABCD"
+                value={joinCode}
+                onChange={(event) => setJoinCode(event.target.value.toUpperCase())}
+                className="h-11 min-w-0 border-0 bg-transparent px-2 text-center text-base font-black uppercase tracking-normal text-white placeholder:text-white/35 focus-visible:ring-0 sm:text-lg"
+                maxLength={4}
+              />
+              <Button
+                className="h-11 min-w-0 rounded-lg px-3"
+                onClick={() => handleJoin(joinCode)}
+                disabled={joinCode.length !== 4 || joining}
+                isLoading={joining}
+              >
+                Join
+              </Button>
+            </div>
+          </div>
         </div>
         <RoomsSpriteImage />
       </section>
 
-      <GameCard accent="cyan" className="mb-6 mt-7 p-4 sm:p-5">
-        <div className="grid gap-4 lg:grid-cols-[minmax(0,180px)_minmax(0,1fr)_auto] lg:items-center">
-          <div className="flex items-center">
-            <h2 className="text-xl font-bold">Code</h2>
-          </div>
-          <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto]">
-            <Input
-              aria-label="Room code"
-              placeholder="ABCD"
-              value={joinCode}
-              onChange={(event) => setJoinCode(event.target.value.toUpperCase())}
-              className="h-14 bg-navy text-center text-xl font-black uppercase tracking-normal text-white placeholder:text-white/50 sm:text-2xl"
-              maxLength={4}
-            />
-            <Button
-              className="sm:min-w-[112px]"
-              onClick={() => handleJoin(joinCode)}
-              disabled={joinCode.length !== 4 || joining}
-              isLoading={joining}
-            >
-              Join
-            </Button>
-          </div>
-          <div className="hidden justify-end lg:flex">
-            <Button variant="secondary" size="sm" onClick={() => void handleManualRefresh()} isLoading={refreshing}>
-              <Icon name="refresh" size={16} /> Refresh
-            </Button>
-          </div>
-        </div>
-      </GameCard>
-
       <Tabs value={tab} onValueChange={(value) => setTab(value as RoomTab)}>
-        <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-            <TabsList className="w-full sm:w-auto">
+        <div className="mb-5 mt-7 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <TabsList className="w-full sm:w-auto">
               <TabsTrigger value="open">Open</TabsTrigger>
               <TabsTrigger value="live">Live</TabsTrigger>
               <TabsTrigger value="mine">My rooms</TabsTrigger>
-            </TabsList>
-            <Button variant="secondary" size="sm" className="sm:w-auto lg:hidden" onClick={() => void handleManualRefresh()} isLoading={refreshing}>
-              <Icon name="refresh" size={16} /> Refresh
-            </Button>
-          </div>
+          </TabsList>
+          <Button variant="secondary" className="sm:min-w-[112px]" onClick={() => void handleManualRefresh()} isLoading={refreshing}>
+            <Icon name="refresh" size={16} /> Refresh
+          </Button>
         </div>
 
         {listError && (
@@ -512,10 +494,6 @@ export default function RoomsPage() {
                     ))}
                   </div>
                 </AnimatePresence>
-              )}
-
-              {tab === "open" && (
-                <ReadyTablesPanel onCreate={() => setShowCreate(true)} />
               )}
             </div>
           )}
@@ -713,15 +691,15 @@ export default function RoomsPage() {
 
 function RoomsSpriteImage() {
   return (
-    <aside className="relative mx-auto w-full max-w-[700px] justify-self-center lg:justify-self-end">
+    <aside className="relative mx-auto w-full max-w-[760px] justify-self-center lg:justify-self-end">
       <div className="art-frame rooms-art-frame">
         <Image
-          src="/assets/topic-vault-cards.png"
+          src="/assets/topic-vault-board.png"
           alt="Topic vault cards for online tables"
           width={1600}
           height={1200}
           sizes="(min-width: 1024px) 54vw, 92vw"
-          className="reference-art max-h-[520px] object-contain object-top"
+          className="reference-art max-h-[460px] object-contain object-top"
         />
       </div>
     </aside>
@@ -776,19 +754,6 @@ function getRoomAction({
     >
       Copy code
     </Button>
-  );
-}
-
-function ReadyTablesPanel({ onCreate }: { onCreate: () => void }) {
-  return (
-    <GameCard accent="pink" className="overflow-hidden p-4 sm:p-5">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <h2 className="text-xl font-bold">Need a fresh table?</h2>
-        <Button variant="secondary" className="w-full sm:w-auto" onClick={onCreate}>
-          <Icon name="plus" size={16} /> Create room
-        </Button>
-      </div>
-    </GameCard>
   );
 }
 

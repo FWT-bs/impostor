@@ -80,13 +80,11 @@ export default function LocalSetupPage() {
         <DoodleMark kind="shh" className="left-[67%] top-28 hidden lg:block" color="var(--heat)" size={48} rotate={8} />
         <div>
           <PageHeader
-            eyebrow={<><Icon name="users" size={15} /> Pass & Play</>}
             title={
               <>
                 Set tonight&apos;s <span className="scribble-word" style={{ "--scribble-color": "var(--brand)" } as CSSProperties}>table</span>
               </>
             }
-            description="Seats, names, topic pack, hidden roles"
           />
 
           <div className="grid gap-4">
@@ -222,16 +220,6 @@ export default function LocalSetupPage() {
 
         <aside className="lg:sticky lg:top-28 lg:self-start">
           <RoundPreviewImage />
-          <div className="mb-5 overflow-hidden rounded-lg bg-black">
-            <Image
-              src="/assets/online-room-board.png"
-              alt="Impostor table with ready seats, clue cards, and topic cards"
-              width={1600}
-              height={1200}
-              sizes="(min-width: 1024px) 38vw, 92vw"
-              className="mx-auto max-h-[300px] w-full object-contain object-top"
-            />
-          </div>
           <GameCard accent="cyan" className="relative p-5">
             <HelpButton onClick={() => setHelpCard("preview")} />
             <div className="mb-5 flex items-center justify-between gap-3">

@@ -44,17 +44,30 @@ export async function POST(request: Request) {
   // Get or create Stripe customer
   let customerId = profile.stripe_customer_id;
   if (!customerId) {
-    const customer = await stripe.customers.create({
-      email: user.email ?? undefined,
-      name: profile.username,
-      metadata: { supabase_user_id: user.id },
-    });
+    const customer = await stripe.customers.create(
+      {
+        email: user.email ?? undefined,
+        name: profile.username,
+        metadata: {
+          app: "imposterlive",
+          supabase_user_id: user.id,
+        },
+      },
+      { idempotencyKey: `customer:${user.id}` },
+    );
     customerId = customer.id;
 
-    await admin
+    const { error: customerUpdateError } = await admin
       .from("profiles")
       .update({ stripe_customer_id: customerId })
       .eq("id", user.id);
+
+    if (customerUpdateError) {
+      return NextResponse.json(
+        { error: "Could not link Stripe customer" },
+        { status: 500 },
+      );
+    }
   }
 
   // Parse origin from request
@@ -63,14 +76,24 @@ export async function POST(request: Request) {
 
   const session = await stripe.checkout.sessions.create({
     customer: customerId,
+    client_reference_id: user.id,
     line_items: [{ price: priceId, quantity: 1 }],
     mode: "subscription",
-    success_url: `${origin}/profile?upgraded=true`,
+    success_url: `${origin}/profile?upgraded=true&session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `${origin}/pricing?canceled=true`,
+    allow_promotion_codes: true,
     subscription_data: {
-      metadata: { supabase_user_id: user.id },
+      metadata: {
+        app: "imposterlive",
+        plan: "imposter_plus",
+        supabase_user_id: user.id,
+      },
     },
-    metadata: { supabase_user_id: user.id },
+    metadata: {
+      app: "imposterlive",
+      plan: "imposter_plus",
+      supabase_user_id: user.id,
+    },
   });
 
   return NextResponse.json({ url: session.url });

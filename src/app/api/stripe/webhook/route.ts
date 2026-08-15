@@ -6,6 +6,71 @@ import type Stripe from "stripe";
 // Disable body parsing — we need the raw body for signature verification
 export const dynamic = "force-dynamic";
 
+const ACTIVE_SUBSCRIPTION_STATUSES = new Set(["active", "trialing"]);
+
+type AdminClient = ReturnType<typeof createAdminClient>;
+type StripeReference = string | { id: string } | null | undefined;
+
+function getStripeId(value: StripeReference): string | null {
+  if (!value) return null;
+  return typeof value === "string" ? value : value.id;
+}
+
+function unixToIso(value: unknown): string | null {
+  return typeof value === "number" ? new Date(value * 1000).toISOString() : null;
+}
+
+function getCurrentPeriodEnd(subscription: Stripe.Subscription): string | null {
+  const directEnd = (subscription as unknown as { current_period_end?: unknown })
+    .current_period_end;
+  const itemEnd = (
+    subscription.items.data[0] as unknown as { current_period_end?: unknown } | undefined
+  )?.current_period_end;
+
+  return unixToIso(directEnd) ?? unixToIso(itemEnd);
+}
+
+async function syncSubscriptionToProfile(
+  admin: AdminClient,
+  subscription: Stripe.Subscription,
+) {
+  const customerId = getStripeId(subscription.customer);
+  if (!customerId) {
+    throw new Error(`Subscription ${subscription.id} is missing a customer`);
+  }
+
+  const userId = subscription.metadata?.supabase_user_id;
+  const isActive = ACTIVE_SUBSCRIPTION_STATUSES.has(subscription.status);
+  const values = {
+    stripe_customer_id: customerId,
+    is_premium: isActive,
+    premium_until: isActive ? getCurrentPeriodEnd(subscription) : null,
+  };
+
+  const query = admin.from("profiles").update(values);
+  const { error } = userId
+    ? await query.eq("id", userId)
+    : await query.eq("stripe_customer_id", customerId);
+
+  if (error) {
+    throw new Error(
+      `Failed to sync subscription ${subscription.id}: ${error.message}`,
+    );
+  }
+
+  console.log(
+    `[stripe/webhook] Subscription ${subscription.id} synced: active=${isActive}`,
+  );
+}
+
+function getInvoiceSubscriptionId(invoice: Stripe.Invoice): string | null {
+  const parentSubscription = invoice.parent?.subscription_details?.subscription;
+  const legacySubscription = (invoice as unknown as { subscription?: StripeReference })
+    .subscription;
+
+  return getStripeId(parentSubscription) ?? getStripeId(legacySubscription);
+}
+
 export async function POST(request: Request) {
   const stripe = getStripe();
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
@@ -43,75 +108,57 @@ export async function POST(request: Request) {
     case "checkout.session.completed": {
       const session = event.data.object as Stripe.Checkout.Session;
       const userId = session.metadata?.supabase_user_id;
-      if (userId) {
-        await admin
+      const customerId = getStripeId(session.customer);
+      const subscriptionId = getStripeId(session.subscription);
+
+      if (subscriptionId) {
+        const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+        await syncSubscriptionToProfile(admin, subscription);
+      } else if (userId && customerId) {
+        const { error } = await admin
           .from("profiles")
           .update({
             is_premium: true,
-            stripe_customer_id: session.customer as string,
+            stripe_customer_id: customerId,
           })
           .eq("id", userId);
+        if (error) {
+          throw new Error(
+            `Failed to activate premium for ${userId}: ${error.message}`,
+          );
+        }
         console.log(`[stripe/webhook] Premium activated for user ${userId}`);
       }
       break;
     }
 
+    case "customer.subscription.created":
     case "customer.subscription.updated": {
       const subscription = event.data.object as Stripe.Subscription;
-      const customerId =
-        typeof subscription.customer === "string"
-          ? subscription.customer
-          : subscription.customer.id;
-
-      const isActive =
-        subscription.status === "active" ||
-        subscription.status === "trialing";
-
-      // current_period_end may be on the subscription object or items
-      const rawEnd = (subscription as unknown as Record<string, unknown>)
-        .current_period_end as number | undefined;
-      const periodEnd = rawEnd
-        ? new Date(rawEnd * 1000).toISOString()
-        : null;
-
-      await admin
-        .from("profiles")
-        .update({
-          is_premium: isActive,
-          premium_until: periodEnd,
-        })
-        .eq("stripe_customer_id", customerId);
-
-      console.log(
-        `[stripe/webhook] Subscription ${subscription.id} updated: active=${isActive}`,
-      );
+      await syncSubscriptionToProfile(admin, subscription);
       break;
     }
 
     case "customer.subscription.deleted": {
       const subscription = event.data.object as Stripe.Subscription;
-      const customerId =
-        typeof subscription.customer === "string"
-          ? subscription.customer
-          : subscription.customer.id;
+      await syncSubscriptionToProfile(admin, subscription);
+      break;
+    }
 
-      await admin
-        .from("profiles")
-        .update({ is_premium: false, premium_until: null })
-        .eq("stripe_customer_id", customerId);
+    case "invoice.payment_succeeded": {
+      const invoice = event.data.object as Stripe.Invoice;
+      const subscriptionId = getInvoiceSubscriptionId(invoice);
 
-      console.log(
-        `[stripe/webhook] Subscription ${subscription.id} canceled — premium revoked`,
-      );
+      if (subscriptionId) {
+        const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+        await syncSubscriptionToProfile(admin, subscription);
+      }
       break;
     }
 
     case "invoice.payment_failed": {
       const invoice = event.data.object as Stripe.Invoice;
-      const customerId =
-        typeof invoice.customer === "string"
-          ? invoice.customer
-          : invoice.customer?.id;
+      const customerId = getStripeId(invoice.customer);
 
       if (customerId) {
         console.warn(
