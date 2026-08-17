@@ -97,11 +97,11 @@ export function GameCard({
       <Card
         hover={false}
         className={cn(
-          "game-card paper-card relative h-full overflow-hidden",
+          "game-card relative h-full overflow-hidden rounded-[22px]",
           "before:absolute before:left-6 before:top-0 before:h-1 before:w-16 before:rounded-full before:opacity-80",
           accentClass,
           hover &&
-            "transition-all duration-200 will-change-transform hover:-translate-y-0.5 hover:border-brand/42 hover:bg-card-hover active:translate-y-0 active:scale-[0.99] active:duration-100",
+            "transition-all duration-200 will-change-transform hover:-translate-y-0.5 hover:bg-card-hover active:translate-y-0 active:scale-[0.99] active:duration-100",
           className,
         )}
         {...props}
@@ -224,8 +224,8 @@ export function PlayerToken({
   return (
     <div
       className={cn(
-        "flex items-center gap-3 rounded-xl border bg-card/75 p-3 transition-colors shadow-[0_8px_18px_rgba(7,22,42,0.06)]",
-        active ? "border-brand/45" : "border-border",
+        "flex items-center gap-3 rounded-2xl bg-background p-3 transition-colors",
+        active && "ring-2 ring-brand/50",
         className,
       )}
     >
@@ -241,7 +241,7 @@ export function PlayerToken({
             aria-label={`Player ${(index ?? 0) + 1} name`}
             value={value}
             onChange={onChange}
-            className="h-10 rounded-md bg-background/60"
+            className="h-10 rounded-lg border-0 bg-surface-2"
           />
         ) : (
           <>
@@ -274,12 +274,12 @@ export function TopicPackChip({
       type="button"
       onClick={onClick}
       className={cn(
-        "group relative inline-flex items-center gap-2 rounded-xl border px-3.5 py-2 text-sm font-extrabold transition-all duration-200 cursor-pointer shadow-[0_6px_12px_rgba(7,22,42,0.05)] will-change-transform active:scale-[0.95] active:duration-100",
+        "group relative inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-sm font-bold transition-all duration-200 cursor-pointer will-change-transform active:scale-[0.95] active:duration-100",
         selected
-          ? "border-brand bg-blue-soft text-brand"
+          ? "bg-brand text-brand-ink"
           : locked
-            ? "border-muted/20 bg-card/60 text-muted-2 hover:border-heat/35"
-            : "border-border bg-card/80 text-foreground hover:border-brand/38 hover:bg-card-hover hover:text-brand",
+            ? "bg-background text-muted-2 hover:text-muted"
+            : "bg-background text-foreground hover:bg-surface-2",
         className,
       )}
       aria-pressed={selected}
@@ -441,8 +441,8 @@ export function EmptyState({
   icon?: IconName;
 }) {
   return (
-    <Card padding="lg" className="paper-card text-center">
-      <div className="mx-auto mb-4 grid size-14 place-items-center rounded-2xl border border-brand/20 bg-blue-soft text-brand">
+    <Card padding="lg" className="rounded-[26px] text-center">
+      <div className="mx-auto mb-4 grid size-14 place-items-center rounded-2xl bg-brand text-brand-ink">
         <Icon name={icon} size={26} />
       </div>
       <h3 className="text-xl font-bold text-foreground">{title}</h3>
