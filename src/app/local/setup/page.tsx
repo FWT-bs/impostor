@@ -86,7 +86,7 @@ export default function LocalSetupPage() {
             onFocus={() => setActiveStep(0)}
             onHelp={() => setHelpCard("players")}
           >
-            <div className="flex items-center justify-center gap-4 rounded-2xl bg-background p-4 sm:gap-6 sm:p-6">
+            <div className="flex items-center justify-center gap-4 rounded-[24px] bg-background p-4 sm:gap-6 sm:p-6">
               <button
                 type="button"
                 onClick={() => {
@@ -195,7 +195,7 @@ export default function LocalSetupPage() {
             onHelp={() => setHelpCard("start")}
           >
             <div className="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-center">
-              <div className="rounded-2xl bg-background p-4">
+              <div className="rounded-[24px] bg-background p-4">
                 <p className="text-sm font-semibold text-foreground">Ready to deal roles</p>
                 <p className="mt-1 text-sm text-muted">
                   {playerCount} players / {selectedCategory || "Random pack"} / 1 impostor
@@ -236,7 +236,7 @@ export default function LocalSetupPage() {
 
       <Modal open={showAuthModal} onClose={() => setShowAuthModal(false)} title="Imposter+">
         <div className="space-y-4 text-center">
-          <div className="mx-auto grid size-16 place-items-center rounded-2xl bg-heat text-heat-ink">
+          <div className="mx-auto grid size-16 place-items-center rounded-[20px] bg-heat text-heat-ink">
             <Icon name="crown" size={30} />
           </div>
           <p className="text-foreground">
@@ -299,7 +299,7 @@ export default function LocalSetupPage() {
 
 function RoundPreviewImage() {
   return (
-    <div className="setup-art-frame mb-5 overflow-hidden rounded-[26px] bg-card">
+    <div className="setup-art-frame mb-5 overflow-hidden rounded-[36px] bg-card">
       <Image
         src="/assets/round-preview-panel.png"
         alt="Round preview with three crew players and one red impostor around a hidden role circle"
@@ -361,7 +361,7 @@ function HelpButton({ onClick }: { onClick: () => void }) {
 
 function PreviewRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex items-center justify-between rounded-xl bg-background px-4 py-3">
+    <div className="flex items-center justify-between rounded-[20px] bg-background px-4 py-3">
       <span className="text-sm text-muted">{label}</span>
       <span className="text-sm font-bold text-foreground">{value}</span>
     </div>

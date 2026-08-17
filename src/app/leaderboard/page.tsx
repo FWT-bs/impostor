@@ -121,7 +121,7 @@ export default function LeaderboardPage() {
                 <div
                   key={leader.id}
                   className={cn(
-                    "flex items-center gap-4 rounded-[20px] px-5 py-4",
+                    "flex items-center gap-4 rounded-[24px] px-5 py-4",
                     isYou ? "bg-cream text-ink" : "bg-card text-foreground",
                   )}
                 >
@@ -171,7 +171,7 @@ function TopPodium({
         >
           <div
             className={cn(
-              "rounded-[24px] text-center",
+              "rounded-[32px] text-center",
               first ? "bg-brand py-9 px-6 text-brand-ink" : "bg-card py-7 px-6 text-foreground",
             )}
           >

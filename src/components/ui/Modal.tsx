@@ -65,7 +65,7 @@ export function Modal({
             aria-modal="true"
             aria-labelledby={titleId}
             className={cn(
-              "relative z-10 my-auto w-full max-w-lg rounded-lg border border-border bg-card p-5 sm:p-6",
+              "relative z-10 my-auto w-full max-w-lg rounded-[32px] bg-card p-5 sm:p-6",
               className,
             )}
             initial={{ opacity: 0, scale: 0.9, y: 20 }}

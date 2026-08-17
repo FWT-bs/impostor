@@ -31,7 +31,7 @@ export function Card({
       className={cn(
         // Cards are told apart by surface color, not borders or blurred
         // shadows — matches the flat elevated-tile system.
-        "rounded-[22px] bg-card text-foreground",
+        "rounded-[28px] bg-card text-foreground",
         paddingClasses[padding],
         hover &&
           "cursor-pointer transition-all duration-200 will-change-transform hover:-translate-y-0.5 hover:bg-card-hover active:translate-y-0 active:scale-[0.985] active:duration-100",

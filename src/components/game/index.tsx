@@ -97,7 +97,7 @@ export function GameCard({
       <Card
         hover={false}
         className={cn(
-          "game-card relative h-full overflow-hidden rounded-[22px]",
+          "game-card relative h-full overflow-hidden rounded-[28px]",
           "before:absolute before:left-6 before:top-0 before:h-1 before:w-16 before:rounded-full before:opacity-80",
           accentClass,
           hover &&
@@ -224,7 +224,7 @@ export function PlayerToken({
   return (
     <div
       className={cn(
-        "flex items-center gap-3 rounded-2xl bg-background p-3 transition-colors",
+        "flex items-center gap-3 rounded-[20px] bg-background p-3 transition-colors",
         active && "ring-2 ring-brand/50",
         className,
       )}
@@ -441,7 +441,7 @@ export function EmptyState({
   icon?: IconName;
 }) {
   return (
-    <Card padding="lg" className="rounded-[26px] text-center">
+    <Card padding="lg" className="rounded-[32px] text-center">
       <div className="mx-auto mb-4 grid size-14 place-items-center rounded-2xl bg-brand text-brand-ink">
         <Icon name={icon} size={26} />
       </div>

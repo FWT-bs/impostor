@@ -17,7 +17,7 @@ export type ButtonSize = "sm" | "md" | "lg";
 // reads as physically pushed in rather than just dimmed.
 const buttonVariants = cva(
   [
-    "button-motion group/button inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-2xl text-sm font-bold",
+    "button-motion group/button inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-[20px] text-sm font-bold",
     "transition-[transform,box-shadow,background,color,opacity] duration-150 ease-out",
     "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/70 focus-visible:ring-offset-2 focus-visible:ring-offset-background",
     "disabled:pointer-events-none disabled:opacity-45 cursor-pointer select-none border-0",
@@ -40,7 +40,7 @@ const buttonVariants = cva(
           "bg-cream text-ink shadow-[0_5px_0_var(--cream-shadow)] hover:brightness-95 active:translate-y-[5px] active:shadow-[0_0_0_var(--cream-shadow)]",
       },
       size: {
-        sm: "h-10 rounded-xl px-4 text-[13px]",
+        sm: "h-10 rounded-2xl px-4 text-[13px]",
         md: "h-12 px-5",
         lg: "h-14 px-7 text-[16px] sm:h-[58px] sm:px-8",
       },

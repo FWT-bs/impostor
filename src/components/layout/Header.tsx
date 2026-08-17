@@ -140,7 +140,7 @@ export function Header({ user: userProp, authSlot, className }: HeaderProps) {
           <button
             type="button"
             className={cn(
-              "inline-flex size-9 items-center justify-center rounded-lg transition-all duration-200 md:hidden cursor-pointer",
+              "inline-flex size-9 items-center justify-center rounded-xl transition-all duration-200 md:hidden cursor-pointer",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand",
             )}
             style={{
@@ -195,7 +195,7 @@ export function Header({ user: userProp, authSlot, className }: HeaderProps) {
             style={{
               marginTop: 8,
               border: "1px solid var(--border)",
-              borderRadius: 18,
+              borderRadius: 28,
               background: "color-mix(in oklab, var(--surface) 96%, transparent)",
               backdropFilter: "blur(20px)",
             }}
