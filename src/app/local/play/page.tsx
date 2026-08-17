@@ -128,7 +128,7 @@ function SpeakingPhase() {
         </div>
         <div className="mb-5 flex flex-col gap-2">
           {players.map((p, i) => (
-            <div key={p.id} className="flex items-center gap-3 rounded-lg px-3.5 py-2.5" style={{ border: "1px solid var(--border)", background: "rgba(255,255,255,.015)" }}>
+            <div key={p.id} className="flex items-center gap-3 rounded-2xl bg-background px-3.5 py-2.5">
               <span className="w-5 text-xs text-muted">{i + 1}.</span>
               <Avatar name={p.name} color={tokenColor(p.id)} size="sm" />
               <span className="text-[14px] font-semibold">{p.name}</span>
@@ -235,11 +235,18 @@ function VotingPhase() {
               type="button"
               onClick={() => setSelectedId(p.id)}
               className="vote-card"
-              style={{ borderColor: picked ? "var(--heat)" : "var(--border)", background: picked ? "color-mix(in oklab, var(--heat) 12%, transparent)" : "var(--surface)" }}
+              style={{ background: picked ? "var(--heat)" : "var(--bg)", color: picked ? "var(--heat-ink)" : "var(--text)" }}
             >
               <Avatar name={p.name} color={tokenColor(p.id)} size="md" />
               <span className="text-[14px] font-bold">{p.name}</span>
-              {picked && <span className="chip chip-heat absolute right-2 top-2" style={{ fontSize: 9 }}>Your vote</span>}
+              {picked && (
+                <span
+                  className="absolute right-2 top-2 rounded-full px-2 py-1 text-[9px] font-bold"
+                  style={{ background: "var(--heat-ink)", color: "var(--heat)" }}
+                >
+                  Your vote
+                </span>
+              )}
             </button>
           );
         })}
@@ -289,17 +296,23 @@ function ResultsPhase() {
               return (
                 <div
                   key={p.id}
-                  className="flex items-center gap-3 rounded-lg px-3.5 py-2.5"
-                  style={{
-                    border: isImp ? "1px solid color-mix(in oklab, var(--heat) 40%, transparent)" : "1px solid var(--border)",
-                    background: isImp ? "color-mix(in oklab, var(--heat) 10%, transparent)" : "rgba(255,255,255,.015)",
-                  }}
+                  className="flex items-center gap-3 rounded-2xl px-3.5 py-2.5"
+                  style={{ background: isImp ? "var(--heat)" : "var(--bg)", color: isImp ? "var(--heat-ink)" : "var(--text)" }}
                 >
                   <Avatar name={p.name} color={tokenColor(p.id)} size="sm" role={isImp ? "impostor" : undefined} />
                   <span className="text-[14px] font-semibold">{p.name}</span>
                   <span className="flex-1" />
-                  <span className="text-[13px] text-muted">{p.votesReceived} vote{p.votesReceived !== 1 ? "s" : ""}</span>
-                  {isImp && <span className="chip chip-heat" style={{ fontSize: 9 }}>Impostor</span>}
+                  <span className="text-[13px]" style={{ color: isImp ? "var(--heat-ink)" : "var(--muted)", opacity: isImp ? 0.75 : 1 }}>
+                    {p.votesReceived} vote{p.votesReceived !== 1 ? "s" : ""}
+                  </span>
+                  {isImp && (
+                    <span
+                      className="rounded-full px-2.5 py-1 text-[9px] font-bold"
+                      style={{ background: "var(--heat-ink)", color: "var(--heat)" }}
+                    >
+                      Impostor
+                    </span>
+                  )}
                 </div>
               );
             })}

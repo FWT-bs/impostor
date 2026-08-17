@@ -1,10 +1,8 @@
 "use client";
 
-import { AppShell, DoodleMark, EmptyState, GameCard, PageHeader } from "@/components/game";
+import { AppShell, EmptyState, GameCard, PageHeader } from "@/components/game";
 import { Avatar } from "@/components/ui/Avatar";
-import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
-import { Icon } from "@/components/ui/Icon";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/Tabs";
 import { getAuthAvatarColor, getAuthDisplayName } from "@/lib/auth-display-name";
 import { useAuth } from "@/lib/hooks/use-auth";
@@ -80,16 +78,10 @@ export default function LeaderboardPage() {
 
   return (
     <AppShell user={userSlot} mainClassName="max-w-6xl">
-      <section className="relative">
-        <DoodleMark kind="mask" className="right-20 top-24 hidden sm:block" color="var(--brand)" size={52} />
-        <DoodleMark kind="eye" className="left-2 top-36 hidden md:block" color="var(--amber)" size={44} />
-        <DoodleMark kind="trace" className="right-0 top-44 hidden md:block" color="var(--heat)" size={42} />
-        <PageHeader
-          align="center"
-          title="Leaderboard"
-          description="The players who keep surviving the table"
-        />
-      </section>
+      <PageHeader
+        title="Table legends"
+        description="The players who keep surviving the vote"
+      />
 
       <div className="mb-7 flex justify-center">
         <Tabs value={tab} onValueChange={(value) => setTab(value as RankingTab)}>
@@ -122,41 +114,32 @@ export default function LeaderboardPage() {
       ) : (
         <>
           <TopPodium leaders={leaders.slice(0, 3)} tab={tab} />
-          <div className="paper-card relative z-[2] mt-[-12px] overflow-x-auto p-5">
-            <table className="w-full min-w-[720px] border-collapse text-left">
-              <thead>
-                <tr className="border-b border-border text-sm text-muted">
-                  <th className="w-16 py-3 font-extrabold">#</th>
-                  <th className="py-3 font-extrabold">Player</th>
-                  <th className="py-3 font-extrabold"><Icon name="trophy" size={17} className="mr-2 inline text-amber" />Total wins</th>
-                  <th className="py-3 font-extrabold"><Icon name="mask" size={17} className="mr-2 inline text-heat" />Impostor wins</th>
-                  <th className="py-3 font-extrabold"><Icon name="chair" size={17} className="mr-2 inline text-aqua" />Crew wins</th>
-                  <th className="py-3 font-extrabold">Games played</th>
-                </tr>
-              </thead>
-              <tbody>
-                {leaders.map((leader, index) => (
-                  <tr key={leader.id} className="border-b border-border/70 last:border-b-0">
-                    <td className="py-4 font-black text-muted">{index + 1}</td>
-                    <td className="py-4">
-                      <div className="flex items-center gap-3">
-                        <Avatar name={leader.username} color={leader.avatar_color} size="sm" />
-                        <div>
-                          <p className="font-extrabold text-foreground">{leader.username}</p>
-                          <span className={cn("rounded-full px-2 py-0.5 text-xs font-black", leader.impostor_wins > leader.group_wins ? "bg-heat/10 text-heat" : "bg-aqua/10 text-aqua")}>
-                            {leader.impostor_wins > leader.group_wins ? "Impostor" : "Crew"}
-                          </span>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="py-4 font-black">{leader.total_wins}</td>
-                    <td className="py-4 font-black text-heat">{leader.impostor_wins}</td>
-                    <td className="py-4 font-black text-aqua">{leader.group_wins}</td>
-                    <td className="py-4 font-black">{leader.games_played}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="mt-4 flex flex-col gap-2">
+            {leaders.slice(3).map((leader, index) => {
+              const isYou = user?.id === leader.id;
+              return (
+                <div
+                  key={leader.id}
+                  className={cn(
+                    "flex items-center gap-4 rounded-[20px] px-5 py-4",
+                    isYou ? "bg-cream text-ink" : "bg-card text-foreground",
+                  )}
+                >
+                  <span className={cn("w-7 text-lg font-bold", !isYou && "text-muted")}>{index + 4}</span>
+                  <Avatar name={leader.username} color={leader.avatar_color} size="sm" />
+                  <span className="flex-1 truncate text-lg font-bold">
+                    {leader.username}
+                    {isYou && (
+                      <span className="ml-2 rounded-full bg-ink px-2.5 py-1 text-xs font-bold text-cream">you</span>
+                    )}
+                  </span>
+                  <span className={cn("mr-1 hidden text-sm sm:inline", isYou ? "text-ink/70" : "text-muted")}>
+                    {leader.impostor_wins} as impostor
+                  </span>
+                  <span className="display text-xl">{getValue(leader, tab)}</span>
+                </div>
+              );
+            })}
           </div>
         </>
       )}
@@ -172,31 +155,31 @@ function TopPodium({
   tab: RankingTab;
 }) {
   const podium = [
-    { leader: leaders[1], rank: 2, height: "sm:h-44", tone: "cyan" as const },
-    { leader: leaders[0], rank: 1, height: "sm:h-56", tone: "pink" as const },
-    { leader: leaders[2], rank: 3, height: "sm:h-40", tone: "purple" as const },
+    { leader: leaders[1], rank: 2, first: false },
+    { leader: leaders[0], rank: 1, first: true },
+    { leader: leaders[2], rank: 3, first: false },
   ].filter((item) => item.leader);
 
   return (
     <div className="grid items-end gap-4 sm:grid-cols-3">
-      {podium.map(({ leader, rank, height, tone }) => (
+      {podium.map(({ leader, rank, first }) => (
         <motion.div
           key={leader.id}
           initial={{ opacity: 0, y: 18 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: rank * 0.06, duration: 0.35 }}
         >
-          <GameCard accent={tone} className={cn("flex flex-col items-center justify-end p-5 text-center", height)}>
-            <Badge variant={rank === 1 ? "pink" : rank === 2 ? "cyan" : "default"}>
-              #{rank}
-            </Badge>
-            <div className="my-4">
-              <Avatar name={leader.username} color={leader.avatar_color} size="lg" />
-            </div>
-            <h2 className="max-w-full truncate text-xl font-bold">{leader.username}</h2>
-            <p className="mt-2 display text-5xl text-brand-2">{getValue(leader, tab)}</p>
-            <p className="text-xs font-semibold text-muted">{getLabel(tab)}</p>
-          </GameCard>
+          <div
+            className={cn(
+              "rounded-[24px] text-center",
+              first ? "bg-brand py-9 px-6 text-brand-ink" : "bg-card py-7 px-6 text-foreground",
+            )}
+          >
+            <Avatar name={leader.username} color={leader.avatar_color} size={first ? "lg" : "md"} />
+            <h2 className={cn("mt-3 truncate font-bold", first ? "text-2xl" : "text-xl")}>{leader.username}</h2>
+            <p className={cn("display mt-1.5", first ? "text-5xl" : "text-4xl")}>{getValue(leader, tab)}</p>
+            <p className={cn("text-sm font-semibold", first ? "opacity-75" : "text-muted")}>{getLabel(tab)}</p>
+          </div>
         </motion.div>
       ))}
     </div>

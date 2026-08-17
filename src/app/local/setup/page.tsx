@@ -2,9 +2,7 @@
 
 import {
   AppShell,
-  DoodleMark,
   GameCard,
-  PageHeader,
   PlayerToken,
   StatusBadge,
   TopicPackGrid,
@@ -19,7 +17,7 @@ import { useLocalGameStore } from "@/stores/local-game-store";
 import { AnimatePresence, motion } from "framer-motion";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
-import { useMemo, useState, type CSSProperties, type ReactNode } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 
 const MIN_PLAYERS = 3;
 const MAX_PLAYERS = 10;
@@ -74,17 +72,11 @@ export default function LocalSetupPage() {
 
   return (
     <AppShell mainClassName="max-w-7xl">
-      <section className="relative grid items-start gap-7 lg:grid-cols-[1.15fr_0.85fr] lg:gap-8">
-        <DoodleMark kind="eye" className="left-[52%] top-12 hidden lg:block" color="var(--aqua)" size={42} />
-        <DoodleMark kind="shh" className="left-[67%] top-28 hidden lg:block" color="var(--heat)" size={48} rotate={8} />
+      <section className="grid items-start gap-6 lg:grid-cols-[1.15fr_0.85fr] lg:gap-8">
         <div>
-          <PageHeader
-            title={
-              <>
-                Set tonight&apos;s <span className="scribble-word" style={{ "--scribble-color": "var(--brand)" } as CSSProperties}>table</span>
-              </>
-            }
-          />
+          <h1 className="display mb-6 text-[40px] leading-[1.02] sm:text-[48px]">
+            Set tonight&apos;s <span className="text-brand">table</span>
+          </h1>
 
           <div className="grid gap-4">
           <SetupSection
@@ -94,7 +86,7 @@ export default function LocalSetupPage() {
             onFocus={() => setActiveStep(0)}
             onHelp={() => setHelpCard("players")}
           >
-            <div className="flex items-center justify-center gap-4 rounded-2xl border border-border bg-card/65 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.26)] sm:gap-6 sm:p-6">
+            <div className="flex items-center justify-center gap-4 rounded-2xl bg-background p-4 sm:gap-6 sm:p-6">
               <button
                 type="button"
                 onClick={() => {
@@ -203,7 +195,7 @@ export default function LocalSetupPage() {
             onHelp={() => setHelpCard("start")}
           >
             <div className="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-center">
-              <div className="rounded-2xl border border-border bg-card/65 p-4">
+              <div className="rounded-2xl bg-background p-4">
                 <p className="text-sm font-semibold text-foreground">Ready to deal roles</p>
                 <p className="mt-1 text-sm text-muted">
                   {playerCount} players / {selectedCategory || "Random pack"} / 1 impostor
@@ -230,7 +222,7 @@ export default function LocalSetupPage() {
               <PreviewRow label="Topic pack" value={selectedCategory || "Random"} />
               <PreviewRow label="Impostors" value="1" />
             </div>
-            <div className="mt-5 rounded-2xl border border-border bg-card/65 p-4">
+            <div className="mt-5">
               <p className="mb-3 text-sm font-semibold text-foreground">Seats</p>
               <div className="grid gap-2">
                 {names.slice(0, playerCount).map((name, index) => (
@@ -244,7 +236,7 @@ export default function LocalSetupPage() {
 
       <Modal open={showAuthModal} onClose={() => setShowAuthModal(false)} title="Imposter+">
         <div className="space-y-4 text-center">
-          <div className="mx-auto grid size-16 place-items-center rounded-lg border border-heat/40 bg-heat/12 text-heat-2">
+          <div className="mx-auto grid size-16 place-items-center rounded-2xl bg-heat text-heat-ink">
             <Icon name="crown" size={30} />
           </div>
           <p className="text-foreground">
@@ -257,7 +249,7 @@ export default function LocalSetupPage() {
               <Button className="flex-1" onClick={() => router.push(signupWithNext(pathname))}>Sign up free</Button>
             </div>
           ) : (
-            <Button className="w-full bg-brand text-black hover:bg-brand-2" onClick={() => router.push("/pricing")}>
+            <Button className="w-full" onClick={() => router.push("/pricing")}>
               Unlock packs <Icon name="arrow" size={17} />
             </Button>
           )}
@@ -307,14 +299,14 @@ export default function LocalSetupPage() {
 
 function RoundPreviewImage() {
   return (
-    <div className="art-frame setup-art-frame mb-5">
+    <div className="setup-art-frame mb-5 overflow-hidden rounded-[26px] bg-card">
       <Image
         src="/assets/round-preview-panel.png"
         alt="Round preview with three crew players and one red impostor around a hidden role circle"
         width={1024}
         height={1536}
         sizes="(min-width: 1024px) 38vw, 92vw"
-        className="reference-art setup-preview-art"
+        className="setup-preview-art block h-full w-full object-cover"
       />
     </div>
   );
@@ -359,7 +351,7 @@ function HelpButton({ onClick }: { onClick: () => void }) {
     <button
       type="button"
       onClick={onClick}
-      className="absolute right-4 top-4 grid size-9 place-items-center rounded-full border border-border bg-background/80 text-muted transition-colors hover:border-brand/40 hover:text-foreground"
+      className="absolute right-4 top-4 grid size-9 place-items-center rounded-full bg-surface-2 text-muted transition-colors hover:bg-surface-3 hover:text-foreground"
       aria-label="Open quick help"
     >
       <span className="text-base font-black">?</span>
@@ -369,7 +361,7 @@ function HelpButton({ onClick }: { onClick: () => void }) {
 
 function PreviewRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex items-center justify-between rounded-xl border border-border bg-card/65 px-4 py-3">
+    <div className="flex items-center justify-between rounded-xl bg-background px-4 py-3">
       <span className="text-sm text-muted">{label}</span>
       <span className="text-sm font-bold text-foreground">{value}</span>
     </div>

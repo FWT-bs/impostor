@@ -2,22 +2,21 @@
 
 import {
   AppShell,
-  DoodleMark,
-  PageHeader,
   RoomCard,
 } from "@/components/game";
 import { Button } from "@/components/ui/Button";
-import { Icon } from "@/components/ui/Icon";
+import { Icon, type IconName } from "@/components/ui/Icon";
 import { Logo } from "@/components/ui/Logo";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/lib/hooks/use-auth";
 import { getAuthAvatarColor, getAuthDisplayName } from "@/lib/auth-display-name";
 import { loginWithNext, signupWithNext } from "@/lib/auth-path";
 import { getActiveRoomCutoffIso } from "@/lib/rooms/stale";
+import { cn } from "@/lib/utils";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useCallback, useEffect, useState, type CSSProperties } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 type LiveRoom = {
   id: string;
@@ -58,14 +57,6 @@ export default function HomePage() {
   const pathname = usePathname();
   const { user, profile } = useAuth();
   const [liveRooms, setLiveRooms] = useState<LiveRoom[]>([]);
-
-  // DEMO ONLY: previews the Apple-aligned color palette on just this page.
-  // Scoped on <body> (above where `body`'s own `color: var(--text)` resolves)
-  // so it actually reaches text that inherits color rather than re-declaring it.
-  useEffect(() => {
-    document.body.classList.add("apple-demo");
-    return () => document.body.classList.remove("apple-demo");
-  }, []);
 
   const fetchRooms = useCallback(async () => {
     await refreshSeededRooms();
@@ -128,73 +119,63 @@ export default function HomePage() {
 
   return (
     <AppShell user={userSlot} mainClassName="max-w-7xl">
-      <section className="relative grid items-center gap-8 py-6 sm:gap-10 sm:py-10 lg:min-h-[calc(100dvh-8rem)] lg:grid-cols-[0.9fr_1.1fr] lg:py-14">
-        <DoodleMark kind="shh" className="hidden sm:block sm:-left-5 sm:top-20" color="var(--heat)" size={38} />
-        <DoodleMark kind="eye" className="left-[42%] top-14 hidden lg:block" color="var(--text)" size={48} />
-        <DoodleMark kind="mask" className="left-[32%] top-[52%] hidden lg:block" color="var(--heat)" size={50} rotate={8} />
-        <div className="relative z-[1]">
-          <PageHeader
-            title={
-              <>
-                Spot the <span className="scribble-word" style={{ "--scribble-color": "var(--heat)" } as CSSProperties}>lie</span>
-                <br />
-                Keep the word <span className="scribble-word" style={{ "--scribble-color": "var(--aqua)" } as CSSProperties}>safe</span>
-              </>
-            }
-            description={
-              <>
-                Secret word, quiet clues, one player bluffing from the topic alone
-              </>
-            }
-            actions={
-              <>
-                <Button size="lg" className="w-full sm:min-w-[240px] sm:w-auto" asChild>
-                  <Link href="/local/setup"><Icon name="users" size={21} /> Start local game</Link>
-                </Button>
-                <Button variant="secondary" size="lg" className="w-full sm:min-w-[230px] sm:w-auto" asChild>
-                  <Link href="/rooms"><Icon name="globe" size={21} /> Join online room</Link>
-                </Button>
-              </>
-            }
-          />
+      <section className="grid items-center gap-6 py-4 lg:grid-cols-[0.9fr_1.1fr] lg:gap-6">
+        <div className="rounded-[26px] bg-card p-8 sm:p-10">
+          <h1 className="display text-[42px] leading-[1.02] sm:text-[56px] lg:text-[64px]">
+            Spot the lie.
+            <br />
+            Keep the word <span className="text-brand">safe.</span>
+          </h1>
+          <p className="mt-4 max-w-[420px] text-[17px] leading-relaxed text-muted sm:text-lg">
+            Secret word, quiet clues, one player bluffing from the topic alone.
+          </p>
+          <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+            <Button size="lg" className="w-full sm:w-auto" asChild>
+              <Link href="/local/setup"><Icon name="users" size={20} /> Start local game</Link>
+            </Button>
+            <Button variant="secondary" size="lg" className="w-full sm:w-auto" asChild>
+              <Link href="/rooms"><Icon name="globe" size={20} /> Join online room</Link>
+            </Button>
+          </div>
 
-          <div className="grid max-w-2xl grid-cols-3 gap-3 sm:gap-5">
-            <GameStat icon="users" value={String(playingNow)} label="players live" />
-            <GameStat icon="trophy" value={String(rooms.length)} label="rooms open" />
-            <GameStat icon="chair" value="3-10" label="seats per game" />
+          <div className="mt-10 flex max-w-md items-center gap-6">
+            <GameStat value={String(playingNow)} label="players live" />
+            <GameStat value={String(rooms.length)} label="rooms open" />
+            <GameStat value="3-10" label="seats per game" />
           </div>
         </div>
 
         <HeroTabletopImage />
       </section>
 
-      <section className="py-7 sm:py-8">
+      <section className="py-8 sm:py-10">
         <div className="mb-5 flex items-end justify-between gap-4">
-          <div>
-            <h2 className="text-3xl font-bold sm:text-4xl">Game modes</h2>
-          </div>
+          <h2 className="text-2xl font-bold sm:text-[26px]">Game modes</h2>
           <Link href="/rooms" className="hidden items-center gap-2 text-sm font-semibold text-muted transition-colors hover:text-foreground sm:flex">
             Browse rooms <Icon name="arrow" size={16} />
           </Link>
         </div>
         <div className="grid gap-4 md:grid-cols-3">
-          <ModeLink
+          <ModeTile
             href="/local/setup"
             title="Pass and play"
-            imageSrc="/assets/mode-pass-play.png"
-            imageAlt="Players passing a phone around a local impostor table"
+            description="One phone, three to ten people"
+            icon="users"
+            tone="brand"
           />
-          <ModeLink
+          <ModeTile
             href="/rooms"
             title="Private room"
-            imageSrc="/assets/mode-private-room.png"
-            imageAlt="Private room lobby with ready players and a join code"
+            description="Share a four letter code"
+            icon="lock"
+            tone="cream"
           />
-          <ModeLink
+          <ModeTile
             href="/rooms"
             title="Public match"
-            imageSrc="/assets/mode-public-match.png"
-            imageAlt="Online public match with crew word and impostor hint cards"
+            description="Drop into an open table"
+            icon="globe"
+            tone="heat"
           />
         </div>
       </section>
@@ -228,7 +209,7 @@ export default function HomePage() {
       </section>
 
       {!user && (
-        <section className="border-t border-border py-10 text-center">
+        <section className="rounded-[26px] bg-card px-6 py-10 text-center sm:px-8">
           <h2 className="text-2xl font-bold">Save your table reads</h2>
           <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-muted">
             Wins, display name, premium packs, all kept together
@@ -245,11 +226,10 @@ export default function HomePage() {
       )}
 
       <section className="pb-12 pt-8">
-        <div className="relative overflow-hidden rounded-2xl border border-brand/55 bg-[radial-gradient(circle_at_12%_15%,rgba(255,55,48,0.26),transparent_34%),radial-gradient(circle_at_88%_85%,rgba(47,213,111,0.32),transparent_38%),#050705] p-6 shadow-[0_0_60px_rgba(47,213,111,0.18)] sm:p-8">
-          <div className="absolute inset-x-8 top-0 h-1 rounded-full bg-brand" />
-          <div className="relative z-[1] flex flex-col justify-between gap-7 lg:flex-row lg:items-center">
+        <div className="rounded-[26px] bg-card p-6 sm:p-8">
+          <div className="flex flex-col justify-between gap-7 lg:flex-row lg:items-center">
             <div className="max-w-2xl">
-              <div className="mb-4 grid size-12 place-items-center rounded-lg border border-heat/45 bg-heat/14 text-heat-2">
+              <div className="mb-4 grid size-12 place-items-center rounded-2xl bg-brand text-brand-ink">
                 <Icon name="crown" size={24} />
               </div>
               <h2 className="text-3xl font-bold sm:text-4xl">Unlock the full table</h2>
@@ -259,10 +239,10 @@ export default function HomePage() {
             </div>
             <div className="flex flex-col gap-3 sm:min-w-[250px]">
               <div className="flex items-end gap-2">
-                <span className="display text-5xl text-white">$3</span>
+                <span className="display text-5xl text-foreground">$3</span>
                 <span className="pb-2 text-muted">/ month</span>
               </div>
-              <Button className="bg-brand text-black hover:bg-brand-2" asChild>
+              <Button asChild>
                 <Link href="/pricing">Unlock packs <Icon name="arrow" size={17} /></Link>
               </Button>
             </div>
@@ -275,73 +255,66 @@ export default function HomePage() {
   );
 }
 
-function GameStat({ icon, value, label }: { icon: "users" | "trophy" | "chair"; value: string; label: string }) {
+function GameStat({ value, label }: { value: string; label: string }) {
   return (
-    <div className="flex items-center gap-3">
-      <Icon name={icon} size={29} className={icon === "trophy" ? "text-heat" : "text-brand"} />
-      <div>
-        <p className="font-display text-2xl leading-none text-foreground sm:text-3xl">{value}</p>
-        <p className="text-xs font-extrabold leading-4 text-muted sm:text-sm">{label}</p>
-      </div>
+    <div>
+      <p className="font-display text-3xl leading-none text-foreground">{value}</p>
+      <p className="mt-1.5 text-[13px] font-semibold text-muted">{label}</p>
     </div>
   );
 }
 
 function HeroTabletopImage() {
   return (
-    <aside className="relative mx-auto w-full max-w-[690px] justify-self-center lg:justify-self-end">
-      <div className="art-frame hero-image-frame">
-        <Image
-          src="/assets/hero-vote-panel.png"
-          alt="Impostor voting panel with clues, timer, and one hidden impostor"
-          width={1914}
-          height={1270}
-          priority
-          sizes="(min-width: 1024px) 52vw, 92vw"
-          className="reference-art hero-image"
-        />
-      </div>
+    <aside className="relative mx-auto w-full max-w-[690px] justify-self-center overflow-hidden rounded-[26px] bg-card lg:justify-self-end">
+      <Image
+        src="/assets/hero-vote-panel.png"
+        alt="Impostor voting panel with clues, timer, and one hidden impostor"
+        width={1914}
+        height={1270}
+        priority
+        sizes="(min-width: 1024px) 52vw, 92vw"
+        className="h-full w-full object-contain"
+      />
     </aside>
   );
 }
 
-function ModeLink({
+function ModeTile({
   href,
   title,
-  imageSrc,
-  imageAlt,
+  description,
+  icon,
+  tone,
 }: {
   href: string;
   title: string;
-  imageSrc: string;
-  imageAlt: string;
+  description: string;
+  icon: IconName;
+  tone: "brand" | "cream" | "heat";
 }) {
+  const toneClass = {
+    brand: "bg-brand text-brand-ink",
+    cream: "bg-cream text-ink",
+    heat: "bg-heat text-heat-ink",
+  }[tone];
   return (
     <Link
       href={href}
-      className="group block h-full overflow-hidden rounded-2xl border border-border bg-card/80 p-4 shadow-[0_12px_26px_rgba(7,22,42,0.07)] transition-all duration-200 hover:-translate-y-0.5 hover:border-brand/42 hover:bg-card-hover hover:shadow-[0_16px_34px_rgba(24,185,100,0.12)] sm:p-5"
+      className="group block h-full rounded-[22px] bg-card p-6 transition-all duration-200 will-change-transform hover:-translate-y-0.5 hover:bg-card-hover active:translate-y-0 active:scale-[0.99]"
     >
-      <div className="flex items-center justify-between gap-4">
-        <h3 className="text-lg font-bold sm:text-xl">{title}</h3>
-        <Icon name="arrow" size={18} className="shrink-0 text-muted transition-transform duration-200 group-hover:translate-x-1 group-hover:text-brand" />
+      <div className={cn("grid size-11 place-items-center rounded-2xl", toneClass)}>
+        <Icon name={icon} size={20} />
       </div>
-      <div className="mt-4 grid aspect-[16/10] place-items-center overflow-hidden rounded-xl bg-black/80">
-        <Image
-          src={imageSrc}
-          alt={imageAlt}
-          width={1600}
-          height={1200}
-          sizes="(min-width: 1024px) 32vw, 92vw"
-          className="h-full w-full object-contain p-3 transition-transform duration-300 group-hover:scale-[1.02]"
-        />
-      </div>
+      <h3 className="mt-4 text-xl font-bold">{title}</h3>
+      <p className="mt-1.5 text-[15px] text-muted">{description}</p>
     </Link>
   );
 }
 
 function Footer() {
   return (
-    <footer className="mt-6 border-t border-border py-8">
+    <footer className="mt-6 py-8">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <Logo size={26} />
         <div className="flex flex-wrap gap-4 text-sm font-semibold text-muted">
