@@ -59,6 +59,14 @@ export default function HomePage() {
   const { user, profile } = useAuth();
   const [liveRooms, setLiveRooms] = useState<LiveRoom[]>([]);
 
+  // DEMO ONLY: previews the Apple-aligned color palette on just this page.
+  // Scoped on <body> (above where `body`'s own `color: var(--text)` resolves)
+  // so it actually reaches text that inherits color rather than re-declaring it.
+  useEffect(() => {
+    document.body.classList.add("apple-demo");
+    return () => document.body.classList.remove("apple-demo");
+  }, []);
+
   const fetchRooms = useCallback(async () => {
     await refreshSeededRooms();
 
@@ -121,7 +129,7 @@ export default function HomePage() {
   return (
     <AppShell user={userSlot} mainClassName="max-w-7xl">
       <section className="relative grid items-center gap-8 py-6 sm:gap-10 sm:py-10 lg:min-h-[calc(100dvh-8rem)] lg:grid-cols-[0.9fr_1.1fr] lg:py-14">
-        <DoodleMark kind="shh" className="left-1 top-20 sm:-left-5" color="var(--heat)" size={38} />
+        <DoodleMark kind="shh" className="hidden sm:block sm:-left-5 sm:top-20" color="var(--heat)" size={38} />
         <DoodleMark kind="eye" className="left-[42%] top-14 hidden lg:block" color="var(--text)" size={48} />
         <DoodleMark kind="mask" className="left-[32%] top-[52%] hidden lg:block" color="var(--heat)" size={50} rotate={8} />
         <div className="relative z-[1]">

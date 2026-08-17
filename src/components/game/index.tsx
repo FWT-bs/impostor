@@ -40,14 +40,12 @@ export function NavBar({ user }: { user?: HeaderUser | null }) {
 }
 
 export function PageHeader({
-  eyebrow,
   title,
   description,
   actions,
   align = "left",
   className,
 }: {
-  eyebrow?: ReactNode;
   title: ReactNode;
   description?: ReactNode;
   actions?: ReactNode;
@@ -63,7 +61,6 @@ export function PageHeader({
       )}
     >
       <div className={cn("space-y-4", align === "center" && "items-center")}>
-        {eyebrow && <div className="tabletop-eyebrow">{eyebrow}</div>}
         <h1 className="tabletop-title">
           {title}
         </h1>
@@ -103,7 +100,8 @@ export function GameCard({
           "game-card paper-card relative h-full overflow-hidden",
           "before:absolute before:left-6 before:top-0 before:h-1 before:w-16 before:rounded-full before:opacity-80",
           accentClass,
-          hover && "transition-all duration-200 hover:-translate-y-0.5 hover:border-brand/42 hover:bg-card-hover",
+          hover &&
+            "transition-all duration-200 will-change-transform hover:-translate-y-0.5 hover:border-brand/42 hover:bg-card-hover active:translate-y-0 active:scale-[0.99] active:duration-100",
           className,
         )}
         {...props}
@@ -276,7 +274,7 @@ export function TopicPackChip({
       type="button"
       onClick={onClick}
       className={cn(
-        "group relative inline-flex items-center gap-2 rounded-xl border px-3.5 py-2 text-sm font-extrabold transition-all duration-200 cursor-pointer shadow-[0_6px_12px_rgba(7,22,42,0.05)]",
+        "group relative inline-flex items-center gap-2 rounded-xl border px-3.5 py-2 text-sm font-extrabold transition-all duration-200 cursor-pointer shadow-[0_6px_12px_rgba(7,22,42,0.05)] will-change-transform active:scale-[0.95] active:duration-100",
         selected
           ? "border-brand bg-blue-soft text-brand"
           : locked
