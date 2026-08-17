@@ -59,6 +59,14 @@ export default function HomePage() {
   const { user, profile } = useAuth();
   const [liveRooms, setLiveRooms] = useState<LiveRoom[]>([]);
 
+  // DEMO ONLY: previews the Apple-aligned color palette on just this page.
+  // Scoped on <body> (above where `body`'s own `color: var(--text)` resolves)
+  // so it actually reaches text that inherits color rather than re-declaring it.
+  useEffect(() => {
+    document.body.classList.add("apple-demo");
+    return () => document.body.classList.remove("apple-demo");
+  }, []);
+
   const fetchRooms = useCallback(async () => {
     await refreshSeededRooms();
 
@@ -121,7 +129,7 @@ export default function HomePage() {
   return (
     <AppShell user={userSlot} mainClassName="max-w-7xl">
       <section className="relative grid items-center gap-8 py-6 sm:gap-10 sm:py-10 lg:min-h-[calc(100dvh-8rem)] lg:grid-cols-[0.9fr_1.1fr] lg:py-14">
-        <DoodleMark kind="shh" className="left-1 top-20 sm:-left-5" color="var(--heat)" size={38} />
+        <DoodleMark kind="shh" className="hidden sm:block sm:-left-5 sm:top-20" color="var(--heat)" size={38} />
         <DoodleMark kind="eye" className="left-[42%] top-14 hidden lg:block" color="var(--text)" size={48} />
         <DoodleMark kind="mask" className="left-[32%] top-[52%] hidden lg:block" color="var(--heat)" size={50} rotate={8} />
         <div className="relative z-[1]">
@@ -169,27 +177,25 @@ export default function HomePage() {
             Browse rooms <Icon name="arrow" size={16} />
           </Link>
         </div>
-        <div className="grid gap-4 lg:grid-cols-[1fr_1fr]">
+        <div className="grid gap-4 md:grid-cols-3">
           <ModeLink
             href="/local/setup"
             title="Pass and play"
-            imageSrc="/assets/round-preview-panel.png"
-            imageAlt="Pass and play preview with a hidden impostor seat"
+            imageSrc="/assets/mode-pass-play.png"
+            imageAlt="Players passing a phone around a local impostor table"
           />
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-1">
-            <ModeLink
-              href="/rooms"
-              title="Private room"
-              imageSrc="/assets/online-room-board.png"
-              imageAlt="Private room card with join code and ready seats"
-            />
-            <ModeLink
-              href="/rooms"
-              title="Public match"
-              imageSrc="/assets/imposter-circle-hero.png"
-              imageAlt="Public match with one impostor hidden among the table"
-            />
-          </div>
+          <ModeLink
+            href="/rooms"
+            title="Private room"
+            imageSrc="/assets/mode-private-room.png"
+            imageAlt="Private room lobby with ready players and a join code"
+          />
+          <ModeLink
+            href="/rooms"
+            title="Public match"
+            imageSrc="/assets/mode-public-match.png"
+            imageAlt="Online public match with crew word and impostor hint cards"
+          />
         </div>
       </section>
 
@@ -286,10 +292,10 @@ function HeroTabletopImage() {
     <aside className="relative mx-auto w-full max-w-[690px] justify-self-center lg:justify-self-end">
       <div className="art-frame hero-image-frame">
         <Image
-          src="/assets/tabletop-hero-board.png"
-          alt="Crew and impostor figures holding word and hint cards on a black background"
-          width={1448}
-          height={1086}
+          src="/assets/hero-vote-panel.png"
+          alt="Impostor voting panel with clues, timer, and one hidden impostor"
+          width={1914}
+          height={1270}
           priority
           sizes="(min-width: 1024px) 52vw, 92vw"
           className="reference-art hero-image"
@@ -313,20 +319,20 @@ function ModeLink({
   return (
     <Link
       href={href}
-      className="group block overflow-hidden rounded-2xl border border-border bg-card/80 p-4 shadow-[0_12px_26px_rgba(7,22,42,0.07)] transition-all duration-200 hover:-translate-y-0.5 hover:border-brand/42 hover:bg-card-hover hover:shadow-[0_16px_34px_rgba(24,185,100,0.12)] sm:p-5"
+      className="group block h-full overflow-hidden rounded-2xl border border-border bg-card/80 p-4 shadow-[0_12px_26px_rgba(7,22,42,0.07)] transition-all duration-200 hover:-translate-y-0.5 hover:border-brand/42 hover:bg-card-hover hover:shadow-[0_16px_34px_rgba(24,185,100,0.12)] sm:p-5"
     >
       <div className="flex items-center justify-between gap-4">
         <h3 className="text-lg font-bold sm:text-xl">{title}</h3>
         <Icon name="arrow" size={18} className="shrink-0 text-muted transition-transform duration-200 group-hover:translate-x-1 group-hover:text-brand" />
       </div>
-      <div className="mt-4 overflow-hidden rounded-xl bg-black/60">
+      <div className="mt-4 grid aspect-[16/10] place-items-center overflow-hidden rounded-xl bg-black/80">
         <Image
           src={imageSrc}
           alt={imageAlt}
           width={1600}
           height={1200}
           sizes="(min-width: 1024px) 32vw, 92vw"
-          className="h-40 w-full object-cover object-top transition-transform duration-300 group-hover:scale-[1.02] sm:h-44"
+          className="h-full w-full object-contain p-3 transition-transform duration-300 group-hover:scale-[1.02]"
         />
       </div>
     </Link>

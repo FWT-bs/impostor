@@ -11,7 +11,6 @@ import { cn, randomAvatarColor } from "@/lib/utils";
 import type { Session } from "@supabase/supabase-js";
 import { safeNextPath } from "@/lib/auth-path";
 import { postJson } from "@/lib/api-fetch";
-import { syncBrowserSessionFromApi } from "@/lib/sync-browser-session";
 
 type AuthOkResponse = { user: unknown; session: Session | null };
 
@@ -55,7 +54,6 @@ function SignupForm() {
         return;
       }
       if (result.data.session) {
-        await syncBrowserSessionFromApi(result.data.session);
         toast.success("Account ready");
         window.location.assign(nextPath);
       } else {
@@ -74,7 +72,6 @@ function SignupForm() {
         toast.error(result.errorMessage);
         return;
       }
-      await syncBrowserSessionFromApi(result.data.session);
       toast.success("Playing as guest");
       window.location.assign(nextPath);
     } finally {

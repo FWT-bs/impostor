@@ -64,7 +64,9 @@
   --font-display: var(--font-app-face), system-ui, sans-serif;
   --font-head:    var(--font-app-face), system-ui, sans-serif;
   --font-body:    var(--font-app-face), system-ui, sans-serif;
-  --display-track: 0;
+  /* Large display text reads too loose at size — tighten it. Small text (chips,
+     buttons) stays at its own letter-spacing: 0, tracking is size-specific. */
+  --display-track: -0.02em;
 }
 
 [data-theme="tabletop-dark"] {
@@ -96,6 +98,79 @@
   --blue-soft: rgba(53, 216, 121, 0.16);
   --card:      #0a0a0a;
   --card-hover:#111111;
+}
+
+/* ============================================================
+   APPLE COLOR DEMO — scoped preview, not yet applied site-wide.
+   Apple's actual HIG system colors + dark-mode elevation scale,
+   dropped into this codebase's existing token names. Wrap any
+   page root in `.apple-demo` to preview it there only.
+   ============================================================ */
+[data-theme="tabletop-dark"] .apple-demo {
+  --bg:        #000000;
+  --bg-2:      #000000;
+  --surface:   #1c1c1e;   /* Apple secondarySystemBackground (dark) */
+  --surface-2: #2c2c2e;   /* tertiarySystemBackground (dark) */
+  --surface-3: #3a3a3c;   /* systemGray4 (dark) */
+  --border:    rgba(84, 84, 88, 0.65);  /* separator (dark) */
+  --border-2:  rgba(84, 84, 88, 0.85);
+  --text:      #ffffff;                 /* label (dark) */
+  --muted:     rgba(235, 235, 245, 0.6); /* secondaryLabel (dark) */
+  --muted-2:   rgba(235, 235, 245, 0.3); /* tertiaryLabel (dark) */
+
+  --brand:     #30d158;  /* systemGreen (dark) */
+  --brand-2:   #6fdb8f;
+  --brand-ink: #ffffff;
+
+  --navy:      #000000;
+  --navy-2:    #1c1c1e;
+  --heat:      #ff453a;  /* systemRed (dark) */
+  --heat-2:    #ff8a80;
+  --aqua:      #0a84ff;  /* systemBlue (dark) — a real distinct hue instead of a green alias */
+  --aqua-2:    #64d2ff;  /* systemTeal (dark) */
+  --lime:      #30d158;
+  --amber:     #ff9f0a;  /* systemOrange (dark) */
+  --emerald:   #30d158;
+  --paper:     #1c1c1e;
+  --paper-warm:#2c2c2e;
+  --wood:      #000000;
+  --blue-soft: rgba(10, 132, 255, 0.16);
+  --card:      #1c1c1e;
+  --card-hover:#2c2c2e;
+}
+
+.apple-demo {
+  /* light-mode Apple palette, kept for correctness if the theme is ever toggled */
+  --bg:        #ffffff;
+  --bg-2:      #ffffff;
+  --surface:   #ffffff;
+  --surface-2: #f2f2f7;
+  --surface-3: #e5e5ea;
+  --border:    rgba(60, 60, 67, 0.29);
+  --border-2:  rgba(60, 60, 67, 0.36);
+  --text:      #000000;
+  --muted:     rgba(60, 60, 67, 0.6);
+  --muted-2:   rgba(60, 60, 67, 0.3);
+
+  --brand:     #34c759;
+  --brand-2:   #248a3d;
+  --brand-ink: #ffffff;
+
+  --navy:      #000000;
+  --navy-2:    #1c1c1e;
+  --heat:      #ff3b30;
+  --heat-2:    #d70015;
+  --aqua:      #007aff;
+  --aqua-2:    #0040dd;
+  --lime:      #34c759;
+  --amber:     #ff9500;
+  --emerald:   #34c759;
+  --paper:     #ffffff;
+  --paper-warm:#f2f2f7;
+  --wood:      #000000;
+  --blue-soft: rgba(0, 122, 255, 0.12);
+  --card:      #ffffff;
+  --card-hover:#f2f2f7;
 }
 
 @theme inline {
@@ -320,7 +395,7 @@ body {
   font-family: var(--font-display);
   font-size: clamp(2rem, 6vw, 4rem);
   font-weight: 800;
-  letter-spacing: 0;
+  letter-spacing: var(--display-track);
   line-height: 1;
   text-align: center;
 }
@@ -401,15 +476,6 @@ h1, h2, h3, h4, h5, h6 {
   font-weight: 700;
   text-wrap: balance;
 }
-.kicker {
-  font-family: var(--font-head);
-  font-size: 11px;
-  letter-spacing: 0;
-  text-transform: uppercase;
-  color: var(--muted);
-  font-weight: 600;
-}
-
 /* ============================================================
    Buttons
    ============================================================ */
@@ -751,24 +817,12 @@ textarea,
   position: relative;
 }
 
-.tabletop-eyebrow {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  border-radius: 999px;
-  background: var(--blue-soft);
-  color: var(--brand);
-  padding: 8px 16px;
-  font-weight: 900;
-  box-shadow: inset 0 -2px 0 rgba(24, 185, 100, 0.08);
-}
-
 .tabletop-title {
   font-family: var(--font-display);
   color: var(--text);
   font-size: clamp(2.45rem, 7.4vw, 4.75rem);
   line-height: 1.02;
-  letter-spacing: 0;
+  letter-spacing: var(--display-track);
   text-wrap: balance;
 }
 
@@ -861,6 +915,13 @@ textarea,
   margin-inline: auto;
 }
 
+.setup-preview-art {
+  aspect-ratio: 1 / 1;
+  height: 100%;
+  object-fit: cover;
+  object-position: 50% 50%;
+}
+
 .pricing-art-frame,
 .rooms-art-frame {
   border-radius: 32px;
@@ -878,11 +939,6 @@ textarea,
   background-image:
     radial-gradient(circle at 20px 20px, rgba(255, 255, 255, 0.055) 1px, transparent 1.5px);
   opacity: 0.22;
-}
-
-[data-theme="tabletop-dark"] .tabletop-eyebrow {
-  background: rgba(47, 108, 255, 0.18);
-  box-shadow: none;
 }
 
 [data-theme="tabletop-dark"] .paper-card,
@@ -1293,11 +1349,6 @@ textarea,
 
   .tabletop-page-header > .space-y-4 {
     gap: 0.85rem;
-  }
-
-  .tabletop-eyebrow {
-    padding: 7px 12px;
-    font-size: 0.78rem;
   }
 
   .tabletop-title {

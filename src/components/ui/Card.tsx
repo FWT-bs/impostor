@@ -32,7 +32,7 @@ export function Card({
         "lava-card rounded-[18px] border border-border bg-card/92 text-foreground shadow-[0_18px_40px_rgba(7,22,42,0.08)]",
         paddingClasses[padding],
         hover &&
-          "cursor-pointer transition-all duration-200 hover:-translate-y-0.5 hover:border-brand/42 hover:bg-card-hover",
+          "cursor-pointer transition-all duration-200 will-change-transform hover:-translate-y-0.5 hover:border-brand/42 hover:bg-card-hover active:translate-y-0 active:scale-[0.985] active:duration-100",
         glow && "border-brand/40",
         className,
       )}

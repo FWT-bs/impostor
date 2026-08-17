@@ -7,6 +7,7 @@ export interface LogoProps {
   showWord?: boolean;
   word?: string;
   className?: string;
+  wordClassName?: string;
   premium?: boolean;
 }
 
@@ -16,6 +17,7 @@ export function Logo({
   showWord = true,
   word = "IMPOSTER",
   className,
+  wordClassName,
   premium = false,
 }: LogoProps) {
   const logoSrc = premium
@@ -48,7 +50,7 @@ export function Logo({
       </span>
       {showWord && (
         <span
-          className="display"
+          className={`display whitespace-nowrap ${wordClassName ?? ""}`}
           style={{ fontSize: size * 0.86, color: "var(--text)", letterSpacing: 0 }}
         >
           {word}

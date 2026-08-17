@@ -11,7 +11,6 @@ import { cn } from "@/lib/utils";
 import type { Session } from "@supabase/supabase-js";
 import { safeNextPath } from "@/lib/auth-path";
 import { postJson } from "@/lib/api-fetch";
-import { syncBrowserSessionFromApi } from "@/lib/sync-browser-session";
 
 type AuthOkResponse = { user: unknown; session: Session | null };
 
@@ -40,7 +39,6 @@ function LoginForm() {
         toast.error(result.errorMessage);
         return;
       }
-      await syncBrowserSessionFromApi(result.data.session);
       toast.success("Signed in");
       window.location.assign(nextPath);
     } finally {
@@ -56,7 +54,6 @@ function LoginForm() {
         toast.error(result.errorMessage);
         return;
       }
-      await syncBrowserSessionFromApi(result.data.session);
       toast.success("Playing as guest");
       window.location.assign(nextPath);
     } finally {

@@ -59,7 +59,6 @@ function RoleRevealPhase() {
 
       {!revealed ? (
         <div key={`h${currentIdx}`} className="pop-in flex flex-col items-center gap-5 py-8 text-center">
-          <p className="kicker">Pass the phone to</p>
           <Avatar name={player.name} color={tokenColor(player.id)} size="xl" />
           <h1 className="display text-[46px] leading-tight">{player.name}</h1>
           <p className="max-w-[300px] text-[15px] text-muted">No peeking, this one is yours only</p>
@@ -87,25 +86,22 @@ function RoleCard({ isImpostor, secret, topic, onNext, last }: { isImpostor: boo
         </div>
         {isImpostor ? (
           <>
-            <p className="kicker" style={{ color: "var(--heat-2)" }}>You are the</p>
             <h2 className="display" style={{ fontSize: 46, color: "var(--heat)" }}>IMPOSTER</h2>
             <p className="mx-auto mt-1 max-w-[320px] text-[14.5px] text-muted">No secret word, blend in and survive the vote</p>
             <div className="role-chip">
-              <span className="kicker" style={{ fontSize: 10 }}>Category</span>
               <span className="display" style={{ fontSize: 34, color: "var(--amber)" }}>{topic}</span>
-              <span className="text-[12px] font-bold text-muted">Word: ???</span>
+              <span className="text-[12px] font-bold text-muted">Category · Word: ???</span>
             </div>
           </>
         ) : (
           <>
-            <p className="kicker" style={{ color: "var(--aqua-2)" }}>You are</p>
             <h2 className="display" style={{ fontSize: 46, color: "var(--aqua)" }}>CREW</h2>
             <p className="mx-auto mt-1 max-w-[320px] text-[14.5px] text-muted">You know the word, clue carefully</p>
             <div className="role-chip">
-              <span className="kicker" style={{ fontSize: 10 }}>Category</span>
               <span className="display" style={{ fontSize: 30, color: "var(--amber)" }}>{topic}</span>
-              <span className="kicker" style={{ fontSize: 10 }}>Word</span>
-              <span className="display" style={{ fontSize: 38, color: "var(--text)" }}>{secret}</span>
+              <span className="text-[12px] font-bold text-muted">Category</span>
+              <span className="display mt-2" style={{ fontSize: 38, color: "var(--text)" }}>{secret}</span>
+              <span className="text-[12px] font-bold text-muted">Word</span>
             </div>
           </>
         )}
@@ -172,7 +168,6 @@ function SpeakingPhase() {
         <div className="role-ic" style={{ background: "var(--aqua)" }}>
           <Icon name="chat" size={38} />
         </div>
-        <p className="kicker" style={{ color: "var(--aqua-2)" }}>It&apos;s your turn to speak</p>
         <h2 className="display" style={{ fontSize: 44 }}>{currentPlayer.name}</h2>
         <p className="mx-auto mt-2 max-w-[320px] text-[14px] text-muted">
           One word out loud, enough to prove it, not enough to give it away
@@ -212,7 +207,6 @@ function VotingPhase() {
     return (
       <div className="flex flex-col items-center gap-5 py-8 text-center">
         <Chip icon="vote" tone="heat">Voting</Chip>
-        <p className="kicker">Pass the device to</p>
         <Avatar name={voter.name} color={tokenColor(voter.id)} size="xl" />
         <h2 className="display text-[44px] leading-tight">{voter.name}</h2>
         <p className="text-sm text-muted">Voter {currentVoterIdx + 1} of {players.length}</p>
@@ -273,25 +267,22 @@ function ResultsPhase() {
         <div className="role-ic" style={{ width: 84, height: 84, background: "var(--heat)" }}>
           <Icon name="mask" size={42} />
         </div>
-        <div>
-          <p className="kicker" style={{ color: "var(--heat-2)" }}>The impostor was</p>
-          <h2 className="display" style={{ fontSize: 56, color: "var(--heat)" }}>{impostor?.name}</h2>
-        </div>
+        <h2 className="display" style={{ fontSize: 56, color: "var(--heat)" }}>{impostor?.name}</h2>
 
         <div className="flex flex-wrap items-center justify-center gap-3">
           <div className="result-stat">
-            <span className="kicker" style={{ fontSize: 9 }}>Secret word</span>
             <span className="display text-[26px]" style={{ color: "var(--aqua-2)" }}>{secretWord}</span>
+            <span className="text-[11px] font-bold text-muted">Secret word</span>
           </div>
           <div className="result-stat">
-            <span className="kicker" style={{ fontSize: 9 }}>Category</span>
             <span className="display text-[26px]" style={{ color: "var(--amber)" }}>{topic}</span>
+            <span className="text-[11px] font-bold text-muted">Category</span>
           </div>
         </div>
 
         {/* votes */}
         <div className="mt-2 w-full">
-          <p className="kicker mb-3 text-center">Votes</p>
+          <p className="mb-3 text-center text-sm font-bold text-foreground">Votes</p>
           <div className="flex flex-col gap-2">
             {players.map((p) => {
               const isImp = p.id === impostorId;
@@ -319,15 +310,15 @@ function ResultsPhase() {
         <div className="mt-2 flex w-full justify-around">
           <div className="result-stat">
             <span className="display text-[26px]" style={{ color: "var(--brand-2)" }}>{sessionStats.rounds}</span>
-            <span className="kicker" style={{ fontSize: 9 }}>Rounds</span>
+            <span className="text-[11px] font-bold text-muted">Rounds</span>
           </div>
           <div className="result-stat">
             <span className="display text-[26px]" style={{ color: "var(--emerald)" }}>{sessionStats.groupWins}</span>
-            <span className="kicker" style={{ fontSize: 9 }}>Crew wins</span>
+            <span className="text-[11px] font-bold text-muted">Crew wins</span>
           </div>
           <div className="result-stat">
             <span className="display text-[26px]" style={{ color: "var(--heat)" }}>{sessionStats.impostorWins}</span>
-            <span className="kicker" style={{ fontSize: 9 }}>Impostor wins</span>
+            <span className="text-[11px] font-bold text-muted">Impostor wins</span>
           </div>
         </div>
 

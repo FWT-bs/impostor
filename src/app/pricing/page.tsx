@@ -105,7 +105,7 @@ export default function PricingPage() {
   return (
     <AppShell user={userSlot} mainClassName="max-w-6xl">
       <section className="relative grid items-center gap-7 lg:grid-cols-[0.82fr_1.18fr] lg:gap-8">
-        <DoodleMark kind="lock" className="-left-4 top-12" color="var(--brand)" size={44} />
+        <DoodleMark kind="lock" className="hidden sm:block sm:-left-4 sm:top-12" color="var(--brand)" size={44} />
         <DoodleMark kind="mask" className="left-[42%] top-8 hidden lg:block" color="var(--text)" size={50} />
         <DoodleMark kind="shh" className="left-[34%] top-[45%] hidden lg:block" color="var(--heat)" size={50} rotate={8} />
         <div>
