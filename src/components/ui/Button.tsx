@@ -11,32 +11,38 @@ import {
 export type ButtonVariant = "primary" | "secondary" | "danger" | "ghost" | "heat";
 export type ButtonSize = "sm" | "md" | "lg";
 
+// Chunky "drop edge" buttons: a hard offset shadow instead of a blur, and a
+// press interaction that sinks the button flush into it — translateY by
+// exactly the shadow's depth while the shadow itself collapses to 0, so it
+// reads as physically pushed in rather than just dimmed.
 const buttonVariants = cva(
   [
-    "button-motion group/button inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-xl text-sm font-extrabold",
-    "transition-[transform,box-shadow,border-color,background,color,opacity] duration-200 ease-out",
+    "button-motion group/button inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-2xl text-sm font-bold",
+    "transition-[transform,box-shadow,background,color,opacity] duration-150 ease-out",
     "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/70 focus-visible:ring-offset-2 focus-visible:ring-offset-background",
-    "disabled:pointer-events-none disabled:opacity-45 cursor-pointer select-none",
-    "will-change-transform hover:scale-[1.01] active:translate-y-px active:scale-[0.985]",
+    "disabled:pointer-events-none disabled:opacity-45 cursor-pointer select-none border-0",
+    "will-change-transform",
   ],
   {
     variants: {
       variant: {
         primary:
-          "border border-brand bg-brand text-[var(--brand-ink)] shadow-[0_12px_24px_rgba(24,185,100,0.22)] hover:-translate-y-0.5 hover:bg-brand-2 hover:shadow-[0_16px_30px_rgba(24,185,100,0.26)]",
+          "bg-brand text-brand-ink shadow-[0_5px_0_var(--brand-shadow)] hover:bg-brand-2 active:translate-y-[5px] active:shadow-[0_0_0_var(--brand-shadow)]",
         secondary:
-          "border border-border bg-card/90 text-foreground shadow-[0_10px_20px_rgba(7,22,42,0.08)] hover:-translate-y-0.5 hover:border-brand/50 hover:bg-card-hover",
+          "bg-surface-2 text-foreground shadow-[0_5px_0_var(--bg)] hover:bg-surface-3 active:translate-y-[5px] active:shadow-[0_0_0_var(--bg)]",
         ghost:
-          "border border-transparent bg-transparent text-foreground hover:bg-card-hover hover:text-brand",
+          "bg-transparent text-foreground hover:bg-card-hover hover:text-brand",
         danger:
-          "border border-heat bg-heat text-white shadow-[0_12px_24px_rgba(238,77,63,0.18)] hover:-translate-y-0.5 hover:bg-heat-2",
+          "bg-heat text-heat-ink shadow-[0_5px_0_var(--heat-shadow)] hover:brightness-105 active:translate-y-[5px] active:shadow-[0_0_0_var(--heat-shadow)]",
         heat:
-          "border border-heat bg-heat text-white shadow-[0_12px_24px_rgba(238,77,63,0.18)] hover:-translate-y-0.5 hover:bg-heat-2",
+          "bg-heat text-heat-ink shadow-[0_5px_0_var(--heat-shadow)] hover:brightness-105 active:translate-y-[5px] active:shadow-[0_0_0_var(--heat-shadow)]",
+        cream:
+          "bg-cream text-ink shadow-[0_5px_0_var(--cream-shadow)] hover:brightness-95 active:translate-y-[5px] active:shadow-[0_0_0_var(--cream-shadow)]",
       },
       size: {
         sm: "h-10 rounded-xl px-4 text-[13px]",
         md: "h-12 px-5",
-        lg: "h-14 rounded-xl px-7 text-[16px] sm:h-[58px] sm:px-8",
+        lg: "h-14 px-7 text-[16px] sm:h-[58px] sm:px-8",
       },
     },
     defaultVariants: {
@@ -119,11 +125,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         className={classes}
         {...props}
       >
-        {isLoading && (
-          <Spinner
-            className={variant === "primary" ? "text-white" : undefined}
-          />
-        )}
+        {isLoading && <Spinner />}
         {children}
       </button>
     );

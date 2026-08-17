@@ -29,11 +29,13 @@ export function Card({
   return (
     <div
       className={cn(
-        "lava-card rounded-[18px] border border-border bg-card/92 text-foreground shadow-[0_18px_40px_rgba(7,22,42,0.08)]",
+        // Cards are told apart by surface color, not borders or blurred
+        // shadows — matches the flat elevated-tile system.
+        "rounded-[22px] bg-card text-foreground",
         paddingClasses[padding],
         hover &&
-          "cursor-pointer transition-all duration-200 will-change-transform hover:-translate-y-0.5 hover:border-brand/42 hover:bg-card-hover active:translate-y-0 active:scale-[0.985] active:duration-100",
-        glow && "border-brand/40",
+          "cursor-pointer transition-all duration-200 will-change-transform hover:-translate-y-0.5 hover:bg-card-hover active:translate-y-0 active:scale-[0.985] active:duration-100",
+        glow && "ring-2 ring-brand/45",
         className,
       )}
       style={style}

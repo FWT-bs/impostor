@@ -65,30 +65,24 @@ export function Header({ user: userProp, authSlot, className }: HeaderProps) {
 
   return (
     <motion.header
-      className={cn(
-        "fixed inset-x-0 top-3 z-40 px-3 sm:top-4 sm:px-8",
-        className,
-      )}
+      className={cn("fixed inset-x-0 top-0 z-40", className)}
+      style={{
+        background: "color-mix(in oklab, var(--bg) 88%, transparent)",
+        backdropFilter: "blur(16px)",
+        WebkitBackdropFilter: "blur(16px)",
+      }}
     >
-      <div
-        className="mx-auto flex h-14 max-w-[1500px] items-center justify-between gap-2 rounded-2xl border px-3 shadow-[0_12px_34px_rgba(7,22,42,0.08)] sm:h-[72px] sm:gap-4 sm:px-6"
-        style={{
-          borderColor: "var(--border)",
-          background: "color-mix(in oklab, var(--surface) 94%, transparent)",
-          backdropFilter: "blur(16px)",
-          WebkitBackdropFilter: "blur(16px)",
-        }}
-      >
+      <div className="mx-auto flex h-16 max-w-[1500px] items-center gap-3 px-4 sm:h-[74px] sm:gap-5 sm:px-8">
         {/* Logo */}
         <Link
           href="/"
           className="group flex h-10 shrink-0 items-center gap-2 rounded-xl -ml-1 px-1"
         >
-          <Logo size={24} premium={isPremium} wordClassName="hidden sm:inline-block" />
+          <Logo size={26} premium={isPremium} wordClassName="hidden sm:inline-block" />
         </Link>
 
-        {/* Desktop nav */}
-        <nav className="hidden items-center gap-0.5 md:flex" aria-label="Main">
+        {/* Desktop nav — solid pill on the active tab, matching the 3a mockup */}
+        <nav className="hidden min-w-0 flex-1 items-center gap-1.5 overflow-x-auto md:flex" aria-label="Main">
           {nav.map(({ href, label }) => {
             const active =
               href === "/" ? pathname === "/" : pathname.startsWith(href);
@@ -97,20 +91,15 @@ export function Header({ user: userProp, authSlot, className }: HeaderProps) {
                 key={href}
                 href={href}
                 className={cn(
-                  "relative rounded-md px-3.5 py-2 text-[13px] font-semibold transition-all duration-200",
-                  active
-                    ? "text-foreground"
-                    : "text-foreground/78 hover:text-foreground",
+                  "relative shrink-0 rounded-full px-4 py-2.5 text-[14px] font-semibold transition-colors duration-150",
+                  active ? "text-ink" : "text-muted hover:text-foreground",
                 )}
               >
                 {active && (
                   <motion.span
                     layoutId="nav-pill"
-                    className="absolute -bottom-2 left-3 right-3 h-1 rounded-full"
-                    style={{
-                      background: "var(--brand)",
-                    }}
-                    transition={{ duration: 0.18, ease: "easeOut" }}
+                    className="absolute inset-0 rounded-full bg-cream"
+                    transition={{ duration: 0.2, ease: "easeOut" }}
                   />
                 )}
                 <span className="relative">{label}</span>

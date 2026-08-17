@@ -1,12 +1,12 @@
 import type { Metadata } from "next";
-import { Outfit } from "next/font/google";
+import { Gabarito } from "next/font/google";
 import { Toaster } from "sonner";
 import { MotionConfig } from "framer-motion";
 import { ImposterIntro } from "@/components/intro/ImposterIntro";
 import { AuthProvider } from "@/components/providers/auth-provider";
 import "./globals.css";
 
-const outfit = Outfit({
+const gabarito = Gabarito({
   variable: "--font-app-face",
   subsets: ["latin"],
   weight: ["400", "500", "600", "700", "800", "900"],
@@ -36,7 +36,7 @@ export default function RootLayout({
       data-theme="tabletop-dark"
       data-scroll-behavior="smooth"
       suppressHydrationWarning
-      className={`${outfit.variable} h-full antialiased`}
+      className={`${gabarito.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-background text-foreground">
         <script
