@@ -86,7 +86,6 @@ export default function LeaderboardPage() {
         <DoodleMark kind="trace" className="right-0 top-44 hidden md:block" color="var(--heat)" size={42} />
         <PageHeader
           align="center"
-          eyebrow={<><Icon name="trophy" size={15} /> Rankings</>}
           title="Leaderboard"
           description="The players who keep surviving the table"
         />

@@ -80,10 +80,11 @@ export function Header({ user: userProp, authSlot, className }: HeaderProps) {
         }}
       >
         {/* Logo */}
-        <Link href="/" className="group flex min-w-0 items-center">
-          <div className="grid size-10 shrink-0 place-items-center overflow-hidden rounded-xl sm:size-auto sm:overflow-visible">
-            <Logo size={24} premium={isPremium} />
-          </div>
+        <Link
+          href="/"
+          className="group flex h-10 shrink-0 items-center gap-2 rounded-xl -ml-1 px-1"
+        >
+          <Logo size={24} premium={isPremium} wordClassName="hidden sm:inline-block" />
         </Link>
 
         {/* Desktop nav */}

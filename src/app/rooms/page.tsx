@@ -460,9 +460,7 @@ export default function RoomsPage() {
           ) : (
             <div className="space-y-5">
               {displayRooms.length === 0 ? (
-                tab === "open" ? null : (
-                  <EmptyRooms tab={tab} signedIn={Boolean(user)} onCreate={() => setShowCreate(true)} />
-                )
+                <EmptyRooms tab={tab} signedIn={Boolean(user)} onCreate={() => setShowCreate(true)} />
               ) : (
                 <AnimatePresence mode="popLayout">
                   <div className="grid gap-4 lg:grid-cols-2">

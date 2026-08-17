@@ -9,7 +9,6 @@ import {
   StatusBadge,
   TopicPackGrid,
 } from "@/components/game";
-import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
 import { Modal } from "@/components/ui/Modal";
@@ -222,11 +221,8 @@ export default function LocalSetupPage() {
           <RoundPreviewImage />
           <GameCard accent="cyan" className="relative p-5">
             <HelpButton onClick={() => setHelpCard("preview")} />
-            <div className="mb-5 flex items-center justify-between gap-3">
-              <div>
-                <Badge variant="cyan">Tonight&apos;s table</Badge>
-                <h2 className="mt-3 text-2xl font-bold">Round preview</h2>
-              </div>
+            <div className="mb-5 flex items-center justify-between gap-3 pr-10">
+              <h2 className="text-2xl font-bold">Round preview</h2>
               <StatusBadge status="open">Local</StatusBadge>
             </div>
             <div className="grid gap-3">
