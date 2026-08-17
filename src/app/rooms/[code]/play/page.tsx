@@ -153,9 +153,9 @@ export default function OnlinePlayPage({ params }: { params: Promise<{ code: str
         <div>
           {room.phase === "role_reveal" && (
             <OnlineRoleReveal
+              code={code}
               secret={secret}
               loading={secretLoading}
-              roomId={room.id}
               isHost={isHost}
             />
           )}
@@ -193,14 +193,14 @@ function Stage({ children }: { children: React.ReactNode }) {
 // Role Reveal
 // ─────────────────────────────────────────────────────────────────────────────
 function OnlineRoleReveal({
+  code,
   secret,
   loading,
-  roomId,
   isHost,
 }: {
+  code: string;
   secret: PlayerSecret | null;
   loading: boolean;
-  roomId: string;
   isHost: boolean;
 }) {
   const [revealed, setRevealed] = useState(false);
@@ -239,15 +239,10 @@ function OnlineRoleReveal({
     advancedRef.current = true;
     const delay = isHost ? 0 : 2000 + Math.random() * 2500;
     const t = setTimeout(() => {
-      const supabase = createClient();
-      void supabase
-        .from("rooms")
-        .update({ phase: "clue_phase", current_turn_index: 0 })
-        .eq("id", roomId)
-        .eq("phase", "role_reveal");
+      void fetch(`/api/rooms/${code}/advance`, { method: "POST", credentials: "include" }).catch(() => {});
     }, delay);
     return () => clearTimeout(t);
-  }, [countdown, isHost, roomId]);
+  }, [countdown, isHost, code]);
 
   if (loading) {
     return (
@@ -262,7 +257,6 @@ function OnlineRoleReveal({
   if (!revealed) {
     return (
       <div className="flex flex-col items-center gap-5 py-10 text-center">
-        <p className="kicker">Your role is hidden</p>
         <button
           type="button"
           onClick={() => setRevealed(true)}
@@ -293,29 +287,26 @@ function OnlineRoleReveal({
         </div>
         {isImpostor ? (
           <>
-            <p className="kicker" style={{ color: "var(--heat-2)" }}>You are the</p>
             <h2 className="display" style={{ fontSize: 46, color: "var(--heat)" }}>IMPOSTER</h2>
             <p className="mx-auto mt-1 max-w-[320px] text-[14.5px] text-muted">
               No secret word, blend in and survive the vote
             </p>
             <div className="role-chip">
-              <span className="kicker" style={{ fontSize: 10 }}>Category</span>
               <span className="display" style={{ fontSize: 34, color: "var(--amber)" }}>{secret?.topic}</span>
-              <span className="text-[12px] font-bold text-muted">Word: ???</span>
+              <span className="text-[12px] font-bold text-muted">Category · Word: ???</span>
             </div>
           </>
         ) : (
           <>
-            <p className="kicker" style={{ color: "var(--aqua-2)" }}>You are</p>
             <h2 className="display" style={{ fontSize: 46, color: "var(--aqua)" }}>CREW</h2>
             <p className="mx-auto mt-1 max-w-[320px] text-[14.5px] text-muted">
               You know the word, clue carefully
             </p>
             <div className="role-chip">
-              <span className="kicker" style={{ fontSize: 10 }}>Category</span>
               <span className="display" style={{ fontSize: 30, color: "var(--amber)" }}>{secret?.topic}</span>
-              <span className="kicker" style={{ fontSize: 10 }}>Word</span>
-              <span className="display" style={{ fontSize: 38, color: "var(--text)" }}>{secret?.secret_word}</span>
+              <span className="text-[12px] font-bold text-muted">Category</span>
+              <span className="display mt-2" style={{ fontSize: 38, color: "var(--text)" }}>{secret?.secret_word}</span>
+              <span className="text-[12px] font-bold text-muted">Word</span>
             </div>
           </>
         )}
@@ -398,10 +389,10 @@ function OnlineCluePhase({
                 background: `color-mix(in oklab, ${isImpostor ? "var(--amber)" : "var(--aqua)"} 8%, transparent)`,
               }}
             >
-            <div className="kicker" style={{ fontSize: 9, marginBottom: 5, whiteSpace: "nowrap", color: isImpostor ? "var(--amber)" : "var(--aqua-2)" }}>
-              {isImpostor ? "Category" : "Word"}
-            </div>
               <div className="display" style={{ fontSize: 22, color: "var(--text)", lineHeight: 1 }}>{reminder}</div>
+              <div className="mt-1 text-[10px] font-bold" style={{ whiteSpace: "nowrap", color: isImpostor ? "var(--amber)" : "var(--aqua-2)" }}>
+                {isImpostor ? "Category" : "Word"}
+              </div>
             </div>
           )}
         </div>
@@ -440,10 +431,10 @@ function OnlineCluePhase({
 
         {isMyTurn && !myClue ? (
           <div className="answer-bar pop-in">
-            <p className="kicker mb-2" style={{ color: "var(--aqua-2)" }}>Your one-word hint</p>
             <div className="flex gap-2">
               <input
                 autoFocus
+                aria-label="Your one-word hint"
                 value={clue}
                 onChange={(e) => setClue(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && !submitting && handleSubmitClue()}
@@ -499,12 +490,11 @@ function OnlineDiscussionPhase({
     advancedRef.current = true;
     const delay = isHost ? 0 : 2000 + Math.random() * 2500;
     const t = setTimeout(() => {
-      const supabase = createClient();
-      void supabase.from("rooms").update({ phase: "voting" }).eq("id", room.id).eq("phase", "discussion");
+      void fetch(`/api/rooms/${room.code}/advance`, { method: "POST", credentials: "include" }).catch(() => {});
     }, delay);
     if (isHost) sendMessage("Time is up, voting started", "system", "Game");
     return () => clearTimeout(t);
-  }, [seconds, isHost, room.id, sendMessage]);
+  }, [seconds, isHost, room.code, sendMessage]);
 
   return (
     <Stage>
@@ -724,7 +714,11 @@ function OnlineResultsPhase({
   }
 
   async function handleBackToLobby() {
-    await supabase.from("rooms").update({ status: "waiting", phase: "lobby" }).eq("id", room.id);
+    const res = await fetch(`/api/rooms/${code}/reset`, { method: "POST", credentials: "include" });
+    if (!res.ok) {
+      toast.error("Failed to return to lobby");
+      return;
+    }
     router.push(`/rooms/${code}`);
   }
 
@@ -768,31 +762,28 @@ function OnlineResultsPhase({
         <div className="role-ic" style={{ width: 84, height: 84, background: "var(--heat)" }}>
           <Icon name="mask" size={42} />
         </div>
-        <div>
-          <p className="kicker" style={{ color: "var(--heat-2)" }}>{impostors.length > 1 ? "The impostors were" : "The impostor was"}</p>
-          <h2 className="display" style={{ fontSize: 48, color: "var(--heat)" }}>
-            {impostors.map((p) => p.display_name).join(" & ") || "-"}
-          </h2>
-        </div>
+        <h2 className="display" style={{ fontSize: 48, color: "var(--heat)" }}>
+          {impostors.map((p) => p.display_name).join(" & ") || "-"}
+        </h2>
 
         <div className="flex flex-wrap items-center justify-center gap-3">
           <div className="result-stat">
-            <span className="kicker" style={{ fontSize: 9 }}>Secret word</span>
             <span className="display text-[26px]" style={{ color: "var(--aqua-2)" }}>{round.secret_word}</span>
+            <span className="text-[11px] font-bold text-muted">Secret word</span>
           </div>
           <div className="result-stat">
-            <span className="kicker" style={{ fontSize: 9 }}>Category</span>
             <span className="display text-[26px]" style={{ color: "var(--amber)" }}>{round.topic}</span>
+            <span className="text-[11px] font-bold text-muted">Category</span>
           </div>
           <div className="result-stat">
-            <span className="kicker" style={{ fontSize: 9 }}>Your vote</span>
             <span className="display text-[26px]" style={{ color: groupWon ? "var(--emerald)" : "var(--heat)" }}>{myVotedName || "-"}</span>
+            <span className="text-[11px] font-bold text-muted">Your vote</span>
           </div>
         </div>
 
         {/* vote breakdown */}
         <div className="mt-2 w-full">
-          <p className="kicker mb-3 text-center">Votes</p>
+          <p className="mb-3 text-center text-sm font-bold text-foreground">Votes</p>
           <div className="flex flex-col gap-2">
             {players.map((p) => {
               const identity = getPlayerIdentity(p);

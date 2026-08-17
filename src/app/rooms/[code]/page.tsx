@@ -26,6 +26,7 @@ export default function LobbyPage({ params }: { params: Promise<{ code: string }
   const [starting, setStarting] = useState(false);
   const [joiningRoom, setJoiningRoom] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [addingBot, setAddingBot] = useState(false);
 
   const isHost = Boolean(user && room?.host_id === user.id);
   const myPlayer = players.find((p) => p.user_id === user?.id);
@@ -60,6 +61,21 @@ export default function LobbyPage({ params }: { params: Promise<{ code: string }
       router.push(`/rooms/${code}/play`);
     } finally {
       setStarting(false);
+    }
+  }
+
+  async function handleAddBot() {
+    setAddingBot(true);
+    try {
+      const res = await fetch(`/api/rooms/${code}/add-bot`, { method: "POST", credentials: "include" });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        toast.error(
+          typeof data === "object" && data && "error" in data ? String((data as { error: unknown }).error) : "Failed to add bot",
+        );
+      }
+    } finally {
+      setAddingBot(false);
     }
   }
 
@@ -197,7 +213,13 @@ export default function LobbyPage({ params }: { params: Promise<{ code: string }
                 />
               ))}
               {Array.from({ length: Math.max(0, room.max_players - players.length) }).map((_, index) => (
-                <EmptySeat key={`empty-${index}`} index={players.length + index} />
+                <EmptySeat
+                  key={`empty-${index}`}
+                  index={players.length + index}
+                  canAddBot={isHost && room.phase === "lobby"}
+                  adding={addingBot}
+                  onAddBot={handleAddBot}
+                />
               ))}
             </div>
           </section>
@@ -318,7 +340,36 @@ function SeatCard({
   );
 }
 
-function EmptySeat({ index }: { index: number }) {
+function EmptySeat({
+  index,
+  canAddBot,
+  adding,
+  onAddBot,
+}: {
+  index: number;
+  canAddBot?: boolean;
+  adding?: boolean;
+  onAddBot?: () => void;
+}) {
+  if (canAddBot) {
+    return (
+      <button
+        type="button"
+        onClick={onAddBot}
+        disabled={adding}
+        className="flex items-center gap-3 rounded-lg border border-dashed border-border bg-background/25 p-3 text-left text-muted transition-colors hover:border-brand/45 hover:bg-brand/10 hover:text-foreground disabled:cursor-wait disabled:opacity-60"
+      >
+        <div className="grid size-10 place-items-center rounded-lg border border-border bg-background/40">
+          <Icon name="users" size={16} />
+        </div>
+        <div>
+          <p className="text-sm font-bold">Add a bot</p>
+          <p className="text-xs">Seat {index + 1}</p>
+        </div>
+      </button>
+    );
+  }
+
   return (
     <div className="flex items-center gap-3 rounded-lg border border-dashed border-border bg-background/25 p-3 text-muted">
       <div className="grid size-10 place-items-center rounded-lg border border-border bg-background/40">
