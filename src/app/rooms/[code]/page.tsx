@@ -11,7 +11,7 @@ import { useAuth } from "@/lib/hooks/use-auth";
 import { useRoom } from "@/lib/hooks/use-room";
 import { cn, tokenColor } from "@/lib/utils";
 import { postJson } from "@/lib/api-fetch";
-import { getAuthAvatarColor, getAuthDisplayName } from "@/lib/auth-display-name";
+import { getAuthAvatarColor, getAuthAvatarUrl, getAuthDisplayName } from "@/lib/auth-display-name";
 import { loginWithNext, signupWithNext } from "@/lib/auth-path";
 import { getPlayerIdentity } from "@/lib/game/player-identity";
 import { describeImpostorCount, type RoomSettings } from "@/lib/rooms/settings";
@@ -141,7 +141,11 @@ export default function LobbyPage({ params }: { params: Promise<{ code: string }
   }
 
   const headerUser = user
-    ? { username: getAuthDisplayName(user, profile), avatarColor: getAuthAvatarColor(user, profile) }
+    ? {
+        username: getAuthDisplayName(user, profile),
+        avatarColor: getAuthAvatarColor(user, profile),
+        avatarUrl: getAuthAvatarUrl(user, profile),
+      }
     : null;
 
   if (loading) {
@@ -180,7 +184,7 @@ export default function LobbyPage({ params }: { params: Promise<{ code: string }
   return (
     <>
       <Header user={headerUser} />
-      <main className="mx-auto max-w-[1280px] px-5 pb-20 pt-24 sm:pt-28">
+      <main id="main-content" tabIndex={-1} className="mx-auto max-w-[1280px] px-5 pb-20 pt-24 sm:pt-28">
         <div className="mb-5 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <h1 className="text-[40px] leading-none sm:text-[52px]">Room {room.code}</h1>

@@ -22,7 +22,7 @@ export default function LocalPlayPage() {
   if (store.players.length === 0) return null;
 
   return (
-    <main className="reveal-wrap">
+    <main id="main-content" tabIndex={-1} className="reveal-wrap">
       <div className="reveal-inner">
         {store.phase === "role_reveal" && <RoleRevealPhase />}
         {store.phase === "clue_phase" && <SpeakingPhase />}

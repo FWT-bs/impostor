@@ -23,7 +23,7 @@ export function Logo({
   const logoSrc = premium
     ? "/assets/imposter-premium-logo.png"
     : "/assets/imposter-basic-logo.png";
-  const imageScale = premium ? 1.22 : 1.32;
+  const imageScale = premium ? 1.42 : 1.56;
 
   return (
     <span className={`inline-flex items-center gap-2 ${className ?? ""}`}>

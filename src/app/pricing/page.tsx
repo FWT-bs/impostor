@@ -10,7 +10,7 @@ import {
 import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
 import { loginWithNext } from "@/lib/auth-path";
-import { getAuthAvatarColor, getAuthDisplayName } from "@/lib/auth-display-name";
+import { getAuthAvatarColor, getAuthAvatarUrl, getAuthDisplayName } from "@/lib/auth-display-name";
 import { useAuth } from "@/lib/hooks/use-auth";
 import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -99,6 +99,7 @@ export default function PricingPage() {
     ? {
         username: getAuthDisplayName(user, profile),
         avatarColor: getAuthAvatarColor(user, profile),
+        avatarUrl: getAuthAvatarUrl(user, profile),
       }
     : null;
 

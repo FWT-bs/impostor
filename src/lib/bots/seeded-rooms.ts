@@ -1,6 +1,6 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { AI_TABLES, getAiTable } from "@/lib/bots/tables";
-import { getActiveRoomCutoffIso } from "@/lib/rooms/stale";
+import { isWithinActiveRoomWindow } from "@/lib/rooms/stale";
 import type { Database } from "@/lib/supabase/types";
 
 type AdminClient = ReturnType<typeof createAdminClient>;
@@ -201,6 +201,10 @@ export async function resetSeededBotRoom(
 
 function isWaitingSeed(room: SeededRoom | null) {
   if (!room) return false;
+  // Must actually be status "waiting" — aiSeeded + all-bots alone isn't
+  // enough, since a finished/abandoned room keeps that shape too and would
+  // otherwise get "touched" (freshness bumped) forever instead of reclaimed.
+  if (room.status !== "waiting") return false;
   const players = room.room_players ?? [];
   const settings = room.settings as { aiSeeded?: unknown } | null;
   return settings?.aiSeeded === true && players.every((player) => player.is_bot);
@@ -211,7 +215,6 @@ export async function ensureSeededBotRooms(admin: AdminClient) {
 
   const ensured: Room[] = [];
   const errors: string[] = [];
-  const cutoff = getActiveRoomCutoffIso();
 
   for (const table of AI_TABLES) {
     const bots = await ensureBotProfiles(admin, table.bots);
@@ -220,55 +223,70 @@ export async function ensureSeededBotRooms(admin: AdminClient) {
       continue;
     }
 
-    const { data: candidates } = await admin
-      .from("rooms")
-      .select("*, room_players(id, user_id, bot_id, is_bot)")
-      .eq("status", "waiting")
-      .eq("is_private", false)
-      .gte("updated_at", cutoff)
-      .eq("settings->>aiTableId", table.id)
-      .order("updated_at", { ascending: false })
-      .limit(5)
-      .returns<SeededRoom[]>();
-
-    const existing = (candidates ?? []).find(isWaitingSeed) ?? null;
+    // Each table lives at one fixed room code. `code` is unique, so once a
+    // room exists there it's ours forever — reclaim and reset it in place
+    // rather than trying (and failing) to insert a second room at that code.
     const { data: codeRoom } = await admin
       .from("rooms")
       .select("*, room_players(id, user_id, bot_id, is_bot)")
       .eq("code", table.code)
-      .eq("status", "waiting")
-      .eq("is_private", false)
-      .gte("updated_at", cutoff)
       .returns<SeededRoom[]>()
       .maybeSingle();
-    const seededCodeRoom = isWaitingSeed(codeRoom) ? codeRoom : null;
-    const roomToRefresh = existing ?? seededCodeRoom;
 
-    if (roomToRefresh) {
-      if (Date.now() - new Date(roomToRefresh.updated_at).getTime() < SEEDED_ROOM_TOUCH_INTERVAL_MS) {
-        ensured.push(roomToRefresh);
+    if (codeRoom) {
+      const players = codeRoom.room_players ?? [];
+      const hasHuman = players.some((p) => !p.is_bot);
+      const fresh = isWithinActiveRoomWindow(codeRoom.updated_at);
+
+      if (hasHuman && fresh) {
+        // Someone is actually sitting at (or playing) this table right now —
+        // leave it alone. It'll self-heal on the next pass once they're done.
         continue;
       }
 
-      const { data: touched } = await admin
-        .from("rooms")
-        .update({
-          max_players: table.maxPlayers,
-          settings: {
-            ...table.settings,
-            aiTable: true,
-            aiSeeded: true,
-            aiTableId: table.id,
-            tableLabel: table.label,
-          },
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", roomToRefresh.id)
-        .select("*")
-        .returns<Room[]>()
-        .single();
+      if (isWaitingSeed(codeRoom) && fresh) {
+        if (Date.now() - new Date(codeRoom.updated_at).getTime() < SEEDED_ROOM_TOUCH_INTERVAL_MS) {
+          ensured.push(codeRoom);
+          continue;
+        }
 
-      if (touched) ensured.push(touched);
+        const { data: touched } = await admin
+          .from("rooms")
+          .update({
+            max_players: table.maxPlayers,
+            settings: {
+              ...table.settings,
+              aiTable: true,
+              aiSeeded: true,
+              aiTableId: table.id,
+              tableLabel: table.label,
+            },
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", codeRoom.id)
+          .select("*")
+          .returns<Room[]>()
+          .single();
+
+        if (touched) ensured.push(touched);
+        continue;
+      }
+
+      // Finished, abandoned mid-game, or otherwise stale — reclaim it.
+      try {
+        await resetSeededBotRoom(admin, codeRoom.id, table.id);
+        const { data: refreshed } = await admin
+          .from("rooms")
+          .select("*")
+          .eq("id", codeRoom.id)
+          .returns<Room[]>()
+          .maybeSingle();
+        if (refreshed) ensured.push(refreshed);
+      } catch (resetError) {
+        errors.push(
+          `${table.id}: ${resetError instanceof Error ? resetError.message : "reset failed"}`,
+        );
+      }
       continue;
     }
 
@@ -298,7 +316,7 @@ export async function ensureSeededBotRooms(admin: AdminClient) {
       continue;
     }
 
-    const players = bots.map((bot, index) => ({
+    const newPlayers = bots.map((bot, index) => ({
       room_id: room.id,
       user_id: null,
       bot_id: bot.id,
@@ -309,7 +327,7 @@ export async function ensureSeededBotRooms(admin: AdminClient) {
       player_order: index,
     }));
 
-    const { error: playersError } = await admin.from("room_players").insert(players);
+    const { error: playersError } = await admin.from("room_players").insert(newPlayers);
     if (playersError) {
       await admin.from("rooms").delete().eq("id", room.id);
       errors.push(`${table.id}: ${playersError.message}`);

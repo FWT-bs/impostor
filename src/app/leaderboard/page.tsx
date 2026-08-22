@@ -4,7 +4,7 @@ import { AppShell, EmptyState, GameCard, PageHeader } from "@/components/game";
 import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/Tabs";
-import { getAuthAvatarColor, getAuthDisplayName } from "@/lib/auth-display-name";
+import { getAuthAvatarColor, getAuthAvatarUrl, getAuthDisplayName } from "@/lib/auth-display-name";
 import { useAuth } from "@/lib/hooks/use-auth";
 import { createClient } from "@/lib/supabase/client";
 import type { Database } from "@/lib/supabase/types";
@@ -30,16 +30,27 @@ export default function LeaderboardPage() {
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<RankingTab>("wins");
 
-  async function fetchLeaders(currentTab: RankingTab) {
-    setLoading(true);
+  function rankedQuery(currentTab: RankingTab) {
     let query = supabase.from("profiles").select("*").gt("games_played", 0);
-
     if (currentTab === "wins") query = query.order("total_wins", { ascending: false });
     else if (currentTab === "impostor") query = query.order("impostor_wins", { ascending: false });
     else if (currentTab === "crew") query = query.order("group_wins", { ascending: false });
     else query = query.order("games_played", { ascending: false });
+    return query;
+  }
 
-    const { data } = await query.limit(50);
+  async function fetchLeaders(currentTab: RankingTab) {
+    setLoading(true);
+    const { data, error } = await rankedQuery(currentTab).eq("show_on_leaderboard", true).limit(50);
+    if (error) {
+      // The show_on_leaderboard column may not be migrated yet on this
+      // project — fall back to showing everyone rather than an empty page.
+      console.warn("leaderboard visibility filter unavailable:", error.message);
+      const { data: fallback } = await rankedQuery(currentTab).limit(50);
+      setLeaders(fallback ?? []);
+      setLoading(false);
+      return;
+    }
     setLeaders(data ?? []);
     setLoading(false);
   }
@@ -73,6 +84,7 @@ export default function LeaderboardPage() {
     ? {
         username: getAuthDisplayName(user, profile),
         avatarColor: getAuthAvatarColor(user, profile),
+        avatarUrl: getAuthAvatarUrl(user, profile),
       }
     : null;
 
@@ -121,12 +133,12 @@ export default function LeaderboardPage() {
                 <div
                   key={leader.id}
                   className={cn(
-                    "flex items-center gap-4 rounded-[20px] px-5 py-4",
+                    "flex items-center gap-4 rounded-[24px] px-5 py-4",
                     isYou ? "bg-cream text-ink" : "bg-card text-foreground",
                   )}
                 >
                   <span className={cn("w-7 text-lg font-bold", !isYou && "text-muted")}>{index + 4}</span>
-                  <Avatar name={leader.username} color={leader.avatar_color} size="sm" />
+                  <Avatar name={leader.username} color={leader.avatar_color} imageUrl={leader.avatar_url} size="sm" />
                   <span className="flex-1 truncate text-lg font-bold">
                     {leader.username}
                     {isYou && (
@@ -171,11 +183,16 @@ function TopPodium({
         >
           <div
             className={cn(
-              "rounded-[24px] text-center",
+              "rounded-[32px] text-center",
               first ? "bg-brand py-9 px-6 text-brand-ink" : "bg-card py-7 px-6 text-foreground",
             )}
           >
-            <Avatar name={leader.username} color={leader.avatar_color} size={first ? "lg" : "md"} />
+            <Avatar
+              name={leader.username}
+              color={leader.avatar_color}
+              imageUrl={leader.avatar_url}
+              size={first ? "lg" : "md"}
+            />
             <h2 className={cn("mt-3 truncate font-bold", first ? "text-2xl" : "text-xl")}>{leader.username}</h2>
             <p className={cn("display mt-1.5", first ? "text-5xl" : "text-4xl")}>{getValue(leader, tab)}</p>
             <p className={cn("text-sm font-semibold", first ? "opacity-75" : "text-muted")}>{getLabel(tab)}</p>

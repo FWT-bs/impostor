@@ -6,10 +6,9 @@ import {
 } from "@/components/game";
 import { Button } from "@/components/ui/Button";
 import { Icon, type IconName } from "@/components/ui/Icon";
-import { Logo } from "@/components/ui/Logo";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/lib/hooks/use-auth";
-import { getAuthAvatarColor, getAuthDisplayName } from "@/lib/auth-display-name";
+import { getAuthAvatarColor, getAuthAvatarUrl, getAuthDisplayName } from "@/lib/auth-display-name";
 import { loginWithNext, signupWithNext } from "@/lib/auth-path";
 import { getActiveRoomCutoffIso } from "@/lib/rooms/stale";
 import { cn } from "@/lib/utils";
@@ -105,6 +104,7 @@ export default function HomePage() {
     ? {
         username: getAuthDisplayName(user, profile),
         avatarColor: getAuthAvatarColor(user, profile),
+        avatarUrl: getAuthAvatarUrl(user, profile),
       }
     : null;
 
@@ -120,7 +120,7 @@ export default function HomePage() {
   return (
     <AppShell user={userSlot} mainClassName="max-w-7xl">
       <section className="grid items-center gap-6 py-4 lg:grid-cols-[0.9fr_1.1fr] lg:gap-6">
-        <div className="rounded-[26px] bg-card p-8 sm:p-10">
+        <div className="rounded-[36px] bg-card p-8 sm:p-10">
           <h1 className="display text-[42px] leading-[1.02] sm:text-[56px] lg:text-[64px]">
             Spot the lie.
             <br />
@@ -209,7 +209,7 @@ export default function HomePage() {
       </section>
 
       {!user && (
-        <section className="rounded-[26px] bg-card px-6 py-10 text-center sm:px-8">
+        <section className="rounded-[36px] bg-card px-6 py-10 text-center sm:px-8">
           <h2 className="text-2xl font-bold">Save your table reads</h2>
           <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-muted">
             Wins, display name, premium packs, all kept together
@@ -226,7 +226,7 @@ export default function HomePage() {
       )}
 
       <section className="pb-12 pt-8">
-        <div className="rounded-[26px] bg-card p-6 sm:p-8">
+        <div className="rounded-[36px] bg-card p-6 sm:p-8">
           <div className="flex flex-col justify-between gap-7 lg:flex-row lg:items-center">
             <div className="max-w-2xl">
               <div className="mb-4 grid size-12 place-items-center rounded-2xl bg-brand text-brand-ink">
@@ -249,8 +249,6 @@ export default function HomePage() {
           </div>
         </div>
       </section>
-
-      <Footer />
     </AppShell>
   );
 }
@@ -266,12 +264,12 @@ function GameStat({ value, label }: { value: string; label: string }) {
 
 function HeroTabletopImage() {
   return (
-    <aside className="relative mx-auto w-full max-w-[690px] justify-self-center overflow-hidden rounded-[26px] bg-card lg:justify-self-end">
+    <aside className="relative mx-auto w-full max-w-[690px] justify-self-center overflow-hidden rounded-[36px] bg-card lg:justify-self-end">
       <Image
-        src="/assets/hero-vote-panel.png"
+        src="/assets/hero-movie-vote-panel.png"
         alt="Impostor voting panel with clues, timer, and one hidden impostor"
-        width={1914}
-        height={1270}
+        width={1448}
+        height={1086}
         priority
         sizes="(min-width: 1024px) 52vw, 92vw"
         className="h-full w-full object-contain"
@@ -301,7 +299,7 @@ function ModeTile({
   return (
     <Link
       href={href}
-      className="group block h-full rounded-[22px] bg-card p-6 transition-all duration-200 will-change-transform hover:-translate-y-0.5 hover:bg-card-hover active:translate-y-0 active:scale-[0.99]"
+      className="group block h-full rounded-[28px] bg-card p-6 transition-all duration-200 will-change-transform hover:-translate-y-0.5 hover:bg-card-hover active:translate-y-0 active:scale-[0.99]"
     >
       <div className={cn("grid size-11 place-items-center rounded-2xl", toneClass)}>
         <Icon name={icon} size={20} />
@@ -312,19 +310,3 @@ function ModeTile({
   );
 }
 
-function Footer() {
-  return (
-    <footer className="mt-6 py-8">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <Logo size={26} />
-        <div className="flex flex-wrap gap-4 text-sm font-semibold text-muted">
-          <Link href="/local/setup" className="transition-colors hover:text-foreground">Play local</Link>
-          <Link href="/rooms" className="transition-colors hover:text-foreground">Online rooms</Link>
-          <Link href="/leaderboard" className="transition-colors hover:text-foreground">Leaderboard</Link>
-          <Link href="/pricing" className="transition-colors hover:text-foreground">Premium</Link>
-        </div>
-        <span className="text-xs text-muted">© 2026 Imposter</span>
-      </div>
-    </footer>
-  );
-}

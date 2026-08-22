@@ -2,14 +2,17 @@
 
 import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
+import { Icon } from "@/components/ui/Icon";
 import { Logo } from "@/components/ui/Logo";
+import { SiteSearch } from "@/components/layout/SiteSearch";
 import { useAuth } from "@/lib/hooks/use-auth";
+import { applyTheme, getStoredTheme, type ThemeName } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { loginWithNext, signupWithNext } from "@/lib/auth-path";
-import { getAuthAvatarColor, getAuthDisplayName } from "@/lib/auth-display-name";
+import { getAuthAvatarColor, getAuthAvatarUrl, getAuthDisplayName } from "@/lib/auth-display-name";
 import { useEffect, useState, type ReactNode } from "react";
 
 const nav = [
@@ -23,6 +26,7 @@ const nav = [
 export interface HeaderUser {
   username: string;
   avatarColor: string;
+  avatarUrl?: string | null;
 }
 
 export interface HeaderProps {
@@ -34,11 +38,23 @@ export interface HeaderProps {
 export function Header({ user: userProp, authSlot, className }: HeaderProps) {
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [theme, setTheme] = useState<ThemeName>("tabletop-dark");
   const { user: authUser, profile } = useAuth();
   const loginHref = loginWithNext(pathname);
   const signupHref = signupWithNext(pathname);
   const isAnonymous = Boolean(authUser?.is_anonymous);
   const isPremium = Boolean(profile?.is_premium);
+  const navItems = isPremium ? nav.filter((item) => item.href !== "/pricing") : nav;
+
+  useEffect(() => {
+    queueMicrotask(() => setTheme(getStoredTheme()));
+  }, []);
+
+  function toggleTheme() {
+    const next: ThemeName = theme === "tabletop-dark" ? "tabletop" : "tabletop-dark";
+    applyTheme(next);
+    setTheme(next);
+  }
 
   // Use the explicit prop if provided, otherwise derive from auth state
   const user: HeaderUser | null =
@@ -48,6 +64,7 @@ export function Header({ user: userProp, authSlot, className }: HeaderProps) {
         ? {
             username: getAuthDisplayName(authUser, profile),
             avatarColor: getAuthAvatarColor(authUser, profile),
+            avatarUrl: getAuthAvatarUrl(authUser, profile),
           }
         : null;
 
@@ -83,7 +100,7 @@ export function Header({ user: userProp, authSlot, className }: HeaderProps) {
 
         {/* Desktop nav — solid pill on the active tab, matching the 3a mockup */}
         <nav className="hidden min-w-0 flex-1 items-center gap-1.5 overflow-x-auto md:flex" aria-label="Main">
-          {nav.map(({ href, label }) => {
+          {navItems.map(({ href, label }) => {
             const active =
               href === "/" ? pathname === "/" : pathname.startsWith(href);
             return (
@@ -110,6 +127,17 @@ export function Header({ user: userProp, authSlot, className }: HeaderProps) {
 
         {/* Right side */}
         <div className="flex min-w-0 items-center gap-2 sm:gap-3">
+          <SiteSearch />
+
+          <button
+            type="button"
+            onClick={toggleTheme}
+            aria-label={theme === "tabletop-dark" ? "Switch to light mode" : "Switch to dark mode"}
+            className="grid size-9 shrink-0 cursor-pointer place-items-center rounded-xl border border-border bg-surface text-foreground transition-colors hover:border-brand/45"
+          >
+            <Icon name={theme === "tabletop-dark" ? "sun" : "moon"} size={16} />
+          </button>
+
           {authSlot ?? (
             <div className="flex items-center gap-2 sm:gap-3">
               {user && (
@@ -117,7 +145,7 @@ export function Header({ user: userProp, authSlot, className }: HeaderProps) {
                   href="/profile"
                   className="group flex min-w-0 items-center gap-2 rounded-xl border border-transparent py-1.5 pl-1.5 pr-2 transition-all duration-200 hover:border-border hover:bg-card-hover sm:gap-2.5 sm:pr-3"
                 >
-                  <Avatar name={user.username} color={user.avatarColor} size="sm" />
+                  <Avatar name={user.username} color={user.avatarColor} imageUrl={user.avatarUrl} size="sm" />
                   <span className="hidden max-w-[130px] truncate text-[13px] font-medium text-foreground transition-colors group-hover:text-brand-2 sm:inline">
                     {user.username}
                   </span>
@@ -140,7 +168,7 @@ export function Header({ user: userProp, authSlot, className }: HeaderProps) {
           <button
             type="button"
             className={cn(
-              "inline-flex size-9 items-center justify-center rounded-lg transition-all duration-200 md:hidden cursor-pointer",
+              "inline-flex size-9 items-center justify-center rounded-xl transition-all duration-200 md:hidden cursor-pointer",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand",
             )}
             style={{
@@ -195,13 +223,13 @@ export function Header({ user: userProp, authSlot, className }: HeaderProps) {
             style={{
               marginTop: 8,
               border: "1px solid var(--border)",
-              borderRadius: 18,
+              borderRadius: 28,
               background: "color-mix(in oklab, var(--surface) 96%, transparent)",
               backdropFilter: "blur(20px)",
             }}
           >
             <nav className="flex flex-col px-3 py-3" aria-label="Mobile">
-              {nav.map(({ href, label }) => {
+              {navItems.map(({ href, label }) => {
                 const active =
                   href === "/"
                     ? pathname === "/"

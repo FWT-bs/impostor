@@ -4,6 +4,8 @@ import { Toaster } from "sonner";
 import { MotionConfig } from "framer-motion";
 import { ImposterIntro } from "@/components/intro/ImposterIntro";
 import { AuthProvider } from "@/components/providers/auth-provider";
+import { Footer } from "@/components/layout/Footer";
+import { SiteWidgets } from "@/components/layout/SiteWidgets";
 import "./globals.css";
 
 const gabarito = Gabarito({
@@ -13,13 +15,14 @@ const gabarito = Gabarito({
 });
 
 export const metadata: Metadata = {
-  title: "Impostor - Social Deduction Party Game",
+  metadataBase: new URL("https://imposterlive.com"),
+  title: {
+    default: "Impostor - Social Deduction Party Game",
+    template: "%s · Impostor",
+  },
   description:
     "Find the impostor among your friends. A thrilling party game of bluffing, deduction, and deception.",
-  icons: {
-    icon: [{ url: "/impostor.png", type: "image/png" }],
-    apple: [{ url: "/impostor.png", type: "image/png" }],
-  },
+  // favicon.ico, icon.png, and apple-icon.png in src/app/ are picked up automatically.
 };
 
 /** Auth uses cookies; avoid caching HTML/RSC shells that ignore Set-Cookie / session. */
@@ -42,15 +45,25 @@ export default function RootLayout({
         <script
           dangerouslySetInnerHTML={{
             __html:
-              "try{document.documentElement.dataset.theme='tabletop-dark';localStorage.setItem('impostor-theme','dark')}catch(e){}",
+              "try{var t=localStorage.getItem('impostor-theme')==='light'?'tabletop':'tabletop-dark';document.documentElement.dataset.theme=t}catch(e){}",
           }}
         />
+        <a
+          href="#main-content"
+          className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:rounded-xl focus:bg-brand focus:px-4 focus:py-2.5 focus:text-sm focus:font-bold focus:text-brand-ink focus:shadow-[0_10px_24px_rgba(0,0,0,0.35)]"
+        >
+          Skip to content
+        </a>
         <div className="bg-field" aria-hidden />
         <MotionConfig reducedMotion="user">
           <AuthProvider>
-            {children}
+            <div className="flex min-h-full flex-1 flex-col">
+              <div className="flex-1">{children}</div>
+              <Footer />
+            </div>
           </AuthProvider>
         </MotionConfig>
+        <SiteWidgets />
         <ImposterIntro />
         <Toaster
           theme="dark"
