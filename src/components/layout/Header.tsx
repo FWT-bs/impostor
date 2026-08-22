@@ -39,6 +39,7 @@ export function Header({ user: userProp, authSlot, className }: HeaderProps) {
   const signupHref = signupWithNext(pathname);
   const isAnonymous = Boolean(authUser?.is_anonymous);
   const isPremium = Boolean(profile?.is_premium);
+  const navItems = isPremium ? nav.filter((item) => item.href !== "/pricing") : nav;
 
   // Use the explicit prop if provided, otherwise derive from auth state
   const user: HeaderUser | null =
@@ -83,7 +84,7 @@ export function Header({ user: userProp, authSlot, className }: HeaderProps) {
 
         {/* Desktop nav — solid pill on the active tab, matching the 3a mockup */}
         <nav className="hidden min-w-0 flex-1 items-center gap-1.5 overflow-x-auto md:flex" aria-label="Main">
-          {nav.map(({ href, label }) => {
+          {navItems.map(({ href, label }) => {
             const active =
               href === "/" ? pathname === "/" : pathname.startsWith(href);
             return (
@@ -201,7 +202,7 @@ export function Header({ user: userProp, authSlot, className }: HeaderProps) {
             }}
           >
             <nav className="flex flex-col px-3 py-3" aria-label="Mobile">
-              {nav.map(({ href, label }) => {
+              {navItems.map(({ href, label }) => {
                 const active =
                   href === "/"
                     ? pathname === "/"
