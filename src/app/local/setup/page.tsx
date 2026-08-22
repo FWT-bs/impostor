@@ -315,7 +315,7 @@ function RoundPreviewImage() {
         width={2106}
         height={1140}
         sizes="(min-width: 1024px) 38vw, 92vw"
-        className="setup-preview-art block h-full w-full object-cover"
+        className="setup-preview-art block w-full"
       />
     </div>
   );

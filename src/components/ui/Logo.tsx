@@ -21,8 +21,8 @@ export function Logo({
   premium = false,
 }: LogoProps) {
   const logoSrc = premium
-    ? "/assets/imposter-premium-logo.png"
-    : "/assets/imposter-basic-logo.png";
+    ? "/assets/imposter-i-plus-logo.png"
+    : "/assets/imposter-i-logo.png";
   const imageScale = premium ? 1.42 : 1.56;
 
   return (

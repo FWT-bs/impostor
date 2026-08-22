@@ -186,7 +186,7 @@ function TopicVaultImage() {
     <aside className="relative mx-auto w-full max-w-[720px] justify-self-center lg:justify-self-end">
       <div className="art-frame pricing-art-frame grid min-h-[260px] place-items-center p-6 sm:min-h-[460px] sm:p-10">
         <Image
-          src="/assets/imposter-premium-logo.png"
+          src="/assets/imposter-i-plus-logo.png"
           alt="Imposter Plus logo"
           width={1254}
           height={1254}
