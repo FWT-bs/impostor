@@ -692,10 +692,10 @@ function RoomsSpriteImage() {
     <aside className="relative mx-auto w-full max-w-[760px] justify-self-center lg:justify-self-end">
       <div className="art-frame rooms-art-frame">
         <Image
-          src="/assets/topic-vault-board.png"
-          alt="Topic vault cards for online tables"
-          width={1600}
-          height={1200}
+          src="/assets/online-table-preview.png"
+          alt="Online table with a red impostor under a spotlight"
+          width={1136}
+          height={1244}
           sizes="(min-width: 1024px) 54vw, 92vw"
           className="reference-art max-h-[460px] object-contain object-top"
         />

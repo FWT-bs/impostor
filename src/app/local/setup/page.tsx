@@ -301,10 +301,10 @@ function RoundPreviewImage() {
   return (
     <div className="setup-art-frame mb-5 overflow-hidden rounded-[36px] bg-card">
       <Image
-        src="/assets/round-preview-panel.png"
-        alt="Round preview with three crew players and one red impostor around a hidden role circle"
-        width={1024}
-        height={1536}
+        src="/assets/local-table-preview.png"
+        alt="Local table with one red impostor hidden among green players"
+        width={2106}
+        height={1140}
         sizes="(min-width: 1024px) 38vw, 92vw"
         className="setup-preview-art block h-full w-full object-cover"
       />
