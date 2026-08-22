@@ -24,6 +24,10 @@ export interface Database {
           impostor_wins: number;
           impostor_games: number;
           total_wins: number;
+          bio: string;
+          pronouns: string | null;
+          favorite_pack: string | null;
+          show_on_leaderboard: boolean;
           created_at: string;
         };
         Insert: {
@@ -38,6 +42,10 @@ export interface Database {
           group_wins?: number;
           impostor_wins?: number;
           impostor_games?: number;
+          bio?: string;
+          pronouns?: string | null;
+          favorite_pack?: string | null;
+          show_on_leaderboard?: boolean;
           created_at?: string;
         };
         Update: {
@@ -52,6 +60,10 @@ export interface Database {
           group_wins?: number;
           impostor_wins?: number;
           impostor_games?: number;
+          bio?: string;
+          pronouns?: string | null;
+          favorite_pack?: string | null;
+          show_on_leaderboard?: boolean;
           created_at?: string;
         };
       };
@@ -464,6 +476,47 @@ export interface Database {
           user_id?: string | null;
           display_name?: string;
           text?: string;
+          created_at?: string;
+        };
+      };
+      feedback: {
+        Relationships: [
+          {
+            foreignKeyName: "feedback_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+        Row: {
+          id: string;
+          user_id: string | null;
+          name: string | null;
+          email: string | null;
+          category: string;
+          message: string;
+          page_path: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id?: string | null;
+          name?: string | null;
+          email?: string | null;
+          category?: string;
+          message: string;
+          page_path?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string | null;
+          name?: string | null;
+          email?: string | null;
+          category?: string;
+          message?: string;
+          page_path?: string | null;
           created_at?: string;
         };
       };

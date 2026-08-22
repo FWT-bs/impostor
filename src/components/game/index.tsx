@@ -28,7 +28,11 @@ export function AppShell({
   return (
     <div className={cn("tabletop-page min-h-screen", className)}>
       <NavBar user={user} />
-      <main className={cn("tabletop-main mx-auto w-full max-w-7xl px-4 pb-12 pt-24 sm:px-6 sm:pb-16 sm:pt-28 lg:px-10", mainClassName)}>
+      <main
+        id="main-content"
+        tabIndex={-1}
+        className={cn("tabletop-main mx-auto w-full max-w-7xl px-4 pb-12 pt-24 sm:px-6 sm:pb-16 sm:pt-28 lg:px-10", mainClassName)}
+      >
         {children}
       </main>
     </div>

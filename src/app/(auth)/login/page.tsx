@@ -64,7 +64,7 @@ function LoginForm() {
   const signupHref = `/signup?next=${encodeURIComponent(nextPath)}`;
 
   return (
-    <div className="grid min-h-screen items-center gap-8 px-4 py-12 lg:grid-cols-[minmax(0,1fr)_minmax(360px,460px)] lg:px-10">
+    <div id="main-content" tabIndex={-1} className="grid min-h-screen items-center gap-8 px-4 py-12 lg:grid-cols-[minmax(0,1fr)_minmax(360px,460px)] lg:px-10">
       <aside className="hidden max-w-xl lg:block">
         <Logo size={38} />
         <h1 className="display mt-10 text-[44px] leading-tight text-foreground">Return to the table</h1>

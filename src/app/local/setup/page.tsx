@@ -17,7 +17,7 @@ import { useLocalGameStore } from "@/stores/local-game-store";
 import { AnimatePresence, motion } from "framer-motion";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
-import { useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 
 const MIN_PLAYERS = 3;
 const MAX_PLAYERS = 10;
@@ -42,6 +42,15 @@ export default function LocalSetupPage() {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [blockedCategory, setBlockedCategory] = useState<string | null>(null);
   const [helpCard, setHelpCard] = useState<"players" | "names" | "topics" | "start" | "preview" | null>(null);
+
+  // Pre-fill from the player's favorite pack, once — never overrides a
+  // category they've already picked on this page.
+  useEffect(() => {
+    const favorite = profile?.favorite_pack;
+    if (!favorite) return;
+    if (premiumCats.has(favorite) && !hasPremium) return;
+    queueMicrotask(() => setSelectedCategory((current) => current ?? favorite));
+  }, [profile?.favorite_pack, premiumCats, hasPremium]);
 
   function updateName(index: number, value: string) {
     setActiveStep(1);

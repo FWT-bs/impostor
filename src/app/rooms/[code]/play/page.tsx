@@ -100,7 +100,7 @@ export default function OnlinePlayPage({ params }: { params: Promise<{ code: str
   }
 
   return (
-    <main className="mx-auto max-w-[1180px] px-5 pt-24 pb-10">
+    <main id="main-content" tabIndex={-1} className="mx-auto max-w-[1180px] px-5 pt-24 pb-10">
       {/* round header */}
       <div className="card mb-3.5" style={{ padding: "12px 16px" }}>
         <div className="flex flex-wrap items-center justify-between gap-3">

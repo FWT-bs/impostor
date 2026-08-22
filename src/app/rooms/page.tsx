@@ -15,7 +15,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/Tabs";
 import { Icon, type IconName } from "@/components/ui/Icon";
 import { loginWithNext } from "@/lib/auth-path";
 import { postJson } from "@/lib/api-fetch";
-import { getAuthAvatarColor, getAuthDisplayName } from "@/lib/auth-display-name";
+import { getAuthAvatarColor, getAuthAvatarUrl, getAuthDisplayName } from "@/lib/auth-display-name";
 import { getCategories, getPremiumCategories } from "@/lib/game/words";
 import { useAuth } from "@/lib/hooks/use-auth";
 import {
@@ -114,6 +114,15 @@ export default function RoomsPage() {
       return getPreferredDisplayName() || profile.username;
     });
   }, [profile?.username]);
+
+  // Pre-fill the create-room category from the player's favorite pack, once —
+  // never overrides a category they've already picked in the modal.
+  useEffect(() => {
+    const favorite = profile?.favorite_pack;
+    if (!favorite) return;
+    if (favorite !== "" && premiumCategories.has(favorite) && !hasPremium) return;
+    setCreateCategory((current) => current ?? favorite);
+  }, [profile?.favorite_pack, premiumCategories, hasPremium]);
 
   const loadOpenRooms = useCallback(async (): Promise<{ ok: boolean; rooms: RoomRow[] }> => {
     const { data, error } = await supabase
@@ -393,13 +402,14 @@ export default function RoomsPage() {
     ? {
         username: getAuthDisplayName(user, profile),
         avatarColor: getAuthAvatarColor(user, profile),
+        avatarUrl: getAuthAvatarUrl(user, profile),
       }
     : null;
 
   return (
     <AppShell user={userSlot} mainClassName="max-w-7xl">
       <section className="relative grid items-center gap-8 py-4 lg:grid-cols-[minmax(360px,0.72fr)_minmax(520px,1fr)] lg:gap-12">
-        <DoodleMark kind="mask" className="-left-8 bottom-4" color="var(--heat)" size={38} rotate={-11} />
+        <DoodleMark kind="mask" className="hidden sm:block sm:-left-8 sm:bottom-4" color="var(--heat)" size={38} rotate={-11} />
         <DoodleMark kind="eye" className="left-[37%] top-36 hidden lg:block" color="var(--brand)" size={46} />
         <div className="max-w-xl">
           <h1 className="tabletop-title">

@@ -6,10 +6,9 @@ import {
 } from "@/components/game";
 import { Button } from "@/components/ui/Button";
 import { Icon, type IconName } from "@/components/ui/Icon";
-import { Logo } from "@/components/ui/Logo";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/lib/hooks/use-auth";
-import { getAuthAvatarColor, getAuthDisplayName } from "@/lib/auth-display-name";
+import { getAuthAvatarColor, getAuthAvatarUrl, getAuthDisplayName } from "@/lib/auth-display-name";
 import { loginWithNext, signupWithNext } from "@/lib/auth-path";
 import { getActiveRoomCutoffIso } from "@/lib/rooms/stale";
 import { cn } from "@/lib/utils";
@@ -105,6 +104,7 @@ export default function HomePage() {
     ? {
         username: getAuthDisplayName(user, profile),
         avatarColor: getAuthAvatarColor(user, profile),
+        avatarUrl: getAuthAvatarUrl(user, profile),
       }
     : null;
 
@@ -249,8 +249,6 @@ export default function HomePage() {
           </div>
         </div>
       </section>
-
-      <Footer />
     </AppShell>
   );
 }
@@ -268,10 +266,10 @@ function HeroTabletopImage() {
   return (
     <aside className="relative mx-auto w-full max-w-[690px] justify-self-center overflow-hidden rounded-[36px] bg-card lg:justify-self-end">
       <Image
-        src="/assets/hero-vote-panel.png"
+        src="/assets/hero-movie-vote-panel.png"
         alt="Impostor voting panel with clues, timer, and one hidden impostor"
-        width={1914}
-        height={1270}
+        width={1448}
+        height={1086}
         priority
         sizes="(min-width: 1024px) 52vw, 92vw"
         className="h-full w-full object-contain"
@@ -312,19 +310,3 @@ function ModeTile({
   );
 }
 
-function Footer() {
-  return (
-    <footer className="mt-6 py-8">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <Logo size={26} />
-        <div className="flex flex-wrap gap-4 text-sm font-semibold text-muted">
-          <Link href="/local/setup" className="transition-colors hover:text-foreground">Play local</Link>
-          <Link href="/rooms" className="transition-colors hover:text-foreground">Online rooms</Link>
-          <Link href="/leaderboard" className="transition-colors hover:text-foreground">Leaderboard</Link>
-          <Link href="/pricing" className="transition-colors hover:text-foreground">Premium</Link>
-        </div>
-        <span className="text-xs text-muted">© 2026 Imposter</span>
-      </div>
-    </footer>
-  );
-}

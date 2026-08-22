@@ -8,14 +8,20 @@ import { Header } from "@/components/layout/Header";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
+import { Textarea } from "@/components/ui/Textarea";
 import { Avatar } from "@/components/ui/Avatar";
 import { Chip } from "@/components/ui/Chip";
+import { Modal } from "@/components/ui/Modal";
+import { TopicPackChip } from "@/components/game";
+import { getCategories } from "@/lib/game/words";
 import { useAuth } from "@/lib/hooks/use-auth";
 import { createClient } from "@/lib/supabase/client";
 import { loginWithNext } from "@/lib/auth-path";
 import { setPreferredDisplayName } from "@/lib/preferred-display-name";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
+
+const BIO_MAX_LENGTH = 160;
 
 const AVATAR_COLORS = [
   "#1155f6", "#ef493a", "#f4b218", "#15925f", "#7ac4ad",
@@ -52,7 +58,12 @@ export default function ProfilePage() {
   const [editing, setEditing] = useState(false);
   const [username, setUsername] = useState("");
   const [selectedColor, setSelectedColor] = useState("");
+  const [bio, setBio] = useState("");
+  const [pronouns, setPronouns] = useState("");
+  const [favoritePack, setFavoritePack] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [signOutConfirmOpen, setSignOutConfirmOpen] = useState(false);
+  const [togglingVisibility, setTogglingVisibility] = useState(false);
   const [recoveryUsername, setRecoveryUsername] = useState("");
   const [recoveryColor, setRecoveryColor] = useState("#1155f6");
   const [creatingProfile, setCreatingProfile] = useState(false);
@@ -200,24 +211,60 @@ export default function ProfilePage() {
   function startEdit() {
     setUsername(activeProfile.username);
     setSelectedColor(activeProfile.avatar_color);
+    setBio(activeProfile.bio ?? "");
+    setPronouns(activeProfile.pronouns ?? "");
+    setFavoritePack(activeProfile.favorite_pack ?? null);
     setEditing(true);
   }
 
   async function handleSave() {
+    const nextUsername = username.trim();
+    if (nextUsername.length < 2) {
+      toast.error("Username must be at least 2 characters");
+      return;
+    }
+    const nextBio = bio.trim();
+    if (nextBio.length > BIO_MAX_LENGTH) {
+      toast.error(`Bio must be ${BIO_MAX_LENGTH} characters or fewer`);
+      return;
+    }
     setSaving(true);
     const supabase = createClient();
     const { error } = await supabase
       .from("profiles")
-      .update({ username: username.trim(), avatar_color: selectedColor })
+      .update({
+        username: nextUsername,
+        avatar_color: selectedColor,
+        bio: nextBio,
+        pronouns: pronouns.trim() || null,
+        favorite_pack: favoritePack,
+      })
       .eq("id", activeUser.id);
     setSaving(false);
     if (error) {
       toast.error(error.message);
       return;
     }
-    setPreferredDisplayName(username.trim());
+    setPreferredDisplayName(nextUsername);
     toast.success("Profile updated");
     setEditing(false);
+    await refreshAuth();
+  }
+
+  async function handleToggleLeaderboardVisibility() {
+    setTogglingVisibility(true);
+    const supabase = createClient();
+    const next = !activeProfile.show_on_leaderboard;
+    const { error } = await supabase
+      .from("profiles")
+      .update({ show_on_leaderboard: next })
+      .eq("id", activeUser.id);
+    setTogglingVisibility(false);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success(next ? "You're back on the leaderboard" : "Hidden from the leaderboard");
     await refreshAuth();
   }
 
@@ -303,9 +350,10 @@ export default function ProfilePage() {
         user={{
           username: activeProfile.username,
           avatarColor: activeProfile.avatar_color,
+          avatarUrl: activeProfile.avatar_url,
         }}
       />
-      <main className="mx-auto max-w-2xl px-5 pt-28 pb-16">
+      <main id="main-content" tabIndex={-1} className="mx-auto max-w-2xl px-5 pt-28 pb-16">
         <div className="mx-auto max-w-2xl">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -357,6 +405,7 @@ export default function ProfilePage() {
                     <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0z" />
                   </svg>
                   <input
+                    id="profile-avatar-upload"
                     type="file"
                     accept="image/jpeg,image/png,image/webp,image/gif"
                     className="hidden"
@@ -377,12 +426,34 @@ export default function ProfilePage() {
                   Remove photo
                 </button>
               )}
-              <h2 className="font-display text-3xl text-foreground mb-1">
+              {!uploading && (
+                <div className="mb-3 mt-1 flex justify-center">
+                  <Button variant="secondary" size="sm" asChild>
+                    <label htmlFor="profile-avatar-upload">
+                      {activeProfile.avatar_url ? "Change photo" : "Upload photo"}
+                    </label>
+                  </Button>
+                </div>
+              )}
+              <h2 className="font-display text-3xl text-foreground mb-1 flex items-center justify-center gap-2 flex-wrap">
                 {activeProfile.username}
+                {activeProfile.pronouns && (
+                  <span className="text-sm font-normal text-muted">({activeProfile.pronouns})</span>
+                )}
               </h2>
               <p className="text-sm text-muted mb-1">
                 {activeUser.is_anonymous ? "Guest operative" : activeUser.email}
               </p>
+              {activeProfile.bio && (
+                <p className="mx-auto mt-3 max-w-sm text-sm leading-relaxed text-foreground/85">
+                  {activeProfile.bio}
+                </p>
+              )}
+              {activeProfile.favorite_pack && (
+                <div className="mt-3 flex justify-center">
+                  <Chip tone="brand" icon="dice">Favorite pack: {activeProfile.favorite_pack}</Chip>
+                </div>
+              )}
               {!editing && (
                 <Button variant="secondary" size="sm" className="mt-4" onClick={startEdit}>
                   Edit profile
@@ -405,6 +476,23 @@ export default function ProfilePage() {
                     onChange={(e) => setUsername(e.target.value)}
                     className="mb-4"
                   />
+                  <Input
+                    label="Pronouns (optional)"
+                    value={pronouns}
+                    onChange={(e) => setPronouns(e.target.value)}
+                    placeholder="e.g. they/them"
+                    maxLength={30}
+                    className="mb-4"
+                  />
+                  <Textarea
+                    label="Bio (optional)"
+                    value={bio}
+                    onChange={(e) => setBio(e.target.value)}
+                    placeholder="Tell the table something about yourself"
+                    maxLength={BIO_MAX_LENGTH}
+                    rows={3}
+                    className="mb-4"
+                  />
                   <label className="block text-sm font-semibold text-foreground mb-2">
                     Avatar color
                   </label>
@@ -424,6 +512,22 @@ export default function ProfilePage() {
                             : "ring-1 ring-transparent hover:ring-border-2",
                         )}
                         style={{ backgroundColor: c }}
+                      />
+                    ))}
+                  </div>
+                  <label className="block text-sm font-semibold text-foreground mb-2">
+                    Favorite pack
+                  </label>
+                  <p className="text-xs text-muted mb-3">
+                    Shown as a badge on your profile. Purely cosmetic.
+                  </p>
+                  <div className="flex flex-wrap gap-2 mb-5">
+                    {getCategories().map((pack) => (
+                      <TopicPackChip
+                        key={pack}
+                        name={pack}
+                        selected={favoritePack === pack}
+                        onClick={() => setFavoritePack(favoritePack === pack ? null : pack)}
                       />
                     ))}
                   </div>
@@ -536,6 +640,41 @@ export default function ProfilePage() {
                           </Link>
                         )}
                       </div>
+
+                      <div className="flex items-center justify-between rounded-lg border border-border bg-card-hover/50 px-4 py-3">
+                        <div>
+                          <p className="text-sm font-medium text-foreground">Show on leaderboard</p>
+                          <p className="text-xs text-muted mt-0.5">
+                            {activeProfile.show_on_leaderboard
+                              ? "Your stats are visible to everyone"
+                              : "Hidden — your stats still count, just not shown publicly"}
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          role="switch"
+                          aria-checked={activeProfile.show_on_leaderboard}
+                          aria-label="Show on leaderboard"
+                          disabled={togglingVisibility}
+                          onClick={handleToggleLeaderboardVisibility}
+                          className={cn(
+                            "relative inline-flex h-7 w-12 shrink-0 cursor-pointer rounded-full border transition-colors duration-200 disabled:cursor-wait disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand",
+                          )}
+                          style={{
+                            background: activeProfile.show_on_leaderboard ? "var(--emerald)" : "var(--surface-3)",
+                            borderColor: activeProfile.show_on_leaderboard
+                              ? "color-mix(in oklab, var(--emerald) 50%, transparent)"
+                              : "var(--border)",
+                          }}
+                        >
+                          <span
+                            className={cn(
+                              "pointer-events-none mt-[2px] inline-block size-5 rounded-full bg-white shadow-md transition-transform duration-200",
+                              activeProfile.show_on_leaderboard ? "translate-x-[22px]" : "translate-x-[2px]",
+                            )}
+                          />
+                        </button>
+                      </div>
                     </div>
                   </motion.div>
                 )}
@@ -565,13 +704,37 @@ export default function ProfilePage() {
               <Button variant="ghost" size="md" className="sm:flex-1" asChild>
                 <Link href="/leaderboard">View leaderboard</Link>
               </Button>
-              <Button variant="danger" size="md" className="sm:flex-1" onClick={signOut}>
+              <Button
+                variant="danger"
+                size="md"
+                className="sm:flex-1"
+                onClick={() => setSignOutConfirmOpen(true)}
+              >
                 Sign out
               </Button>
             </div>
           </motion.div>
         </div>
       </main>
+
+      <Modal
+        open={signOutConfirmOpen}
+        onClose={() => setSignOutConfirmOpen(false)}
+        title="Sign out?"
+        titleId="sign-out-confirm-title"
+      >
+        <p className="mb-5 text-sm text-muted">
+          You&apos;ll need to sign back in to see your stats and premium packs on this device.
+        </p>
+        <div className="flex gap-3">
+          <Button variant="secondary" className="flex-1" onClick={() => setSignOutConfirmOpen(false)}>
+            Cancel
+          </Button>
+          <Button variant="danger" className="flex-1" onClick={signOut}>
+            Sign out
+          </Button>
+        </div>
+      </Modal>
     </>
   );
 }

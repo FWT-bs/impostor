@@ -1,0 +1,11 @@
+import type { Metadata } from "next";
+import type { ReactNode } from "react";
+
+export const metadata: Metadata = {
+  title: "Sign up",
+  description: "Create your player file and start playing Impostor.",
+};
+
+export default function SignupLayout({ children }: { children: ReactNode }) {
+  return <>{children}</>;
+}

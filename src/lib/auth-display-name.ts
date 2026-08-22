@@ -25,3 +25,9 @@ export function getAuthAvatarColor(user: User | null, profile: Profile | null) {
   if (meta?.avatar_color) return meta.avatar_color;
   return "#8070d4";
 }
+
+export function getAuthAvatarUrl(user: User | null, profile: Profile | null) {
+  if (profile?.avatar_url) return profile.avatar_url;
+  const meta = user?.user_metadata as { avatar_url?: string } | undefined;
+  return meta?.avatar_url ?? null;
+}
