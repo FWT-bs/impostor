@@ -1,10 +1,8 @@
 "use client";
 
-import {
-  AppShell,
-  RoomCard,
-} from "@/components/game";
+import { AppShell, RoomCard } from "@/components/game";
 import { Button } from "@/components/ui/Button";
+import { CardFan, type FanCard } from "@/components/ui/CardFan";
 import { Icon, type IconName } from "@/components/ui/Icon";
 import { Logo } from "@/components/ui/Logo";
 import { createClient } from "@/lib/supabase/client";
@@ -118,79 +116,166 @@ export default function HomePage() {
   const playingNow = rooms.reduce((sum, room) => sum + room.players, 0);
 
   return (
-    <AppShell user={userSlot} mainClassName="max-w-7xl">
-      <section className="grid items-center gap-6 py-4 lg:grid-cols-[0.9fr_1.1fr] lg:gap-6">
-        <div className="rounded-[26px] bg-card p-8 sm:p-10">
-          <h1 className="display text-[42px] leading-[1.02] sm:text-[56px] lg:text-[64px]">
-            Spot the lie.
-            <br />
-            Keep the word <span className="text-brand">safe.</span>
-          </h1>
-          <p className="mt-4 max-w-[420px] text-[17px] leading-relaxed text-muted sm:text-lg">
-            Secret word, quiet clues, one player bluffing from the topic alone.
-          </p>
-          <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-            <Button size="lg" className="w-full sm:w-auto" asChild>
-              <Link href="/local/setup"><Icon name="users" size={20} /> Start local game</Link>
-            </Button>
-            <Button variant="secondary" size="lg" className="w-full sm:w-auto" asChild>
-              <Link href="/rooms"><Icon name="globe" size={20} /> Join online room</Link>
-            </Button>
-          </div>
+    <AppShell user={userSlot} mainClassName="max-w-6xl">
+      <Hero playingNow={playingNow} openRooms={rooms.length} />
+      <VaultFeature />
+      <LiveTables rooms={rooms} playingNow={playingNow} />
+      <PackGrid />
+      <HowItWorks />
+      <ClosingBand signedOut={!user} pathname={pathname} />
+      <Footer />
+    </AppShell>
+  );
+}
 
-          <div className="mt-10 flex max-w-md items-center gap-6">
-            <GameStat value={String(playingNow)} label="players live" />
-            <GameStat value={String(rooms.length)} label="rooms open" />
-            <GameStat value="3-10" label="seats per game" />
-          </div>
-        </div>
+/* ------------------------------------------------------------------ */
+/* Hero — centered headline, one CTA, a fanned hand of topic packs.    */
+/* ------------------------------------------------------------------ */
 
-        <HeroTabletopImage />
-      </section>
+function Hero({ playingNow, openRooms }: { playingNow: number; openRooms: number }) {
+  return (
+    <section className="pb-8 pt-2 text-center sm:pb-12">
+      <h1 className="display mx-auto text-[clamp(2.25rem,7vw,3.75rem)] leading-[1.06]">
+        <span className="block sm:whitespace-nowrap">Everyone knows the word.</span>
+        <span className="block text-brand sm:whitespace-nowrap">One of you is lying.</span>
+      </h1>
+      <p className="mx-auto mt-6 max-w-[46ch] text-[17px] leading-relaxed text-muted sm:text-lg">
+        Open a topic pack, trade quiet one-word clues, and unmask the player faking
+        it from the category alone. One phone or online, three to ten friends.
+      </p>
 
-      <section className="py-8 sm:py-10">
-        <div className="mb-5 flex items-end justify-between gap-4">
-          <h2 className="text-2xl font-bold sm:text-[26px]">Game modes</h2>
-          <Link href="/rooms" className="hidden items-center gap-2 text-sm font-semibold text-muted transition-colors hover:text-foreground sm:flex">
-            Browse rooms <Icon name="arrow" size={16} />
+      <div className="mt-9 flex flex-col items-center gap-4">
+        <Button size="lg" className="w-full rounded-full px-9 sm:w-auto" asChild>
+          <Link href="/local/setup">
+            Start a game <Icon name="arrow" size={19} />
           </Link>
-        </div>
-        <div className="grid gap-4 md:grid-cols-3">
-          <ModeTile
-            href="/local/setup"
-            title="Pass and play"
-            description="One phone, three to ten people"
-            icon="users"
-            tone="brand"
-          />
-          <ModeTile
-            href="/rooms"
-            title="Private room"
-            description="Share a four letter code"
-            icon="lock"
-            tone="cream"
-          />
-          <ModeTile
-            href="/rooms"
-            title="Public match"
-            description="Drop into an open table"
-            icon="globe"
-            tone="heat"
-          />
-        </div>
-      </section>
+        </Button>
+        <Link
+          href="/rooms"
+          className="text-sm font-semibold text-muted transition-colors hover:text-foreground"
+        >
+          or join an online room
+        </Link>
+      </div>
 
-      <section className="py-8">
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h2 className="text-2xl font-bold sm:text-3xl">Open tables</h2>
-          </div>
-          <Button variant="secondary" asChild>
-            <Link href="/rooms">See all rooms</Link>
-          </Button>
+      <p className="mt-7 flex items-center justify-center gap-2 text-[13px] font-semibold text-muted-2">
+        <span className="inline-block size-2 rounded-full bg-brand" aria-hidden />
+        {playingNow} playing now
+        <span aria-hidden>·</span>
+        {openRooms} open {openRooms === 1 ? "room" : "rooms"}
+      </p>
+
+      <CardFan cards={HERO_FAN} className="mt-8 w-full max-w-5xl" />
+    </section>
+  );
+}
+
+// One round, dealt out: everyone gets the same category and word — except the
+// card in front, who only knows they're the impostor.
+const ROUND_CATEGORY = "Movies";
+const ROUND_WORD = "TITANIC";
+const HERO_FAN: FanCard[] = [
+  { id: "seat-1", category: ROUND_CATEGORY, word: ROUND_WORD },
+  { id: "seat-2", category: ROUND_CATEGORY, word: ROUND_WORD },
+  { id: "seat-3", category: ROUND_CATEGORY, word: ROUND_WORD },
+  { id: "impostor", category: ROUND_CATEGORY, impostor: true },
+  { id: "seat-4", category: ROUND_CATEGORY, word: ROUND_WORD },
+  { id: "seat-5", category: ROUND_CATEGORY, word: ROUND_WORD },
+  { id: "seat-6", category: ROUND_CATEGORY, word: ROUND_WORD },
+];
+
+/* ------------------------------------------------------------------ */
+/* Topic Vault — the editorial feature block.                          */
+/* ------------------------------------------------------------------ */
+
+function VaultFeature() {
+  return (
+    <section className="border-t border-border py-14 sm:py-20">
+      <p className="text-sm font-bold uppercase tracking-[0.14em] text-brand">
+        The Topic Vault
+      </p>
+      <h2 className="display mt-3 max-w-[18ch] text-[clamp(1.9rem,4.5vw,3rem)]">
+        Any table. Any topic.
+      </h2>
+
+      <div className="mt-10 grid items-center gap-8 lg:grid-cols-[1.05fr_0.95fr] lg:gap-14">
+        <div className="overflow-hidden rounded-[26px] bg-black">
+          <Image
+            src="/assets/topic-vault-cards.png"
+            alt="A spread of Impostor topic packs — Cult Movies, Street Food, 90s Nostalgia, World Capitals, K-Pop and more"
+            width={1448}
+            height={1086}
+            priority
+            sizes="(min-width: 1024px) 55vw, 92vw"
+            className="h-auto w-full"
+          />
         </div>
-        <div className="grid gap-4 lg:grid-cols-3">
-          {rooms.slice(0, 3).map((room) => (
+
+        <div>
+          <p className="max-w-[46ch] text-[17px] leading-relaxed text-muted">
+            Forty-plus hand-built packs — cult movies, street food, boss battles,
+            world capitals. The crew sees the secret word. The impostor only gets
+            the pack name and has to bluff every clue from there.
+          </p>
+
+          <div className="mt-8 flex items-center gap-4">
+            <span className="display text-[3.25rem] leading-none text-brand">40+</span>
+            <span className="text-[15px] font-semibold leading-snug text-muted">
+              packs in the vault,
+              <br />
+              new words every season
+            </span>
+          </div>
+
+          <div className="mt-8">
+            <Button variant="secondary" className="rounded-full px-7" asChild>
+              <Link href="/local/setup">
+                Browse the vault <Icon name="arrow" size={17} />
+              </Link>
+            </Button>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Live tables — real open rooms.                                      */
+/* ------------------------------------------------------------------ */
+
+type RoomView = {
+  code: string;
+  players: number;
+  max: number;
+  status: string;
+  topic: string;
+};
+
+function LiveTables({ rooms, playingNow }: { rooms: RoomView[]; playingNow: number }) {
+  return (
+    <section className="border-t border-border py-14 sm:py-20">
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <h2 className="display text-[clamp(1.9rem,4.5vw,3rem)]">Live tables</h2>
+          <p className="mt-2 text-[15px] text-muted">
+            {rooms.length > 0
+              ? `${playingNow} players across ${rooms.length} open ${rooms.length === 1 ? "room" : "rooms"} right now`
+              : "No open tables this second — be the one who starts it"}
+          </p>
+        </div>
+        <Link
+          href="/rooms"
+          className="flex items-center gap-2 text-sm font-semibold text-muted transition-colors hover:text-foreground"
+        >
+          Browse rooms <Icon name="arrow" size={16} />
+        </Link>
+      </div>
+
+      <div className="mt-8">
+        {rooms.length > 0 ? (
+          <div className="grid gap-4 lg:grid-cols-3">
+            {rooms.slice(0, 3).map((room) => (
               <RoomCard
                 key={room.code}
                 code={room.code}
@@ -199,131 +284,195 @@ export default function HomePage() {
                 status={room.status === "playing" ? "live" : "open"}
                 topic={room.topic}
                 action={
-                  <Button size="sm" variant={room.status === "playing" ? "secondary" : "primary"} asChild>
-                    <Link href="/rooms">{room.status === "playing" ? "Watch code" : "Join"}</Link>
+                  <Button
+                    size="sm"
+                    variant={room.status === "playing" ? "secondary" : "primary"}
+                    asChild
+                  >
+                    <Link href="/rooms">
+                      {room.status === "playing" ? "Watch" : "Join"}
+                    </Link>
                   </Button>
                 }
               />
             ))}
-        </div>
-      </section>
-
-      {!user && (
-        <section className="rounded-[26px] bg-card px-6 py-10 text-center sm:px-8">
-          <h2 className="text-2xl font-bold">Save your table reads</h2>
-          <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-muted">
-            Wins, display name, premium packs, all kept together
-          </p>
-          <div className="mt-6 flex justify-center gap-3">
-            <Button variant="secondary" asChild>
-              <Link href={loginWithNext(pathname)}>Sign in</Link>
-            </Button>
-            <Button asChild>
-              <Link href={signupWithNext(pathname)}>Create account</Link>
-            </Button>
           </div>
-        </section>
-      )}
-
-      <section className="pb-12 pt-8">
-        <div className="rounded-[26px] bg-card p-6 sm:p-8">
-          <div className="flex flex-col justify-between gap-7 lg:flex-row lg:items-center">
-            <div className="max-w-2xl">
-              <div className="mb-4 grid size-12 place-items-center rounded-2xl bg-brand text-brand-ink">
-                <Icon name="crown" size={24} />
-              </div>
-              <h2 className="text-3xl font-bold sm:text-4xl">Unlock the full table</h2>
-              <p className="mt-3 max-w-[62ch] text-muted">
-                More packs, room priority, match history, a badge for regulars
+        ) : (
+          <div className="flex flex-col items-start gap-5 rounded-[26px] bg-card p-8 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h3 className="text-xl font-bold">Open the first table</h3>
+              <p className="mt-1.5 max-w-md text-sm leading-relaxed text-muted">
+                Spin up a room, share the four-letter code, and your friends drop
+                straight in.
               </p>
             </div>
-            <div className="flex flex-col gap-3 sm:min-w-[250px]">
-              <div className="flex items-end gap-2">
-                <span className="display text-5xl text-foreground">$3</span>
-                <span className="pb-2 text-muted">/ month</span>
-              </div>
-              <Button asChild>
-                <Link href="/pricing">Unlock packs <Icon name="arrow" size={17} /></Link>
-              </Button>
-            </div>
+            <Button className="rounded-full px-7" asChild>
+              <Link href="/rooms">
+                Create a room <Icon name="arrow" size={17} />
+              </Link>
+            </Button>
           </div>
-        </div>
-      </section>
-
-      <Footer />
-    </AppShell>
-  );
-}
-
-function GameStat({ value, label }: { value: string; label: string }) {
-  return (
-    <div>
-      <p className="font-display text-3xl leading-none text-foreground">{value}</p>
-      <p className="mt-1.5 text-[13px] font-semibold text-muted">{label}</p>
-    </div>
-  );
-}
-
-function HeroTabletopImage() {
-  return (
-    <aside className="relative mx-auto w-full max-w-[690px] justify-self-center overflow-hidden rounded-[26px] bg-card lg:justify-self-end">
-      <Image
-        src="/assets/hero-vote-panel.png"
-        alt="Impostor voting panel with clues, timer, and one hidden impostor"
-        width={1914}
-        height={1270}
-        priority
-        sizes="(min-width: 1024px) 52vw, 92vw"
-        className="h-full w-full object-contain"
-      />
-    </aside>
-  );
-}
-
-function ModeTile({
-  href,
-  title,
-  description,
-  icon,
-  tone,
-}: {
-  href: string;
-  title: string;
-  description: string;
-  icon: IconName;
-  tone: "brand" | "cream" | "heat";
-}) {
-  const toneClass = {
-    brand: "bg-brand text-brand-ink",
-    cream: "bg-cream text-ink",
-    heat: "bg-heat text-heat-ink",
-  }[tone];
-  return (
-    <Link
-      href={href}
-      className="group block h-full rounded-[22px] bg-card p-6 transition-all duration-200 will-change-transform hover:-translate-y-0.5 hover:bg-card-hover active:translate-y-0 active:scale-[0.99]"
-    >
-      <div className={cn("grid size-11 place-items-center rounded-2xl", toneClass)}>
-        <Icon name={icon} size={20} />
+        )}
       </div>
-      <h3 className="mt-4 text-xl font-bold">{title}</h3>
-      <p className="mt-1.5 text-[15px] text-muted">{description}</p>
-    </Link>
+    </section>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Topic packs — the category grid.                                    */
+/* ------------------------------------------------------------------ */
+
+const PACKS: { name: string; blurb: string; icon: IconName; tone: string }[] = [
+  { name: "Movies", blurb: "Blockbusters, cult classics, one-liners", icon: "play", tone: "bg-heat text-heat-ink" },
+  { name: "Food", blurb: "Street food, sweets, things on a stick", icon: "flame", tone: "bg-brand text-brand-ink" },
+  { name: "Music", blurb: "K-pop, one-hit wonders, festival sets", icon: "bolt", tone: "bg-cream text-ink" },
+  { name: "Places", blurb: "Capitals, landmarks, tiny hometowns", icon: "globe", tone: "bg-surface-2 text-foreground" },
+];
+
+function PackGrid() {
+  return (
+    <section className="border-t border-border py-14 sm:py-20">
+      <h2 className="display text-[clamp(1.9rem,4.5vw,3rem)]">Topic packs</h2>
+      <p className="mt-2 max-w-[52ch] text-[15px] text-muted">
+        Pick a pack and the whole table bluffs over its words. Leave it on Random
+        to let the vault choose.
+      </p>
+
+      <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {PACKS.map((pack) => (
+          <Link
+            key={pack.name}
+            href="/local/setup"
+            className="group flex h-full flex-col justify-between rounded-[22px] bg-card p-6 transition-all duration-200 will-change-transform hover:-translate-y-0.5 hover:bg-card-hover active:translate-y-0 active:scale-[0.99]"
+          >
+            <div>
+              <div className={cn("grid size-12 place-items-center rounded-2xl", pack.tone)}>
+                <Icon name={pack.icon} size={22} />
+              </div>
+              <h3 className="mt-5 text-xl font-bold">{pack.name}</h3>
+              <p className="mt-1.5 text-[14px] leading-snug text-muted">{pack.blurb}</p>
+            </div>
+            <span className="mt-6 flex items-center gap-1.5 text-sm font-semibold text-brand transition-[gap] group-hover:gap-2.5">
+              Open pack <Icon name="arrow" size={15} />
+            </span>
+          </Link>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* How a round works.                                                  */
+/* ------------------------------------------------------------------ */
+
+const STEPS: { icon: IconName; title: string; text: string }[] = [
+  { icon: "eye", title: "Reveal", text: "Everyone gets the secret word — except the impostor, who only sees the pack." },
+  { icon: "chat", title: "Clue", text: "Go around the table. One word each about the secret word. Say too much and you're a target." },
+  { icon: "vote", title: "Vote", text: "Point at the faker. Catch them and the crew wins. Miss and the impostor walks." },
+];
+
+function HowItWorks() {
+  return (
+    <section className="border-t border-border py-14 sm:py-20">
+      <h2 className="display text-[clamp(1.9rem,4.5vw,3rem)]">How a round works</h2>
+
+      <div className="mt-8 grid gap-4 md:grid-cols-3">
+        {STEPS.map((step, index) => (
+          <div key={step.title} className="rounded-[22px] bg-card p-6">
+            <div className="flex items-center gap-3">
+              <span className="grid size-9 place-items-center rounded-xl bg-surface-2 text-brand">
+                <Icon name={step.icon} size={18} />
+              </span>
+              <span className="display text-lg text-muted">0{index + 1}</span>
+            </div>
+            <h3 className="mt-4 text-xl font-bold">{step.title}</h3>
+            <p className="mt-2 text-[15px] leading-relaxed text-muted">{step.text}</p>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Closing band.                                                       */
+/* ------------------------------------------------------------------ */
+
+function ClosingBand({ signedOut, pathname }: { signedOut: boolean; pathname: string }) {
+  return (
+    <section className="py-16 sm:py-20">
+      <div className="rounded-[28px] bg-card px-6 py-14 text-center sm:px-10">
+        <h2 className="display mx-auto text-[clamp(2rem,5vw,3.25rem)] leading-[1.06]">
+          <span className="block sm:whitespace-nowrap">Grab your friends.</span>
+          <span className="block sm:whitespace-nowrap">Start bluffing.</span>
+        </h2>
+        <p className="mx-auto mt-4 max-w-[40ch] text-[15px] leading-relaxed text-muted">
+          Free to play, no download. Premium unlocks the full vault and saved
+          stats from $3 a month.
+        </p>
+        <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
+          <Button size="lg" className="w-full rounded-full px-9 sm:w-auto" asChild>
+            <Link href="/local/setup">
+              Start a game <Icon name="arrow" size={19} />
+            </Link>
+          </Button>
+          {signedOut ? (
+            <Button
+              size="lg"
+              variant="secondary"
+              className="w-full rounded-full px-9 sm:w-auto"
+              asChild
+            >
+              <Link href={signupWithNext(pathname)}>Create a free account</Link>
+            </Button>
+          ) : (
+            <Button
+              size="lg"
+              variant="secondary"
+              className="w-full rounded-full px-9 sm:w-auto"
+              asChild
+            >
+              <Link href="/pricing">See Impostor+</Link>
+            </Button>
+          )}
+        </div>
+        {signedOut && (
+          <p className="mt-5 text-[13px] text-muted-2">
+            Already have one?{" "}
+            <Link
+              href={loginWithNext(pathname)}
+              className="font-semibold text-muted underline-offset-4 hover:text-foreground hover:underline"
+            >
+              Sign in
+            </Link>
+          </p>
+        )}
+      </div>
+    </section>
   );
 }
 
 function Footer() {
   return (
-    <footer className="mt-6 py-8">
+    <footer className="border-t border-border py-8">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <Logo size={26} />
         <div className="flex flex-wrap gap-4 text-sm font-semibold text-muted">
-          <Link href="/local/setup" className="transition-colors hover:text-foreground">Play local</Link>
-          <Link href="/rooms" className="transition-colors hover:text-foreground">Online rooms</Link>
-          <Link href="/leaderboard" className="transition-colors hover:text-foreground">Leaderboard</Link>
-          <Link href="/pricing" className="transition-colors hover:text-foreground">Premium</Link>
+          <Link href="/local/setup" className="transition-colors hover:text-foreground">
+            Play local
+          </Link>
+          <Link href="/rooms" className="transition-colors hover:text-foreground">
+            Online rooms
+          </Link>
+          <Link href="/leaderboard" className="transition-colors hover:text-foreground">
+            Leaderboard
+          </Link>
+          <Link href="/pricing" className="transition-colors hover:text-foreground">
+            Premium
+          </Link>
         </div>
-        <span className="text-xs text-muted">© 2026 Imposter</span>
+        <span className="text-xs text-muted-2">© 2026 Impostor</span>
       </div>
     </footer>
   );

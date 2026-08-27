@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
 import { Gabarito } from "next/font/google";
+import Script from "next/script";
 import { Toaster } from "sonner";
 import { MotionConfig } from "framer-motion";
 import { ImposterIntro } from "@/components/intro/ImposterIntro";
 import { AuthProvider } from "@/components/providers/auth-provider";
+import { ADSENSE_CLIENT } from "@/lib/ads";
 import "./globals.css";
 
 const gabarito = Gabarito({
@@ -65,6 +67,13 @@ export default function RootLayout({
               boxShadow: "0 18px 44px rgba(14, 28, 48, 0.16)",
             },
           }}
+        />
+        <Script
+          id="adsbygoogle-loader"
+          src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${ADSENSE_CLIENT}`}
+          strategy="afterInteractive"
+          crossOrigin="anonymous"
+          async
         />
       </body>
     </html>
