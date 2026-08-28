@@ -145,7 +145,7 @@ export default function HomePage() {
 
   return (
     <AppShell user={userSlot} mainClassName="max-w-6xl">
-      <Hero playingNow={playingNow} openRooms={rooms.length} />
+      <Hero />
       <VaultFeature />
       <LiveTables rooms={rooms} playingNow={playingNow} />
       <PackGrid />
@@ -160,57 +160,62 @@ export default function HomePage() {
 /* Hero — centered headline, one CTA, a fanned hand of topic packs.    */
 /* ------------------------------------------------------------------ */
 
-function Hero({ playingNow, openRooms }: { playingNow: number; openRooms: number }) {
+function Hero() {
   return (
-    <section className="pb-8 pt-2 text-center sm:pb-12">
-      <h1 className="display mx-auto text-[clamp(2.25rem,7vw,3.75rem)] leading-[1.06]">
+    <section className="pt-1 text-center">
+      <h1 className="display mx-auto text-[clamp(2.1rem,6.2vw,3.35rem)] leading-[1.06]">
         <span className="block sm:whitespace-nowrap">Everyone knows the word.</span>
         <span className="block text-brand sm:whitespace-nowrap">One of you is lying.</span>
       </h1>
-      <p className="mx-auto mt-6 max-w-[46ch] text-[17px] leading-relaxed text-muted sm:text-lg">
-        Open a topic pack, trade quiet one-word clues, and unmask the player faking
-        it from the category alone. One phone or online, three to ten friends.
+
+      <p className="mx-auto mt-4 max-w-[46ch] text-[17px] leading-snug text-hero-copy">
+        Everyone gets the secret word — except the impostor. Give clues, find the
+        liar, and don&apos;t get caught.
+      </p>
+      <p className="mx-auto mt-2 text-[14px] text-muted">
+        One phone or online, 3–10 friends.
       </p>
 
-      <div className="mt-9 flex flex-col items-center gap-4">
-        <Button size="lg" className="w-full rounded-full px-9 sm:w-auto" asChild>
+      <div className="mt-6 flex flex-col items-center justify-center gap-3 sm:flex-row">
+        <Button
+          className="h-[56px] w-full rounded-[18px] px-[34px] text-[16px] sm:w-auto"
+          asChild
+        >
           <Link href="/local/setup">
             Start a game <Icon name="arrow" size={19} />
           </Link>
         </Button>
-        <Link
-          href="/rooms"
-          className="text-sm font-semibold text-muted transition-colors hover:text-foreground"
+        <Button
+          variant="secondary"
+          className="h-[56px] w-full rounded-[18px] px-[30px] text-[16px] sm:w-auto"
+          asChild
         >
-          or join an online room
-        </Link>
+          <Link href="/rooms">Join online</Link>
+        </Button>
       </div>
 
-      <p className="mt-7 flex items-center justify-center gap-2 text-[13px] font-semibold text-muted-2">
-        <span className="inline-block size-2 rounded-full bg-brand" aria-hidden />
-        {playingNow} playing now
-        <span aria-hidden>·</span>
-        {openRooms} open {openRooms === 1 ? "room" : "rooms"}
-      </p>
-
-      <CardFan cards={HERO_FAN} className="mt-8 w-full max-w-6xl" />
+      {/* Sits tight under the CTA and bleeds past the container so the outer
+          cards get cropped by the viewport, the way a real dealt hand would. */}
+      <CardFan cards={HERO_FAN} className="mt-7" bleed />
     </section>
   );
 }
 
-// One round, dealt out: everyone gets the same category and word — except the
-// card in front, who only gets the category and a faint hint.
+// One round, dealt out. Every card carries the same category; only the word
+// differs — so the rule reads straight off the picture: everyone sees MOVIES /
+// TITANIC, the odd card out sees MOVIES / IMPOSTOR and nothing else.
 const ROUND_CATEGORY = "Movies";
 const ROUND_WORD = "TITANIC";
-const ROUND_HINT = "romance";
 const HERO_FAN: FanCard[] = [
   { id: "seat-1", category: ROUND_CATEGORY, word: ROUND_WORD },
   { id: "seat-2", category: ROUND_CATEGORY, word: ROUND_WORD },
   { id: "seat-3", category: ROUND_CATEGORY, word: ROUND_WORD },
-  { id: "impostor", category: ROUND_CATEGORY, impostor: true, hint: ROUND_HINT },
   { id: "seat-4", category: ROUND_CATEGORY, word: ROUND_WORD },
+  { id: "impostor", category: ROUND_CATEGORY, impostor: true },
   { id: "seat-5", category: ROUND_CATEGORY, word: ROUND_WORD },
   { id: "seat-6", category: ROUND_CATEGORY, word: ROUND_WORD },
+  { id: "seat-7", category: ROUND_CATEGORY, word: ROUND_WORD },
+  { id: "seat-8", category: ROUND_CATEGORY, word: ROUND_WORD },
 ];
 
 /* ------------------------------------------------------------------ */

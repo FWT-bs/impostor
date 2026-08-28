@@ -142,6 +142,11 @@
   --color-muted: var(--muted);
   --color-muted-2: var(--muted-2);
 
+  /* Readable secondary text on the dark canvas — the old --muted sat around
+     50-55% and was hard to read under the headline. */
+  --color-hero-copy: rgba(255, 255, 255, 0.68);
+  --color-nav-link: rgba(255, 255, 255, 0.62);
+
   --color-brand: var(--brand);
   --color-brand-2: var(--brand-2);
   --color-brand-ink: var(--brand-ink);
@@ -881,10 +886,10 @@ textarea,
   box-shadow: none;
 }
 
+/* Flat black canvas. The dot texture was too faint to register as a texture
+   and only muddied the black; the coloured cards carry the personality. */
 [data-theme="tabletop-dark"] .tabletop-main::before {
-  background-image:
-    radial-gradient(circle at 20px 20px, rgba(255, 255, 255, 0.055) 1px, transparent 1.5px);
-  opacity: 0.22;
+  content: none;
 }
 
 [data-theme="tabletop-dark"] .paper-card,

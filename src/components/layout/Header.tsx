@@ -12,9 +12,10 @@ import { loginWithNext, signupWithNext } from "@/lib/auth-path";
 import { getAuthAvatarColor, getAuthDisplayName } from "@/lib/auth-display-name";
 import { useEffect, useState, type ReactNode } from "react";
 
+// No "Home" entry — the logo is the way home, and dropping it keeps the bar
+// from competing with the page's own call to action.
 const nav = [
-  { href: "/", label: "Home" },
-  { href: "/local/setup", label: "Play Local" },
+  { href: "/local/setup", label: "Play" },
   { href: "/rooms", label: "Online" },
   { href: "/leaderboard", label: "Leaderboard" },
   { href: "/pricing", label: "Premium" },
@@ -72,7 +73,7 @@ export function Header({ user: userProp, authSlot, className }: HeaderProps) {
         WebkitBackdropFilter: "blur(16px)",
       }}
     >
-      <div className="mx-auto flex h-16 max-w-[1500px] items-center gap-3 px-4 sm:h-[74px] sm:gap-5 sm:px-8">
+      <div className="mx-auto flex h-16 max-w-[1240px] items-center gap-3 px-4 py-[18px] sm:h-[74px] sm:gap-5 sm:px-8">
         {/* Logo */}
         <Link
           href="/"
@@ -81,24 +82,25 @@ export function Header({ user: userProp, authSlot, className }: HeaderProps) {
           <Logo size={26} premium={isPremium} wordClassName="hidden sm:inline-block" />
         </Link>
 
-        {/* Desktop nav — solid pill on the active tab, matching the 3a mockup */}
-        <nav className="hidden min-w-0 flex-1 items-center gap-1.5 overflow-x-auto md:flex" aria-label="Main">
+        {/* Desktop nav. The active state is a muted grey pill rather than a
+            bright capsule, so it never rivals the page's green CTA. */}
+        <nav className="hidden min-w-0 flex-1 items-center gap-1 overflow-x-auto md:flex" aria-label="Main">
           {nav.map(({ href, label }) => {
-            const active =
-              href === "/" ? pathname === "/" : pathname.startsWith(href);
+            const active = pathname.startsWith(href);
             return (
               <Link
                 key={href}
                 href={href}
+                aria-current={active ? "page" : undefined}
                 className={cn(
-                  "relative shrink-0 rounded-full px-4 py-2.5 text-[14px] font-semibold transition-colors duration-150",
-                  active ? "text-ink" : "text-muted hover:text-foreground",
+                  "relative shrink-0 rounded-full px-3.5 py-2 text-[14px] font-semibold transition-colors duration-150",
+                  active ? "text-foreground" : "text-nav-link hover:text-foreground",
                 )}
               >
                 {active && (
                   <motion.span
                     layoutId="nav-pill"
-                    className="absolute inset-0 rounded-full bg-cream"
+                    className="absolute inset-0 rounded-full bg-surface-2"
                     transition={{ duration: 0.2, ease: "easeOut" }}
                   />
                 )}
@@ -202,10 +204,7 @@ export function Header({ user: userProp, authSlot, className }: HeaderProps) {
           >
             <nav className="flex flex-col px-3 py-3" aria-label="Mobile">
               {nav.map(({ href, label }) => {
-                const active =
-                  href === "/"
-                    ? pathname === "/"
-                    : pathname.startsWith(href);
+                const active = pathname.startsWith(href);
                 return (
                   <div key={href}>
                     <Link

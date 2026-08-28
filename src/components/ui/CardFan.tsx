@@ -23,20 +23,27 @@ export type FanCard = {
   impostor?: boolean;
 };
 
-const SPREAD_DEG = 26; // rotation (deg) of the outermost visible card
-const OVERLAP = 0.32; // 0..1 — how much neighbouring cards overlap
-const ARC_Y = 9; // px each step away from centre drops
-const ACTIVE_LIFT = 28; // px the centre card rises
-const ACTIVE_SCALE = 1.07;
-const INACTIVE_SCALE = 0.97;
+const SPREAD_DEG = 34; // rotation (deg) of the outermost visible card
+const OVERLAP = 0.44; // 0..1 — how much neighbouring cards overlap
+const ARC_Y = 34; // px each step away from centre drops
+const ACTIVE_LIFT = 30; // px the centre card rises
+const ACTIVE_SCALE = 1.08;
+const INACTIVE_SCALE = 0.96;
 const TILT_X = 8; // deg the fan leans back
 
 export function CardFan({
   cards,
   className,
+  bleed = false,
 }: {
   cards: FanCard[];
   className?: string;
+  /**
+   * Let the outer cards run past the page container and get cropped by the
+   * viewport, so the hand reads as bigger than the screen rather than as a
+   * tidy, fully-contained graphic.
+   */
+  bleed?: boolean;
 }) {
   const reduce = useReducedMotion();
   const [compact, setCompact] = useState(false);
@@ -49,17 +56,32 @@ export function CardFan({
     return () => mq.removeEventListener("change", sync);
   }, []);
 
-  const cardW = compact ? 118 : 178;
-  const cardH = compact ? 158 : 222;
+  const cardW = compact ? 132 : 214;
+  const cardH = compact ? 178 : 268;
   const center = Math.floor(cards.length / 2);
-  const maxVisible = compact ? 2 : 3; // cards further out than this are hidden
+  // More cards on wide screens so the hand reaches the viewport edges and the
+  // outermost ones get cropped, rather than sitting inset on the page.
+  const maxVisible = compact ? 2 : 4;
   const stepDeg = SPREAD_DEG / Math.max(1, maxVisible);
   const spacing = Math.round(cardW * (1 - OVERLAP));
 
   return (
     <div
-      className={cn("relative mx-auto flex justify-center", className)}
-      style={{ height: cardH + 66, perspective: 1100 }}
+      className={cn(
+        "relative mx-auto flex justify-center",
+        // The fan is clipped, not scrolled — the page must never gain a
+        // horizontal scrollbar because a card hangs off the edge. The height is
+        // deliberately shorter than the fanned-out hand, so the outer cards run
+        // off the bottom instead of sitting neatly inside a box.
+        bleed && "w-screen max-w-none overflow-hidden left-1/2 -translate-x-1/2",
+        className,
+      )}
+      style={{
+        // Tall enough that the raised centre card keeps its head room, short
+        // enough that the splayed outer cards run off the bottom edge.
+        height: bleed ? cardH + ACTIVE_LIFT + 14 : cardH + 40,
+        perspective: 1200,
+      }}
     >
       <div
         className="absolute inset-0"
