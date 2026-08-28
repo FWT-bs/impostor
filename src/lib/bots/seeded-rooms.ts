@@ -1,6 +1,7 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { AI_TABLES, getAiTable } from "@/lib/bots/tables";
 import { getActiveRoomCutoffIso } from "@/lib/rooms/stale";
+import { readDeadlines } from "@/lib/rooms/deadlines";
 import { generateRoomCode } from "@/lib/utils";
 import type { Database } from "@/lib/supabase/types";
 
@@ -315,6 +316,9 @@ export async function ensureSeededBotRooms(admin: AdminClient) {
             aiSeeded: true,
             aiTableId: table.id,
             tableLabel: table.label,
+            // Keep any countdown already running on this table — rewriting
+            // settings wholesale would silently cancel it.
+            ...readDeadlines(roomToRefresh.settings),
           },
           updated_at: new Date().toISOString(),
         })

@@ -41,7 +41,7 @@ export default function OnlinePlayPage({ params }: { params: Promise<{ code: str
   const { code } = use(params);
   const router = useRouter();
   const { user } = useAuth();
-  const { room, players, loading, refetch } = useRoom(code);
+  const { room, players, loading, gone, refetch } = useRoom(code);
   const { secret, loading: secretLoading } = usePlayerSecret(room?.current_round_id ?? null);
   const { messages, sendMessage } = useChat(room?.id ?? null);
   const [loadingTooLong, setLoadingTooLong] = useState(false);
@@ -108,7 +108,10 @@ export default function OnlinePlayPage({ params }: { params: Promise<{ code: str
   }
 
   if (!room) {
-    return (
+    // `gone` means a query actually confirmed the room is missing or expired.
+    // Without it we only failed to reach the database, which is worth retrying
+    // rather than announcing the room as dead.
+    return gone ? (
       <RoomGate
         title="This room is gone"
         text={`Room ${code.toUpperCase()} has finished or expired after 10 minutes of inactivity.`}
@@ -118,6 +121,16 @@ export default function OnlinePlayPage({ params }: { params: Promise<{ code: str
         </Button>
         <Button variant="secondary" size="sm" onClick={() => refetch()}>
           Try again
+        </Button>
+      </RoomGate>
+    ) : (
+      <RoomGate
+        title="Can't reach the table"
+        text="We couldn't load this room just now. Your seat is still there — this is a connection problem, not the end of the round."
+      >
+        <Button onClick={() => refetch()}>Try again</Button>
+        <Button variant="secondary" asChild>
+          <Link href="/rooms">Back to rooms</Link>
         </Button>
       </RoomGate>
     );

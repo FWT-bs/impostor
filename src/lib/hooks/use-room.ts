@@ -13,6 +13,8 @@ export function useRoom(roomCode: string) {
   const [room, setRoom] = useState<Room | null>(null);
   const [players, setPlayers] = useState<RoomPlayer[]>([]);
   const [loading, setLoading] = useState(true);
+  /** True only when a successful query proved the room is missing/finished/expired. */
+  const [gone, setGone] = useState(false);
 
   function sortPlayers(items: RoomPlayer[]) {
     return [...items].sort((a, b) => {
@@ -32,11 +34,14 @@ export function useRoom(roomCode: string) {
       if (error) throw error;
 
       if (!roomData || roomData.status === "finished" || !isWithinActiveRoomWindow(roomData.updated_at)) {
+        // A clean answer: this room really is missing, finished, or expired.
         setRoom(null);
         setPlayers([]);
+        setGone(true);
         return;
       }
 
+      setGone(false);
       setRoom(roomData);
       const { data: playerData } = await supabase
         .from("room_players")
@@ -46,6 +51,8 @@ export function useRoom(roomCode: string) {
 
       setPlayers(sortPlayers(playerData ?? []));
     } catch (err) {
+      // The query failed — that says nothing about whether the room exists, so
+      // hold whatever we already have rather than declaring the room dead.
       console.error("fetchRoom error:", err);
     } finally {
       setLoading(false);
@@ -85,12 +92,14 @@ export function useRoom(roomCode: string) {
             if (nextRoom.status === "finished" || !isWithinActiveRoomWindow(nextRoom.updated_at)) {
               setRoom(null);
               setPlayers([]);
+              setGone(true);
             } else {
               setRoom(nextRoom);
             }
           } else if (payload.eventType === "DELETE") {
             setRoom(null);
             setPlayers([]);
+            setGone(true);
           }
         }
       )
@@ -130,5 +139,5 @@ export function useRoom(roomCode: string) {
     };
   }, [roomId, supabase, fetchRoom]);
 
-  return { room, players, loading, refetch: fetchRoom };
+  return { room, players, loading, gone, refetch: fetchRoom };
 }

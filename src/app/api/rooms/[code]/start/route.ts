@@ -89,6 +89,50 @@ export async function POST(
     );
   }
 
+  // Claim the room before doing any work.
+  //
+  // Every member's client fires this the moment the lobby countdown expires, so
+  // without a claim two of them each deal their own round with their own secret
+  // word. This UPDATE only matches a room that is still startable, and Postgres
+  // lets exactly one of the racing statements match — the rest get zero rows
+  // back and bail out here.
+  const { data: claimed } = await admin
+    .from("rooms")
+    .update({
+      status: "playing",
+      phase: "role_reveal",
+      current_turn_index: 0,
+      current_round_id: null,
+      settings: withDeadlines(room.settings, {
+        startsAt: null,
+        turnEndsAt: null,
+        phaseEndsAt: null,
+      }),
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", room.id)
+    .or("status.eq.waiting,phase.eq.results")
+    .select("id")
+    .returns<{ id: string }[]>()
+    .maybeSingle();
+
+  if (!claimed) {
+    return NextResponse.json({ ok: true, alreadyStarted: true }, { status: 200 });
+  }
+
+  /** Undo the claim so a failed deal doesn't leave the room stuck "playing". */
+  async function releaseClaim() {
+    await admin
+      .from("rooms")
+      .update({
+        status: "waiting",
+        phase: "lobby",
+        current_round_id: null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", room!.id);
+  }
+
   const settings = room.settings as Partial<RoomSettings> | null;
   const category = settings?.category ?? null;
   const { entry } = pickWord([], category);
@@ -130,6 +174,8 @@ export async function POST(
     .single();
 
   if (roundError || !round) {
+    // Hand the room back so the table isn't stranded mid-claim.
+    await releaseClaim();
     return NextResponse.json(
       { error: roundError?.message || "Failed to create round" },
       { status: 500 }
@@ -153,6 +199,8 @@ export async function POST(
     .insert(secrets);
 
   if (secretsError) {
+    await admin.from("game_rounds").delete().eq("id", round.id);
+    await releaseClaim();
     return NextResponse.json(
       { error: secretsError.message },
       { status: 500 }
@@ -170,20 +218,12 @@ export async function POST(
     )
   );
 
+  // The claim above already flipped the room to role_reveal; all that's left is
+  // to point it at the round we just dealt.
   const { error: roomUpdateError } = await admin
     .from("rooms")
     .update({
-      status: "playing",
-      phase: "role_reveal",
-      current_turn_index: 0,
       current_round_id: round.id,
-      // Clear the lobby countdown; the clue turn gets its own clock once the
-      // table moves past role reveal.
-      settings: withDeadlines(room.settings, {
-        startsAt: null,
-        turnEndsAt: null,
-        phaseEndsAt: null,
-      }),
       updated_at: new Date().toISOString(),
     })
     .eq("id", room.id);

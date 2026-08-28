@@ -2,6 +2,13 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { ensureBotProfiles } from "@/lib/bots/seeded-rooms";
+import {
+  LOBBY_AUTO_START_SECONDS,
+  MIN_ROOM_PLAYERS,
+  isoIn,
+  readDeadlines,
+  withDeadlines,
+} from "@/lib/rooms/deadlines";
 import type { Database } from "@/lib/supabase/types";
 
 type Room = Database["public"]["Tables"]["rooms"]["Row"];
@@ -88,6 +95,18 @@ export async function POST(
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500, headers: noStore });
+  }
+
+  // A bot can be the seat that makes the table playable, so start the lobby
+  // countdown here too — not just when a human joins.
+  if (roomPlayers.length + 1 >= MIN_ROOM_PLAYERS && !readDeadlines(room.settings).startsAt) {
+    await admin
+      .from("rooms")
+      .update({
+        settings: withDeadlines(room.settings, { startsAt: isoIn(LOBBY_AUTO_START_SECONDS) }),
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", room.id);
   }
 
   return NextResponse.json({ success: true, name: bot.name }, { headers: noStore });
