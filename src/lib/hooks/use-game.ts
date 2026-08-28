@@ -159,3 +159,29 @@ export function useChat(roomId: string | null) {
 
   return { messages, sendMessage };
 }
+
+/** The round's number, for the "Round N" intro and header chip. */
+export function useRoundNumber(roundId: string | null): number | null {
+  const supabase = useMemo(() => createClient(), []);
+  const [roundNumber, setRoundNumber] = useState<number | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!roundId) return;
+
+    void (async () => {
+      const { data } = await supabase
+        .from("game_rounds")
+        .select("round_number")
+        .eq("id", roundId)
+        .maybeSingle();
+      if (!cancelled && data) setRoundNumber(data.round_number);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [supabase, roundId]);
+
+  return roundNumber;
+}

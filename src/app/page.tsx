@@ -202,17 +202,18 @@ function Hero() {
   );
 }
 
-// One round, dealt out. Every card carries the same category; only the word
-// differs — so the rule reads straight off the picture: everyone sees MOVIES /
-// TITANIC, the odd card out sees MOVIES / IMPOSTOR and nothing else.
+// One round, dealt out. Every card carries the same category; only the middle
+// one differs — everyone sees MOVIES / TITANIC, the odd card out sees MOVIES /
+// IMPOSTOR plus the faint hint the real game gives them.
 const ROUND_CATEGORY = "Movies";
 const ROUND_WORD = "TITANIC";
+const ROUND_HINT = "romance";
 const HERO_FAN: FanCard[] = [
   { id: "seat-1", category: ROUND_CATEGORY, word: ROUND_WORD },
   { id: "seat-2", category: ROUND_CATEGORY, word: ROUND_WORD },
   { id: "seat-3", category: ROUND_CATEGORY, word: ROUND_WORD },
   { id: "seat-4", category: ROUND_CATEGORY, word: ROUND_WORD },
-  { id: "impostor", category: ROUND_CATEGORY, impostor: true },
+  { id: "impostor", category: ROUND_CATEGORY, impostor: true, hint: ROUND_HINT },
   { id: "seat-5", category: ROUND_CATEGORY, word: ROUND_WORD },
   { id: "seat-6", category: ROUND_CATEGORY, word: ROUND_WORD },
   { id: "seat-7", category: ROUND_CATEGORY, word: ROUND_WORD },

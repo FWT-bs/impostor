@@ -4,6 +4,7 @@ import { use, useEffect, useState, useRef, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
+import { motion, useReducedMotion } from "framer-motion";
 import { Button } from "@/components/ui/Button";
 import { loginWithNext } from "@/lib/auth-path";
 import { Avatar } from "@/components/ui/Avatar";
@@ -12,7 +13,7 @@ import { Icon, type IconName } from "@/components/ui/Icon";
 import { Logo } from "@/components/ui/Logo";
 import { useAuth } from "@/lib/hooks/use-auth";
 import { useRoom } from "@/lib/hooks/use-room";
-import { usePlayerSecret, useChat } from "@/lib/hooks/use-game";
+import { usePlayerSecret, useChat, useRoundNumber } from "@/lib/hooks/use-game";
 import { createClient } from "@/lib/supabase/client";
 import { getPlayerIdentity, getVoteTargetIdentity } from "@/lib/game/player-identity";
 import type { RoomSettings } from "@/lib/rooms/settings";
@@ -44,6 +45,7 @@ export default function OnlinePlayPage({ params }: { params: Promise<{ code: str
   const { room, players, loading, gone, refetch } = useRoom(code);
   const { secret, loading: secretLoading } = usePlayerSecret(room?.current_round_id ?? null);
   const { messages, sendMessage } = useChat(room?.id ?? null);
+  const roundNumber = useRoundNumber(room?.current_round_id ?? null);
   const [loadingTooLong, setLoadingTooLong] = useState(false);
 
   useEffect(() => {
@@ -151,13 +153,26 @@ export default function OnlinePlayPage({ params }: { params: Promise<{ code: str
   }
 
   return (
-    <main className="mx-auto max-w-[1180px] px-5 pt-24 pb-10">
+    // `w-full` matters: <body> is a flex column, and an auto inline margin on a
+    // flex child collapses it to its content width — which pinned this whole
+    // page to ~490px on a 1600px screen instead of filling the container.
+    <main className="mx-auto w-full max-w-[1320px] px-4 pb-8 pt-20 sm:px-6 lg:pt-24">
+      <RoundIntro
+        roundId={room.current_round_id}
+        roundNumber={roundNumber}
+        phase={room.phase}
+        topic={topic}
+      />
+
       {/* round header */}
-      <div className="card mb-3.5" style={{ padding: "12px 16px" }}>
+      <div className="card mb-3" style={{ padding: "12px 16px" }}>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex flex-wrap items-center gap-3">
             <Logo size={24} showWord={false} />
-            <Chip tone="brand" icon="globe">Room {room.code}</Chip>
+            {roundNumber != null && (
+              <Chip tone="brand" icon="dice">Round {roundNumber}</Chip>
+            )}
+            <Chip icon="globe">Room {room.code}</Chip>
             <Chip icon="dice">{topic}</Chip>
             <Chip tone={meta.tone} icon={meta.icon}>{meta.label}</Chip>
           </div>
@@ -199,16 +214,22 @@ export default function OnlinePlayPage({ params }: { params: Promise<{ code: str
         </div>
       </div>
 
-      {/* stage + chat */}
-      <div className="chatroom-grid">
-        <div>
+      {/* Stage beside the chat on a wide screen, stacked on a phone. Both
+          columns share one tall row so the stage can actually use the height
+          instead of sitting in a short box with dead space under it. */}
+      <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_340px] lg:items-stretch">
+        <div className="flex min-h-0 flex-col">
           {room.phase === "role_reveal" && (
-            <OnlineRoleReveal
-              code={code}
-              secret={secret}
-              loading={secretLoading}
-              isHost={isHost}
-            />
+            <Stage>
+              <div className="flex flex-1 items-center justify-center">
+                <OnlineRoleReveal
+                  code={code}
+                  secret={secret}
+                  loading={secretLoading}
+                  isHost={isHost}
+                />
+              </div>
+            </Stage>
           )}
           {room.phase === "clue_phase" && (
             <OnlineCluePhase code={code} room={room} players={players} userId={user.id} secret={secret} myDisplayName={myPlayer?.display_name ?? ""} />
@@ -235,9 +256,14 @@ export default function OnlinePlayPage({ params }: { params: Promise<{ code: str
   );
 }
 
-/* Wrapper for the non-reveal phase panels — the design's "stage" card. */
+/* Wrapper for the non-reveal phase panels — the design's "stage" card. Grows to
+   fill the tall desktop row; keeps a sensible floor on a phone. */
 function Stage({ children }: { children: React.ReactNode }) {
-  return <div className="card card-pad" style={{ minHeight: 420 }}>{children}</div>;
+  return (
+    <div className="card card-pad flex min-h-[420px] flex-1 flex-col lg:min-h-[min(72vh,640px)]">
+      {children}
+    </div>
+  );
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -932,7 +958,9 @@ function ChatPanel({
   }
 
   return (
-    <div className="card flex flex-col overflow-hidden">
+    // Capped on a phone so the chat can't push the stage off screen; on desktop
+    // it stretches to match the stage's height instead of floating short.
+    <div className="card flex max-h-[46vh] min-h-[280px] flex-col overflow-hidden lg:max-h-none lg:h-full">
       <div className="flex items-center justify-between gap-2 px-3.5 py-3" style={{ borderBottom: "1px solid var(--border)" }}>
         <span className="flex items-center gap-2 text-[14px] font-bold">
           <Icon name="chat" size={16} /> Table chat
@@ -1011,5 +1039,74 @@ function RoomGate({
         )}
       </div>
     </main>
+  );
+}
+
+/**
+ * "Round 1" curtain.
+ *
+ * Plays once per round, at the top of the page, so a round opens with a beat of
+ * context instead of dropping you straight into a card. It sits above the board
+ * rather than covering it, and retires itself after a couple of seconds — the
+ * header keeps a Round chip so the context stays available afterwards.
+ */
+function RoundIntro({
+  roundId,
+  roundNumber,
+  phase,
+  topic,
+}: {
+  roundId: string | null;
+  roundNumber: number | null;
+  phase: string;
+  topic: string;
+}) {
+  const reduce = useReducedMotion();
+  // Keyed on the round id, which arrives with the room itself. Waiting on the
+  // round *number* meant a separate query had to land first, and the curtain
+  // turned up a second late — after the board it was supposed to introduce.
+  // Track the round we've finished announcing rather than a visible flag, so
+  // whether the curtain shows is derived during render and the only state write
+  // happens later, from the timer.
+  const [dismissedRound, setDismissedRound] = useState<string | null>(null);
+  const visible = Boolean(roundId) && phase === "role_reveal" && dismissedRound !== roundId;
+
+  useEffect(() => {
+    if (!visible) return;
+    const t = setTimeout(() => setDismissedRound(roundId), 2800);
+    return () => clearTimeout(t);
+  }, [visible, roundId]);
+
+  if (!visible) return null;
+
+  return (
+    // Deliberately no enter animation on height or opacity. Animating from
+    // height:0 / opacity:0 means a throttled tab — backgrounded, low power,
+    // reduced frame rate — leaves the banner mounted but invisible, which is
+    // exactly how it failed in testing. Only transform is animated, so the
+    // worst case is that it appears without the flourish.
+    <div className="mb-3">
+      <motion.div
+        key={roundId}
+        initial={reduce ? false : { y: -14, scale: 0.985 }}
+        animate={{ y: 0, scale: 1 }}
+        transition={{ type: "spring", stiffness: 220, damping: 26 }}
+      >
+        <div className="card flex flex-col items-center gap-1 px-5 py-6 text-center">
+          <motion.p
+            key={roundNumber ?? "pending"}
+            initial={reduce ? false : { scale: 0.86 }}
+            animate={{ scale: 1 }}
+            transition={{ type: "spring", stiffness: 260, damping: 18, delay: 0.04 }}
+            className="display text-[clamp(1.9rem,5vw,2.75rem)] leading-none"
+          >
+            {roundNumber != null ? `Round ${roundNumber}` : "Get ready"}
+          </motion.p>
+          <p className="text-[14px] font-semibold text-muted">
+            {topic} · check your card
+          </p>
+        </div>
+      </motion.div>
+    </div>
   );
 }
