@@ -65,6 +65,11 @@ export function CardFan({
   const stepDeg = SPREAD_DEG / Math.max(1, maxVisible);
   const spacing = Math.round(cardW * (1 - OVERLAP));
 
+  // Clearance the centre card needs above its resting top: it is both lifted
+  // and scaled from its bottom edge, so it grows upward on both counts. Without
+  // counting the scale the overflow clip shaves off its top edge.
+  const headRoom = ACTIVE_LIFT + Math.round(cardH * (ACTIVE_SCALE - 1)) + 18;
+
   return (
     <div
       className={cn(
@@ -79,7 +84,7 @@ export function CardFan({
       style={{
         // Tall enough that the raised centre card keeps its head room, short
         // enough that the splayed outer cards run off the bottom edge.
-        height: bleed ? cardH + ACTIVE_LIFT + 14 : cardH + 40,
+        height: bleed ? cardH + headRoom : cardH + 40,
         perspective: 1200,
       }}
     >

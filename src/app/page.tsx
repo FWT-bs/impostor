@@ -194,9 +194,10 @@ function Hero() {
         </Button>
       </div>
 
-      {/* Sits tight under the CTA and bleeds past the container so the outer
-          cards get cropped by the viewport, the way a real dealt hand would. */}
-      <CardFan cards={HERO_FAN} className="mt-7" bleed />
+      {/* Close under the CTA — but not so close that the raised impostor card
+          crowds it — and bleeding past the container so the outer cards get
+          cropped by the viewport, the way a real dealt hand would. */}
+      <CardFan cards={HERO_FAN} className="mt-10" bleed />
     </section>
   );
 }
