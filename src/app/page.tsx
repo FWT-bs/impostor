@@ -35,17 +35,30 @@ function getRoomTopic(settings: unknown): string {
   return "Random pack";
 }
 
-async function refreshSeededRooms() {
+/** Seeds the always-on bot tables and returns them (server side, admin client),
+ *  so this strip still fills even if the browser's own query fails. */
+async function refreshSeededRooms(): Promise<LiveRoom[]> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 8500);
   try {
-    await fetch("/api/rooms/ai/ensure", {
+    const res = await fetch("/api/rooms/ai/ensure", {
       method: "POST",
       cache: "no-store",
       signal: controller.signal,
     });
+    if (!res.ok) return [];
+    const body = (await res.json()) as { rooms?: unknown };
+    if (!Array.isArray(body.rooms)) return [];
+    return body.rooms.filter(
+      (room): room is LiveRoom =>
+        Boolean(room) &&
+        typeof room === "object" &&
+        typeof (room as LiveRoom).code === "string" &&
+        Array.isArray((room as LiveRoom).room_players),
+    );
   } catch (error) {
     console.warn("ensure rooms:", error);
+    return [];
   } finally {
     clearTimeout(timeout);
   }
@@ -58,8 +71,14 @@ export default function HomePage() {
 
   const fetchRooms = useCallback(async () => {
     const supabase = createClient();
-    const runQuery = async () => {
-      const { data: open } = await supabase
+
+    // Server-side bot tables and the browser query run in parallel; whichever
+    // returns rooms wins, and the two are merged so the strip is never empty.
+    const seededPromise = refreshSeededRooms();
+
+    let dbRooms: LiveRoom[] = [];
+    try {
+      const { data, error } = await supabase
         .from("rooms")
         .select("id, code, max_players, status, phase, updated_at, settings, room_players(id)")
         .eq("is_private", false)
@@ -68,18 +87,17 @@ export default function HomePage() {
         .gte("updated_at", getActiveRoomCutoffIso())
         .order("updated_at", { ascending: false })
         .limit(6);
-      setLiveRooms((open ?? []) as LiveRoom[]);
-      return (open ?? []).length;
-    };
-
-    // Show whatever's there now, then seed the bot tables in the background and
-    // re-query — don't block the section on the ensure call.
-    const count = await runQuery();
-    if (count === 0) {
-      void refreshSeededRooms().then(runQuery);
-    } else {
-      void refreshSeededRooms();
+      if (error) throw error;
+      dbRooms = (data ?? []) as LiveRoom[];
+      if (dbRooms.length > 0) setLiveRooms(dbRooms);
+    } catch (error) {
+      console.warn("home rooms query:", error);
     }
+
+    const seeded = await seededPromise;
+    const byId = new Map<string, LiveRoom>();
+    for (const room of [...dbRooms, ...seeded]) if (!byId.has(room.id)) byId.set(room.id, room);
+    setLiveRooms([...byId.values()].slice(0, 6));
   }, []);
 
   useEffect(() => {

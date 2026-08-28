@@ -57,15 +57,6 @@ function dedupeById(rooms: RoomRow[]): RoomRow[] {
   return [...byId.values()];
 }
 
-function isSeededRoom(room: RoomRow): boolean {
-  const settings = room.settings;
-  return (
-    settings != null &&
-    typeof settings === "object" &&
-    (settings as { aiSeeded?: unknown }).aiSeeded === true
-  );
-}
-
 type RoomRow = {
   id: string;
   code: string;
@@ -81,22 +72,44 @@ type RoomRow = {
 
 type RoomTab = "open" | "live" | "mine";
 
-async function refreshSeededRooms() {
+/**
+ * Seed / touch the always-on bot tables and return them.
+ *
+ * This runs through our own API route (admin client, server side), so it keeps
+ * working even when the browser's Supabase queries fail — expired token, RLS,
+ * flaky connection. Those rooms are the fallback that guarantees Live and Open
+ * are never empty.
+ */
+async function refreshSeededRooms(): Promise<RoomRow[]> {
   const controller = new AbortController();
-  // Runs in the background (the list no longer waits on it), so give the
-  // server's 7s seed budget room to finish.
   const timeout = setTimeout(() => controller.abort(), 8500);
   try {
-    await fetch("/api/rooms/ai/ensure", {
+    const res = await fetch("/api/rooms/ai/ensure", {
       method: "POST",
       cache: "no-store",
       signal: controller.signal,
     });
+    if (!res.ok) return [];
+    const body = (await res.json()) as { rooms?: unknown };
+    if (!Array.isArray(body.rooms)) return [];
+    return body.rooms.filter(isRoomRow);
   } catch (error) {
     console.warn("ensure ai rooms:", error);
+    return [];
   } finally {
     clearTimeout(timeout);
   }
+}
+
+function isRoomRow(value: unknown): value is RoomRow {
+  if (!value || typeof value !== "object") return false;
+  const row = value as Partial<RoomRow>;
+  return (
+    typeof row.id === "string" &&
+    typeof row.code === "string" &&
+    typeof row.status === "string" &&
+    Array.isArray(row.room_players)
+  );
 }
 
 export default function RoomsPage() {
@@ -109,6 +122,8 @@ export default function RoomsPage() {
   const [myRooms, setMyRooms] = useState<RoomRow[]>([]);
   const [openRooms, setOpenRooms] = useState<RoomRow[]>([]);
   const [liveRooms, setLiveRooms] = useState<RoomRow[]>([]);
+  /** Always-on bot tables, fetched server-side; merged into Open and Live. */
+  const [seededRooms, setSeededRooms] = useState<RoomRow[]>([]);
   const [loadingRooms, setLoadingRooms] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [listError, setListError] = useState<string | null>(null);
@@ -247,53 +262,62 @@ export default function RoomsPage() {
     }
   }, [supabase, user?.id]);
 
-  const reloadListings = useCallback(
-    async (opts?: { silent?: boolean }) => {
-      if (!opts?.silent) setListError(null);
+  const reloadListings = useCallback(async () => {
+    const [openRes, liveRes, myRes] = await Promise.all([
+      loadOpenRooms(),
+      loadLiveRooms(),
+      loadMyRooms(),
+    ]);
 
-      const [openRes, liveRes, myRes] = await Promise.all([
-        loadOpenRooms(),
-        loadLiveRooms(),
-        loadMyRooms(),
-      ]);
+    // Only overwrite a list when its query actually succeeded — a failed or
+    // timed-out query must never blank out rooms that are already on screen.
+    if (openRes.ok) setOpenRooms(openRes.rooms);
+    if (liveRes.ok) setLiveRooms(liveRes.rooms);
+    if (myRes.ok) setMyRooms(myRes.rooms);
+    setLoadingRooms(false);
 
-      setOpenRooms(openRes.rooms);
-      setLiveRooms(liveRes.rooms);
-      setMyRooms(myRes.rooms);
-      setLoadingRooms(false);
+    const failed = [
+      !openRes.ok && "open",
+      !liveRes.ok && "live",
+      !myRes.ok && "your",
+    ].filter(Boolean) as string[];
 
-      if (!opts?.silent) {
-        if (!openRes.ok && !liveRes.ok && !myRes.ok) {
-          setListError("Could not load rooms, try refresh");
-        } else if (!openRes.ok || !liveRes.ok || !myRes.ok) {
-          setListError("Some room lists could not refresh");
-        }
-      }
-      return { openRes, liveRes, myRes };
-    },
-    [loadLiveRooms, loadMyRooms, loadOpenRooms],
-  );
+    // Clear on success — including silent refreshes, so a transient blip can't
+    // leave a stale error banner pinned to the page.
+    if (failed.length === 0) setListError(null);
+    return { openRes, liveRes, myRes, failed };
+  }, [loadLiveRooms, loadMyRooms, loadOpenRooms]);
 
   const refreshAllListings = useCallback(
     async (opts?: { silent?: boolean }) => {
-      // Show whatever's already in the DB right away — don't make the list wait
-      // on bot-room seeding.
-      const first = await reloadListings(opts).catch((error) => {
+      // 1. Kick off the server-side bot tables immediately. They come from our
+      //    own API route, so they land even if the browser's own queries fail.
+      const seededPromise = refreshSeededRooms().then((rooms) => {
+        if (rooms.length > 0) {
+          setSeededRooms(rooms);
+          setLoadingRooms(false);
+        }
+        return rooms;
+      });
+
+      // 2. In parallel, read the live DB directly for everything else.
+      const result = await reloadListings().catch((error) => {
         console.error("refreshAllListings:", error);
         setLoadingRooms(false);
         return null;
       });
 
-      // Seed / touch the bot tables in the background, then pull the list again
-      // so any freshly created tables show up.
-      const needsSeed =
-        !first ||
-        first.liveRes.rooms.length === 0 ||
-        first.openRes.rooms.filter((r) => isSeededRoom(r)).length === 0;
-      if (needsSeed) {
-        void refreshSeededRooms().then(() => reloadListings({ silent: true }).catch(() => {}));
-      } else {
-        void refreshSeededRooms();
+      const seeded = await seededPromise;
+
+      // Only complain when we genuinely have nothing to show. If the bot tables
+      // came through, the page is still usable and a banner would be noise.
+      const failed = result?.failed ?? ["open", "live", "your"];
+      if (!opts?.silent) {
+        if (failed.length > 0 && seeded.length === 0) {
+          setListError("Could not load rooms, try refresh");
+        } else if (failed.length === 3) {
+          setListError("Showing bot tables only — live rooms could not load");
+        }
       }
     },
     [reloadListings],
@@ -357,8 +381,16 @@ export default function RoomsPage() {
     };
   }, [refreshAllListings, supabase, userId]);
 
-  const displayRooms =
-    tab === "mine" ? myRooms : tab === "live" ? liveRooms : openRooms;
+  // Bot tables are always joinable, so they belong in both Open and Live —
+  // merged in from the server-side result, never dependent on a browser query.
+  const displayRooms = useMemo(() => {
+    if (tab === "mine") return myRooms;
+    const base = tab === "live" ? liveRooms : openRooms;
+    return dedupeById([...base, ...seededRooms]).sort((a, b) => {
+      const rank = (r: RoomRow) => (r.status === "playing" ? 0 : 1);
+      return rank(a) - rank(b) || b.updated_at.localeCompare(a.updated_at);
+    });
+  }, [tab, myRooms, liveRooms, openRooms, seededRooms]);
 
   function updateDisplayName(value: string) {
     setDisplayName(value);

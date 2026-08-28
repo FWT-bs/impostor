@@ -330,5 +330,20 @@ export async function ensureSeededBotRooms(admin: AdminClient) {
     throw new Error(errors.join("; "));
   }
 
+  // Return a consistent shape regardless of which branch each table took above
+  // (touch / insert / reuse). The client renders these directly as a fallback
+  // when its own browser-side queries fail, so they must always carry players.
+  const { data: complete } = await admin
+    .from("rooms")
+    .select("*, room_players(id, user_id, bot_id, is_bot)")
+    .eq("is_private", false)
+    .eq("settings->>aiSeeded", "true")
+    .neq("phase", "results")
+    .gte("updated_at", cutoff)
+    .order("updated_at", { ascending: false })
+    .limit(12)
+    .returns<SeededRoom[]>();
+
+  if (complete && complete.length > 0) return complete;
   return ensured;
 }
