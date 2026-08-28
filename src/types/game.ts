@@ -35,6 +35,8 @@ export interface LocalGameState {
   secretWord: string;
   topic: string;
   category: string;
+  /** Descriptive theme shown to the impostor as a hint, e.g. "Space Opera Franchises". */
+  hint: string;
   impostorId: string;
   winner: GameWinner;
   roundNumber: number;

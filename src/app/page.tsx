@@ -165,20 +165,21 @@ function Hero({ playingNow, openRooms }: { playingNow: number; openRooms: number
         {openRooms} open {openRooms === 1 ? "room" : "rooms"}
       </p>
 
-      <CardFan cards={HERO_FAN} className="mt-8 w-full max-w-5xl" />
+      <CardFan cards={HERO_FAN} className="mt-8 w-full max-w-6xl" />
     </section>
   );
 }
 
 // One round, dealt out: everyone gets the same category and word — except the
-// card in front, who only knows they're the impostor.
+// card in front, who only gets the category and a faint hint.
 const ROUND_CATEGORY = "Movies";
 const ROUND_WORD = "TITANIC";
+const ROUND_HINT = "romance";
 const HERO_FAN: FanCard[] = [
   { id: "seat-1", category: ROUND_CATEGORY, word: ROUND_WORD },
   { id: "seat-2", category: ROUND_CATEGORY, word: ROUND_WORD },
   { id: "seat-3", category: ROUND_CATEGORY, word: ROUND_WORD },
-  { id: "impostor", category: ROUND_CATEGORY, impostor: true },
+  { id: "impostor", category: ROUND_CATEGORY, impostor: true, hint: ROUND_HINT },
   { id: "seat-4", category: ROUND_CATEGORY, word: ROUND_WORD },
   { id: "seat-5", category: ROUND_CATEGORY, word: ROUND_WORD },
   { id: "seat-6", category: ROUND_CATEGORY, word: ROUND_WORD },

@@ -28,6 +28,7 @@ const initialState: LocalGameState = {
   secretWord: "",
   topic: "",
   category: "",
+  hint: "",
   impostorId: "",
   winner: null,
   roundNumber: 0,
@@ -40,7 +41,7 @@ export const useLocalGameStore = create<LocalGameStore>((set, get) => ({
 
   initGame(names: string[], category?: string | null) {
     const state = get();
-    const { entry, index } = pickWord(state.usedWordIndices, category);
+    const { entry, index, hint } = pickWord(state.usedWordIndices, category);
 
     const impostorIdx = Math.floor(Math.random() * names.length);
     const players: LocalPlayer[] = names.map((name, i) => ({
@@ -59,6 +60,7 @@ export const useLocalGameStore = create<LocalGameStore>((set, get) => ({
       secretWord: entry.word,
       topic: entry.topic,
       category: entry.category,
+      hint,
       impostorId: players[impostorIdx].id,
       winner: null,
       roundNumber: state.roundNumber + 1,

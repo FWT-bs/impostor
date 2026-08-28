@@ -32,7 +32,7 @@ export function getWordsByCategory(category: string): WordEntry[] {
 export function pickWord(
   usedIndices: number[],
   category?: string | null
-): { entry: WordEntry; index: number } {
+): { entry: WordEntry; index: number; hint: string } {
   let pool = allWords.map((entry, index) => ({ entry, index }));
 
   if (category) {
@@ -46,7 +46,11 @@ export function pickWord(
 
   const pick = candidates[Math.floor(Math.random() * candidates.length)];
   return {
-    ...pick,
+    index: pick.index,
+    // The raw descriptive theme ("Romantic Disaster Films") — shown to the
+    // impostor as a faint hint. `entry.topic` stays normalised to the category
+    // for everything that still reads it as the pack name.
+    hint: pick.entry.topic,
     entry: {
       ...pick.entry,
       category: normalizeCategory(pick.entry.category),
