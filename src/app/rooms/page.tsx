@@ -38,6 +38,34 @@ const MAX_ROOM_PLAYERS = 10;
 const ROOM_LIST_SELECT =
   "id, code, host_id, max_players, is_private, settings, status, phase, updated_at, room_players(id)";
 
+/** A Supabase query has no built-in timeout — a stalled fetch would hang the
+ *  whole listing forever. Cap every query so loading states always clear. */
+const QUERY_TIMEOUT_MS = 6000;
+
+function withTimeout<T>(promise: PromiseLike<T>, label: string): Promise<T> {
+  return Promise.race([
+    Promise.resolve(promise),
+    new Promise<T>((_, reject) =>
+      setTimeout(() => reject(new Error(`${label} timed out`)), QUERY_TIMEOUT_MS),
+    ),
+  ]);
+}
+
+function dedupeById(rooms: RoomRow[]): RoomRow[] {
+  const byId = new Map<string, RoomRow>();
+  for (const room of rooms) if (!byId.has(room.id)) byId.set(room.id, room);
+  return [...byId.values()];
+}
+
+function isSeededRoom(room: RoomRow): boolean {
+  const settings = room.settings;
+  return (
+    settings != null &&
+    typeof settings === "object" &&
+    (settings as { aiSeeded?: unknown }).aiSeeded === true
+  );
+}
+
 type RoomRow = {
   id: string;
   code: string;
@@ -55,7 +83,9 @@ type RoomTab = "open" | "live" | "mine";
 
 async function refreshSeededRooms() {
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 4500);
+  // Runs in the background (the list no longer waits on it), so give the
+  // server's 7s seed budget room to finish.
+  const timeout = setTimeout(() => controller.abort(), 8500);
   try {
     await fetch("/api/rooms/ai/ensure", {
       method: "POST",
@@ -116,102 +146,157 @@ export default function RoomsPage() {
   }, [profile?.username]);
 
   const loadOpenRooms = useCallback(async (): Promise<{ ok: boolean; rooms: RoomRow[] }> => {
-    const { data, error } = await supabase
-      .from("rooms")
-      .select(ROOM_LIST_SELECT)
-      .eq("status", "waiting")
-      .eq("is_private", false)
-      .gte("updated_at", getActiveRoomCutoffIso())
-      .order("created_at", { ascending: false })
-      .limit(30);
-    if (error) {
+    try {
+      const { data, error } = await withTimeout(
+        supabase
+          .from("rooms")
+          .select(ROOM_LIST_SELECT)
+          .eq("status", "waiting")
+          .eq("is_private", false)
+          .gte("updated_at", getActiveRoomCutoffIso())
+          .order("created_at", { ascending: false })
+          .limit(30),
+        "open rooms",
+      );
+      if (error) throw error;
+      return { ok: true, rooms: (data as RoomRow[]) ?? [] };
+    } catch (error) {
       console.error("loadOpenRooms:", error);
       return { ok: false, rooms: [] };
     }
-    return { ok: true, rooms: (data as RoomRow[]) ?? [] };
   }, [supabase]);
 
   const loadLiveRooms = useCallback(async (): Promise<{ ok: boolean; rooms: RoomRow[] }> => {
-    const { data, error } = await supabase
-      .from("rooms")
-      .select(ROOM_LIST_SELECT)
-      .eq("status", "playing")
-      .eq("is_private", false)
-      .neq("phase", "results")
-      .gte("updated_at", getActiveRoomCutoffIso())
-      .order("updated_at", { ascending: false })
-      .limit(30);
-    if (error) {
-      console.error("loadLiveRooms:", error);
+    const cutoff = getActiveRoomCutoffIso();
+    const [playing, seeded] = await Promise.allSettled([
+      withTimeout(
+        supabase
+          .from("rooms")
+          .select(ROOM_LIST_SELECT)
+          .eq("status", "playing")
+          .eq("is_private", false)
+          .neq("phase", "results")
+          .gte("updated_at", cutoff)
+          .order("updated_at", { ascending: false })
+          .limit(30),
+        "live rooms",
+      ),
+      // seeded bot tables are always joinable — surface them in Live too, so
+      // the tab is never empty even when no real game is running
+      withTimeout(
+        supabase
+          .from("rooms")
+          .select(ROOM_LIST_SELECT)
+          .eq("is_private", false)
+          .eq("settings->>aiSeeded", "true")
+          .neq("phase", "results")
+          .gte("updated_at", cutoff)
+          .order("updated_at", { ascending: false })
+          .limit(12),
+        "bot tables",
+      ),
+    ]);
+
+    const playingOk = playing.status === "fulfilled" && !playing.value.error;
+    const seededOk = seeded.status === "fulfilled" && !seeded.value.error;
+    const playingRooms = playingOk ? ((playing.value.data as RoomRow[]) ?? []) : [];
+    const seededRooms = seededOk ? ((seeded.value.data as RoomRow[]) ?? []) : [];
+
+    if (!playingOk && !seededOk) {
+      console.error("loadLiveRooms:", playing, seeded);
       return { ok: false, rooms: [] };
     }
-    return { ok: true, rooms: (data as RoomRow[]) ?? [] };
+
+    // real live games first, then the always-on bot tables
+    const rooms = dedupeById([...playingRooms, ...seededRooms]).sort((a, b) => {
+      const rank = (r: RoomRow) => (r.status === "playing" ? 0 : 1);
+      return rank(a) - rank(b) || b.updated_at.localeCompare(a.updated_at);
+    });
+    return { ok: true, rooms };
   }, [supabase]);
 
   const loadMyRooms = useCallback(async (): Promise<{ ok: boolean; rooms: RoomRow[] }> => {
     if (!user?.id) return { ok: true, rooms: [] };
+    try {
+      const { data: rp, error: rpErr } = await withTimeout(
+        supabase.from("room_players").select("room_id").eq("user_id", user.id),
+        "my room ids",
+      );
+      if (rpErr) throw rpErr;
 
-    const { data: rp, error: rpErr } = await supabase
-      .from("room_players")
-      .select("room_id")
-      .eq("user_id", user.id);
-    if (rpErr) {
-      console.error("loadMyRooms room_players:", rpErr);
+      const ids = [...new Set((rp ?? []).map((row) => row.room_id))];
+      if (ids.length === 0) return { ok: true, rooms: [] };
+
+      const { data, error } = await withTimeout(
+        supabase
+          .from("rooms")
+          .select(ROOM_LIST_SELECT)
+          .in("id", ids)
+          .in("status", ["waiting", "playing"])
+          .neq("phase", "results")
+          .gte("updated_at", getActiveRoomCutoffIso())
+          .order("updated_at", { ascending: false })
+          .limit(30),
+        "my rooms",
+      );
+      if (error) throw error;
+      return { ok: true, rooms: (data as RoomRow[]) ?? [] };
+    } catch (error) {
+      console.error("loadMyRooms:", error);
       return { ok: false, rooms: [] };
     }
-
-    const ids = [...new Set((rp ?? []).map((row) => row.room_id))];
-    if (ids.length === 0) return { ok: true, rooms: [] };
-
-    const { data, error } = await supabase
-      .from("rooms")
-      .select(ROOM_LIST_SELECT)
-      .in("id", ids)
-      .in("status", ["waiting", "playing"])
-      .neq("phase", "results")
-      .gte("updated_at", getActiveRoomCutoffIso())
-      .order("updated_at", { ascending: false })
-      .limit(30);
-    if (error) {
-      console.error("loadMyRooms rooms:", error);
-      return { ok: false, rooms: [] };
-    }
-    return { ok: true, rooms: (data as RoomRow[]) ?? [] };
   }, [supabase, user?.id]);
+
+  const reloadListings = useCallback(
+    async (opts?: { silent?: boolean }) => {
+      if (!opts?.silent) setListError(null);
+
+      const [openRes, liveRes, myRes] = await Promise.all([
+        loadOpenRooms(),
+        loadLiveRooms(),
+        loadMyRooms(),
+      ]);
+
+      setOpenRooms(openRes.rooms);
+      setLiveRooms(liveRes.rooms);
+      setMyRooms(myRes.rooms);
+      setLoadingRooms(false);
+
+      if (!opts?.silent) {
+        if (!openRes.ok && !liveRes.ok && !myRes.ok) {
+          setListError("Could not load rooms, try refresh");
+        } else if (!openRes.ok || !liveRes.ok || !myRes.ok) {
+          setListError("Some room lists could not refresh");
+        }
+      }
+      return { openRes, liveRes, myRes };
+    },
+    [loadLiveRooms, loadMyRooms, loadOpenRooms],
+  );
 
   const refreshAllListings = useCallback(
     async (opts?: { silent?: boolean }) => {
-      if (!opts?.silent) setListError(null);
-      try {
-        await refreshSeededRooms();
-
-        const [openRes, liveRes, myRes] = await Promise.all([
-          loadOpenRooms(),
-          loadLiveRooms(),
-          loadMyRooms(),
-        ]);
-
-        setOpenRooms(openRes.rooms);
-        setLiveRooms(liveRes.rooms);
-        setMyRooms(myRes.rooms);
-
-        if (!opts?.silent) {
-          if (!openRes.ok && !liveRes.ok && !myRes.ok) {
-            setListError("Could not load rooms, try refresh");
-          } else if (!openRes.ok || !liveRes.ok || !myRes.ok) {
-            setListError("Some room lists could not refresh");
-          }
-        }
-      } catch (error) {
+      // Show whatever's already in the DB right away — don't make the list wait
+      // on bot-room seeding.
+      const first = await reloadListings(opts).catch((error) => {
         console.error("refreshAllListings:", error);
-        if (!opts?.silent) {
-          setListError(error instanceof Error ? error.message : "Could not load rooms, try refresh");
-        }
-      } finally {
-        if (!opts?.silent) setLoadingRooms(false);
+        setLoadingRooms(false);
+        return null;
+      });
+
+      // Seed / touch the bot tables in the background, then pull the list again
+      // so any freshly created tables show up.
+      const needsSeed =
+        !first ||
+        first.liveRes.rooms.length === 0 ||
+        first.openRes.rooms.filter((r) => isSeededRoom(r)).length === 0;
+      if (needsSeed) {
+        void refreshSeededRooms().then(() => reloadListings({ silent: true }).catch(() => {}));
+      } else {
+        void refreshSeededRooms();
       }
     },
-    [loadLiveRooms, loadMyRooms, loadOpenRooms],
+    [reloadListings],
   );
 
   useEffect(() => {
@@ -219,6 +304,13 @@ export default function RoomsPage() {
     setLoadingRooms(true);
     void refreshAllListings({ silent: false });
   }, [authLoading, refreshAllListings]);
+
+  // Absolute failsafe: never leave the spinner up longer than a query timeout.
+  useEffect(() => {
+    if (!loadingRooms) return;
+    const t = setTimeout(() => setLoadingRooms(false), QUERY_TIMEOUT_MS + 1500);
+    return () => clearTimeout(t);
+  }, [loadingRooms]);
 
   useEffect(() => {
     let debounceTimer: ReturnType<typeof setTimeout> | null = null;
@@ -455,7 +547,7 @@ export default function RoomsPage() {
         )}
 
         <TabsContent value={tab} className="mt-0">
-          {loadingRooms && tab !== "open" ? (
+          {loadingRooms && displayRooms.length === 0 ? (
             <LoadingRooms />
           ) : (
             <div className="space-y-5">
@@ -727,17 +819,20 @@ function getRoomAction({
   onJoin: () => void;
   onEnter: () => void;
 }) {
-  if (tab === "open") {
-    return (
-      <Button size="sm" onClick={onJoin} disabled={joining || authLoading} isLoading={joining}>
-        Join
-      </Button>
-    );
-  }
   if (tab === "mine") {
     return (
       <Button size="sm" onClick={onEnter}>
         {room.status === "playing" ? "Play" : "Enter"}
+      </Button>
+    );
+  }
+  // A room still in the lobby is joinable — even on the Live tab, where the
+  // always-on bot tables show up. Only a game already in progress gets the
+  // copy-code fallback.
+  if (room.status === "waiting") {
+    return (
+      <Button size="sm" onClick={onJoin} disabled={joining || authLoading} isLoading={joining}>
+        Join
       </Button>
     );
   }
@@ -776,14 +871,18 @@ function EmptyRooms({
   return (
     <EmptyState
       icon={tab === "live" ? "eye" : "globe"}
-      title={tab === "live" ? "No live games right now" : tab === "mine" ? "No rooms yet" : "No open tables"}
-      text={tab === "open" ? "Create a public room and be first host at the table" : "Check back in a moment or start a fresh lobby"}
+      title={tab === "live" ? "Tables are warming up" : tab === "mine" ? "No rooms yet" : "No open tables"}
+      text={
+        tab === "open"
+          ? "Create a public room and be first host at the table"
+          : tab === "live"
+            ? "The bot tables should appear in a second — hit refresh, or start your own."
+            : "Check back in a moment or start a fresh lobby"
+      }
       action={
-        tab !== "live" ? (
-          <Button onClick={onCreate}>
-            <Icon name="plus" size={16} /> Create room
-          </Button>
-        ) : undefined
+        <Button onClick={onCreate}>
+          <Icon name="plus" size={16} /> Create room
+        </Button>
       }
     />
   );

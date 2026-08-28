@@ -37,7 +37,7 @@ function getRoomTopic(settings: unknown): string {
 
 async function refreshSeededRooms() {
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 4500);
+  const timeout = setTimeout(() => controller.abort(), 8500);
   try {
     await fetch("/api/rooms/ai/ensure", {
       method: "POST",
@@ -57,19 +57,29 @@ export default function HomePage() {
   const [liveRooms, setLiveRooms] = useState<LiveRoom[]>([]);
 
   const fetchRooms = useCallback(async () => {
-    await refreshSeededRooms();
-
     const supabase = createClient();
-    const { data: open } = await supabase
-      .from("rooms")
-      .select("id, code, max_players, status, phase, updated_at, settings, room_players(id)")
-      .eq("is_private", false)
-      .in("status", ["waiting", "playing"])
-      .neq("phase", "results")
-      .gte("updated_at", getActiveRoomCutoffIso())
-      .order("updated_at", { ascending: false })
-      .limit(6);
-    setLiveRooms((open ?? []) as LiveRoom[]);
+    const runQuery = async () => {
+      const { data: open } = await supabase
+        .from("rooms")
+        .select("id, code, max_players, status, phase, updated_at, settings, room_players(id)")
+        .eq("is_private", false)
+        .in("status", ["waiting", "playing"])
+        .neq("phase", "results")
+        .gte("updated_at", getActiveRoomCutoffIso())
+        .order("updated_at", { ascending: false })
+        .limit(6);
+      setLiveRooms((open ?? []) as LiveRoom[]);
+      return (open ?? []).length;
+    };
+
+    // Show whatever's there now, then seed the bot tables in the background and
+    // re-query — don't block the section on the ensure call.
+    const count = await runQuery();
+    if (count === 0) {
+      void refreshSeededRooms().then(runQuery);
+    } else {
+      void refreshSeededRooms();
+    }
   }, []);
 
   useEffect(() => {
