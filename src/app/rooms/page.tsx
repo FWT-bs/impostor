@@ -38,17 +38,24 @@ const MAX_ROOM_PLAYERS = 10;
 const ROOM_LIST_SELECT =
   "id, code, host_id, max_players, is_private, settings, status, phase, updated_at, room_players(id)";
 
-/** A Supabase query has no built-in timeout — a stalled fetch would hang the
- *  whole listing forever. Cap every query so loading states always clear. */
-const QUERY_TIMEOUT_MS = 6000;
+/**
+ * A Supabase query has no built-in timeout — a stalled fetch would hang the
+ * whole listing forever. Cap every query so loading states always clear.
+ *
+ * Generous on purpose: the bot tables already render from the API route, so a
+ * slow-but-working query is worth waiting for. Cutting it off early only turns
+ * a slow page into a failed one.
+ */
+const QUERY_TIMEOUT_MS = 12000;
 
 function withTimeout<T>(promise: PromiseLike<T>, label: string): Promise<T> {
+  let timer: ReturnType<typeof setTimeout>;
   return Promise.race([
     Promise.resolve(promise),
-    new Promise<T>((_, reject) =>
-      setTimeout(() => reject(new Error(`${label} timed out`)), QUERY_TIMEOUT_MS),
-    ),
-  ]);
+    new Promise<T>((_, reject) => {
+      timer = setTimeout(() => reject(new Error(`${label} timed out`)), QUERY_TIMEOUT_MS);
+    }),
+  ]).finally(() => clearTimeout(timer)) as Promise<T>;
 }
 
 function dedupeById(rooms: RoomRow[]): RoomRow[] {
@@ -177,7 +184,7 @@ export default function RoomsPage() {
       if (error) throw error;
       return { ok: true, rooms: (data as RoomRow[]) ?? [] };
     } catch (error) {
-      console.error("loadOpenRooms:", error);
+      console.warn("loadOpenRooms failed:", error);
       return { ok: false, rooms: [] };
     }
   }, [supabase]);
@@ -219,7 +226,12 @@ export default function RoomsPage() {
     const seededRooms = seededOk ? ((seeded.value.data as RoomRow[]) ?? []) : [];
 
     if (!playingOk && !seededOk) {
-      console.error("loadLiveRooms:", playing, seeded);
+      // Log the reasons, not the settled wrappers — those print as "{} {}".
+      console.warn(
+        "loadLiveRooms failed:",
+        playing.status === "rejected" ? playing.reason : playing.value.error,
+        seeded.status === "rejected" ? seeded.reason : seeded.value.error,
+      );
       return { ok: false, rooms: [] };
     }
 
@@ -258,7 +270,7 @@ export default function RoomsPage() {
       if (error) throw error;
       return { ok: true, rooms: (data as RoomRow[]) ?? [] };
     } catch (error) {
-      console.error("loadMyRooms:", error);
+      console.warn("loadMyRooms failed:", error);
       return { ok: false, rooms: [] };
     }
   }, [supabase, user?.id]);

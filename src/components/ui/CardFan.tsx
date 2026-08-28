@@ -66,25 +66,30 @@ export function CardFan({
   const spacing = Math.round(cardW * (1 - OVERLAP));
 
   // Clearance the centre card needs above its resting top: it is both lifted
-  // and scaled from its bottom edge, so it grows upward on both counts. Without
-  // counting the scale the overflow clip shaves off its top edge.
+  // and scaled from its bottom edge, so it grows upward on both counts.
   const headRoom = ACTIVE_LIFT + Math.round(cardH * (ACTIVE_SCALE - 1)) + 18;
+
+  // Room the outer cards need below their anchor: they are pushed down the arc,
+  // and rotating about the bottom centre swings a corner lower still. The box
+  // holds the whole hand — nothing is cut off horizontally through the cards.
+  const footRoom =
+    ARC_Y * maxVisible +
+    Math.round((cardW / 2) * Math.sin((SPREAD_DEG * Math.PI) / 180)) +
+    12;
 
   return (
     <div
       className={cn(
         "relative mx-auto flex justify-center",
-        // The fan is clipped, not scrolled — the page must never gain a
-        // horizontal scrollbar because a card hangs off the edge. The height is
-        // deliberately shorter than the fanned-out hand, so the outer cards run
-        // off the bottom instead of sitting neatly inside a box.
-        bleed && "w-screen max-w-none overflow-hidden left-1/2 -translate-x-1/2",
+        // Only the horizontal axis is clipped, and only to stop a card that
+        // runs past the viewport edge from adding a scrollbar. Clipping
+        // vertically would slice a hard line through the cards, which reads as
+        // a rendering mistake rather than artwork running off the screen.
+        bleed && "w-screen max-w-none overflow-x-clip left-1/2 -translate-x-1/2",
         className,
       )}
       style={{
-        // Tall enough that the raised centre card keeps its head room, short
-        // enough that the splayed outer cards run off the bottom edge.
-        height: bleed ? cardH + headRoom : cardH + 40,
+        height: bleed ? cardH + headRoom + footRoom : cardH + 40,
         perspective: 1200,
       }}
     >
@@ -105,11 +110,14 @@ export function CardFan({
           return (
             <div
               key={card.id}
-              className="absolute bottom-0 origin-bottom"
+              className="absolute origin-bottom"
               style={{
                 width: cardW,
                 height: cardH,
                 left: "50%",
+                // Anchored above the foot room so the arc's lowest card still
+                // lands inside the box.
+                bottom: bleed ? footRoom : 0,
                 marginLeft: -cardW / 2,
                 zIndex: 20 - abs,
                 transform: `translateX(${offset * spacing}px) translateY(${restY}px) rotate(${rotate}deg) scale(${scale})`,
