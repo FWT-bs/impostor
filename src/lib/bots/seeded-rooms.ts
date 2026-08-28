@@ -1,6 +1,7 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { AI_TABLES, getAiTable } from "@/lib/bots/tables";
 import { getActiveRoomCutoffIso } from "@/lib/rooms/stale";
+import { generateRoomCode } from "@/lib/utils";
 import type { Database } from "@/lib/supabase/types";
 
 type AdminClient = ReturnType<typeof createAdminClient>;
@@ -199,11 +200,65 @@ export async function resetSeededBotRoom(
   });
 }
 
+/**
+ * A seeded table we should reuse rather than duplicate.
+ *
+ * Humans are welcome to sit at these tables and the table keeps its identity
+ * when they do, so this deliberately does NOT require an all-bot roster — it
+ * only checks that the room is still a seeded table with a free seat.
+ */
 function isWaitingSeed(room: SeededRoom | null) {
   if (!room) return false;
-  const players = room.room_players ?? [];
   const settings = room.settings as { aiSeeded?: unknown } | null;
-  return settings?.aiSeeded === true && players.every((player) => player.is_bot);
+  if (settings?.aiSeeded !== true) return false;
+  const players = room.room_players ?? [];
+  return players.length < room.max_players;
+}
+
+/**
+ * Insert a seeded room, preferring the table's canonical code. If that code is
+ * taken (an earlier table is still sitting on it with players in it), fall back
+ * to a random one so a replacement table can always be created.
+ */
+async function insertSeededRoom(
+  admin: AdminClient,
+  table: (typeof AI_TABLES)[number],
+  botHostId: string,
+): Promise<{ room: Room | null; error: string | null }> {
+  const settings = {
+    ...table.settings,
+    aiTable: true,
+    aiSeeded: true,
+    aiTableId: table.id,
+    tableLabel: table.label,
+  };
+
+  const codes = [table.code, ...Array.from({ length: 5 }, () => generateRoomCode())];
+  let lastError: string | null = null;
+
+  for (const code of codes) {
+    const { data, error } = await admin
+      .from("rooms")
+      .insert({
+        code,
+        host_id: botHostId,
+        status: "waiting",
+        phase: "lobby",
+        max_players: table.maxPlayers,
+        is_private: false,
+        settings,
+      })
+      .select("*")
+      .returns<Room[]>()
+      .single();
+
+    if (!error && data) return { room: data, error: null };
+    lastError = error?.message ?? "room insert returned empty";
+    // 23505 = unique violation on `code`; anything else won't be fixed by a retry
+    if (error?.code !== "23505") break;
+  }
+
+  return { room: null, error: lastError };
 }
 
 export async function ensureSeededBotRooms(admin: AdminClient) {
@@ -272,29 +327,10 @@ export async function ensureSeededBotRooms(admin: AdminClient) {
       continue;
     }
 
-    const { data: room, error: roomError } = await admin
-      .from("rooms")
-      .insert({
-        code: table.code,
-        host_id: botHostId,
-        status: "waiting",
-        phase: "lobby",
-        max_players: table.maxPlayers,
-        is_private: false,
-        settings: {
-          ...table.settings,
-          aiTable: true,
-          aiSeeded: true,
-          aiTableId: table.id,
-          tableLabel: table.label,
-        },
-      })
-      .select("*")
-      .returns<Room[]>()
-      .single();
+    const { room, error: roomError } = await insertSeededRoom(admin, table, botHostId);
 
     if (roomError || !room) {
-      errors.push(`${table.id}: ${roomError?.message ?? "room insert returned empty"}`);
+      errors.push(`${table.id}: ${roomError ?? "room insert returned empty"}`);
       continue;
     }
 

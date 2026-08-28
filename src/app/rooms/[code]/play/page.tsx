@@ -1,9 +1,11 @@
 "use client";
 
-import { use, useEffect, useState, useRef } from "react";
+import { use, useEffect, useState, useRef, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/Button";
+import { loginWithNext } from "@/lib/auth-path";
 import { Avatar } from "@/components/ui/Avatar";
 import { Chip } from "@/components/ui/Chip";
 import { Icon, type IconName } from "@/components/ui/Icon";
@@ -14,6 +16,8 @@ import { usePlayerSecret, useChat } from "@/lib/hooks/use-game";
 import { createClient } from "@/lib/supabase/client";
 import { getPlayerIdentity, getVoteTargetIdentity } from "@/lib/game/player-identity";
 import type { RoomSettings } from "@/lib/rooms/settings";
+import { readDeadlines } from "@/lib/rooms/deadlines";
+import { formatCountdown, useCountdown, useDeadlineTrigger } from "@/lib/hooks/use-countdown";
 import { tokenColor } from "@/lib/utils";
 import type { Database } from "@/lib/supabase/types";
 import type { ChatMessage } from "@/types/game";
@@ -72,16 +76,50 @@ export default function OnlinePlayPage({ params }: { params: Promise<{ code: str
     return () => clearTimeout(timer);
   }, [code, room, user, players]);
 
-  if (loading || !room || !user) {
+  // Each of these used to fall through to a permanent "Loading game" screen
+  // with no way out. They're genuinely different situations, so say which one
+  // it is and always leave a route forward.
+  if (loading) {
     return (
-      <main className="reveal-wrap">
-        <div className="flex flex-col items-center gap-4">
-          <p className="text-sm text-muted">Loading game</p>
-          {loadingTooLong && (
-            <Button variant="secondary" size="sm" onClick={() => refetch()}>Retry</Button>
-          )}
-        </div>
-      </main>
+      <RoomGate title="Loading game" text="Fetching the table…">
+        {loadingTooLong && (
+          <Button variant="secondary" size="sm" onClick={() => refetch()}>
+            Retry
+          </Button>
+        )}
+      </RoomGate>
+    );
+  }
+
+  if (!user) {
+    return (
+      <RoomGate
+        title="Sign in to play"
+        text="Online rooms need an account so we can seat you at the table."
+      >
+        <Button asChild>
+          <Link href={loginWithNext(`/rooms/${code}/play`)}>Sign in</Link>
+        </Button>
+        <Button variant="secondary" asChild>
+          <Link href={`/signup?next=/rooms/${code}/play`}>Create account</Link>
+        </Button>
+      </RoomGate>
+    );
+  }
+
+  if (!room) {
+    return (
+      <RoomGate
+        title="This room is gone"
+        text={`Room ${code.toUpperCase()} has finished or expired after 10 minutes of inactivity.`}
+      >
+        <Button asChild>
+          <Link href="/rooms">Find another table</Link>
+        </Button>
+        <Button variant="secondary" size="sm" onClick={() => refetch()}>
+          Try again
+        </Button>
+      </RoomGate>
     );
   }
 
@@ -351,6 +389,17 @@ function OnlineCluePhase({
   const isMyTurn = currentPlayer?.user_id === userId;
   const myClue = players.find((p) => p.user_id === userId)?.clue_text;
 
+  // Per-turn clock: when it runs out the turn is skipped, so one player can't
+  // stall the table. Every client watches it, not just the one whose turn it is.
+  const { turnEndsAt } = readDeadlines(room.settings);
+  const turnSeconds = useCountdown(turnEndsAt);
+  useDeadlineTrigger(turnEndsAt, room.phase === "clue_phase", () => {
+    void fetch(`/api/rooms/${code}/advance`, {
+      method: "POST",
+      credentials: "include",
+    }).catch(() => {});
+  });
+
   async function handleSubmitClue() {
     if (!clue.trim()) return;
     const submittedClue = clue.trim();
@@ -378,7 +427,24 @@ function OnlineCluePhase({
       <div className="flex h-full flex-col gap-[18px]">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <h3 className="text-[19px]">Clue board</h3>
+            <div className="flex items-center gap-2">
+              <h3 className="text-[19px]">Clue board</h3>
+              {turnSeconds !== null && (
+                <span
+                  className="rounded-full px-2 py-0.5 text-[11px] font-extrabold tabular-nums"
+                  style={{
+                    background:
+                      turnSeconds <= 10
+                        ? "color-mix(in oklab, var(--heat) 18%, transparent)"
+                        : "var(--surface-2)",
+                    color: turnSeconds <= 10 ? "var(--heat-2)" : "var(--muted)",
+                  }}
+                  aria-label={`${turnSeconds} seconds left this turn`}
+                >
+                  {formatCountdown(turnSeconds)}
+                </span>
+              )}
+            </div>
             <p className="text-[13px] text-muted">One word each, prove it without giving it away</p>
           </div>
           {reminder && (
@@ -909,5 +975,28 @@ function ChatPanel({
         </button>
       </div>
     </div>
+  );
+}
+
+/** Full-screen state for a room that isn't playable yet (or any more). */
+function RoomGate({
+  title,
+  text,
+  children,
+}: {
+  title: string;
+  text: string;
+  children?: ReactNode;
+}) {
+  return (
+    <main className="grid min-h-[100dvh] place-items-center px-5">
+      <div className="w-full max-w-sm text-center">
+        <h1 className="display text-[28px] leading-tight">{title}</h1>
+        <p className="mt-2 text-[15px] leading-relaxed text-muted">{text}</p>
+        {children && (
+          <div className="mt-6 flex flex-wrap items-center justify-center gap-2">{children}</div>
+        )}
+      </div>
+    </main>
   );
 }

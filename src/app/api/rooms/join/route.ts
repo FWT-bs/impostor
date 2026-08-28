@@ -2,8 +2,14 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getActiveRoomCutoffIso } from "@/lib/rooms/stale";
+import {
+  LOBBY_AUTO_START_SECONDS,
+  MIN_ROOM_PLAYERS,
+  isoIn,
+  readDeadlines,
+  withDeadlines,
+} from "@/lib/rooms/deadlines";
 import { ensureSeededBotRooms } from "@/lib/bots/seeded-rooms";
-import { generateRoomCode } from "@/lib/utils";
 import type { Database } from "@/lib/supabase/types";
 
 type Room = Database["public"]["Tables"]["rooms"]["Row"];
@@ -16,33 +22,6 @@ const noStore = { "Cache-Control": "private, no-store, max-age=0" as const };
 
 function isSeededRoom(settings: unknown) {
   return Boolean(settings && typeof settings === "object" && (settings as { aiSeeded?: unknown }).aiSeeded === true);
-}
-
-function normalizeSeededSettings(settings: unknown) {
-  const base = settings && typeof settings === "object" ? (settings as Record<string, unknown>) : {};
-  return {
-    ...base,
-    aiSeeded: false,
-  };
-}
-
-async function reserveFreshRoomCode(admin: ReturnType<typeof createAdminClient>, roomId: string) {
-  for (let attempt = 0; attempt < 10; attempt++) {
-    const code = generateRoomCode();
-    const { data, error } = await admin
-      .from("rooms")
-      .update({ code })
-      .eq("id", roomId)
-      .select("code")
-      .maybeSingle();
-
-    if (!error && data?.code) return data.code;
-    if (error?.code !== "23505") {
-      throw new Error(error?.message ?? "Could not reserve room code");
-    }
-  }
-
-  throw new Error("Could not reserve room code");
 }
 
 export async function POST(request: Request) {
@@ -111,27 +90,6 @@ export async function POST(request: Request) {
     .maybeSingle();
 
   if (existingPlayer) {
-    const hasHumanHost = room.room_players?.some((player) => player.user_id && !player.is_bot) ?? false;
-    if (isSeededRoom(room.settings) && !hasHumanHost) {
-      const nextCode = await reserveFreshRoomCode(admin, room.id);
-      await admin
-        .from("rooms")
-        .update({
-          host_id: user.id,
-          code: nextCode,
-          settings: normalizeSeededSettings(room.settings),
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", room.id);
-      await admin
-        .from("room_players")
-        .update({ is_host: true, is_ready: true })
-        .eq("id", existingPlayer.id);
-      await ensureSeededBotRooms(admin).catch((error) => {
-        console.error("[rooms/join] reseed after reclaim failed:", error);
-      });
-      return NextResponse.json({ room: { ...room, code: nextCode } }, { headers: noStore });
-    }
     return NextResponse.json({ room }, { headers: noStore });
   }
 
@@ -149,14 +107,17 @@ export async function POST(request: Request) {
   }
 
   const hasHumanPlayers = room.room_players?.some((player) => player.user_id && !player.is_bot) ?? false;
-  const shouldClaimSeededTable = isSeededRoom(room.settings) && !hasHumanPlayers;
+  // The first human at a bot table takes the host seat so someone can press
+  // start. The room keeps its code and stays listed, so friends who follow the
+  // same link land in this very lobby instead of a fresh copy of it.
+  const claimsHostSeat = isSeededRoom(room.settings) && !hasHumanPlayers;
 
   const { error: joinError } = await admin.from("room_players").insert({
     room_id: room.id,
     user_id: user.id,
     display_name: displayName,
-    is_host: shouldClaimSeededTable,
-    is_ready: shouldClaimSeededTable,
+    is_host: claimsHostSeat,
+    is_ready: claimsHostSeat,
     player_order: playerCount,
   });
 
@@ -167,25 +128,29 @@ export async function POST(request: Request) {
     );
   }
 
-  if (shouldClaimSeededTable) {
-    const nextCode = await reserveFreshRoomCode(admin, room.id);
-    const nextSettings = normalizeSeededSettings(room.settings);
+  const nextPlayerCount = playerCount + 1;
+  const deadlines = readDeadlines(room.settings);
+  const roomUpdate: Record<string, unknown> = { updated_at: new Date().toISOString() };
+  if (claimsHostSeat) roomUpdate.host_id = user.id;
 
-    await admin
-      .from("rooms")
-      .update({
-        host_id: user.id,
-        code: nextCode,
-        settings: nextSettings,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", room.id);
-
-    await ensureSeededBotRooms(admin).catch((error) => {
-      console.error("[rooms/join] reseed after claim failed:", error);
-    });
-    return NextResponse.json({ room: { ...room, code: nextCode, host_id: user.id, settings: nextSettings } }, { headers: noStore });
+  // Start the lobby countdown as soon as the table is playable. Once it's
+  // running we leave it alone, so later joins don't keep pushing it back.
+  let settings = room.settings as unknown;
+  if (nextPlayerCount >= MIN_ROOM_PLAYERS && !deadlines.startsAt) {
+    settings = withDeadlines(settings, { startsAt: isoIn(LOBBY_AUTO_START_SECONDS) });
+    roomUpdate.settings = settings;
   }
 
-  return NextResponse.json({ room }, { headers: noStore });
+  await admin.from("rooms").update(roomUpdate).eq("id", room.id);
+
+  // Top the bot tables back up in the background so the browser always has an
+  // open one to show, even now that this table has a human in it.
+  void ensureSeededBotRooms(admin).catch((error) => {
+    console.error("[rooms/join] reseed failed:", error);
+  });
+
+  return NextResponse.json(
+    { room: { ...room, settings, ...(claimsHostSeat ? { host_id: user.id } : {}) } },
+    { headers: noStore },
+  );
 }

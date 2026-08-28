@@ -128,7 +128,8 @@ export default function RoomsPage() {
   const [refreshing, setRefreshing] = useState(false);
   const [listError, setListError] = useState<string | null>(null);
   const [joinCode, setJoinCode] = useState("");
-  const [joining, setJoining] = useState(false);
+  /** Code of the room currently being joined, so only that card spins. */
+  const [joiningCode, setJoiningCode] = useState<string | null>(null);
   const [showCreate, setShowCreate] = useState(false);
   const [premiumPromptPack, setPremiumPromptPack] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
@@ -415,7 +416,7 @@ export default function RoomsPage() {
       router.push(loginWithNext(pathname));
       return;
     }
-    setJoining(true);
+    setJoiningCode(cleanCode);
     try {
       const name =
         displayName.trim() ||
@@ -435,7 +436,7 @@ export default function RoomsPage() {
       router.push(`/rooms/${nextCode}`);
       router.refresh();
     } finally {
-      setJoining(false);
+      setJoiningCode(null);
     }
   }
 
@@ -549,8 +550,8 @@ export default function RoomsPage() {
               <Button
                 className="h-11 min-w-0 rounded-lg px-3"
                 onClick={() => handleJoin(joinCode)}
-                disabled={joinCode.length !== 4 || joining}
-                isLoading={joining}
+                disabled={joinCode.length !== 4 || joiningCode !== null}
+                isLoading={joiningCode === joinCode.trim().toUpperCase()}
               >
                 Join
               </Button>
@@ -606,7 +607,7 @@ export default function RoomsPage() {
                           action={getRoomAction({
                             tab,
                             room,
-                            joining,
+                            joiningCode,
                             authLoading,
                             onJoin: () => handleJoin(room.code),
                             onEnter: () => enterMyRoom(room),
@@ -839,14 +840,14 @@ function getRoomTopic(settings: unknown): string {
 function getRoomAction({
   tab,
   room,
-  joining,
+  joiningCode,
   authLoading,
   onJoin,
   onEnter,
 }: {
   tab: RoomTab;
   room: RoomRow;
-  joining: boolean;
+  joiningCode: string | null;
   authLoading: boolean;
   onJoin: () => void;
   onEnter: () => void;
@@ -863,7 +864,12 @@ function getRoomAction({
   // copy-code fallback.
   if (room.status === "waiting") {
     return (
-      <Button size="sm" onClick={onJoin} disabled={joining || authLoading} isLoading={joining}>
+      <Button
+        size="sm"
+        onClick={onJoin}
+        disabled={joiningCode !== null || authLoading}
+        isLoading={joiningCode === room.code}
+      >
         Join
       </Button>
     );

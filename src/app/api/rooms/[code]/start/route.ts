@@ -5,6 +5,12 @@ import { pickWord } from "@/lib/game/words";
 import { getPlayerIdentity } from "@/lib/game/player-identity";
 import { resolveImpostorCount, type RoomSettings } from "@/lib/rooms/settings";
 import { isWithinActiveRoomWindow } from "@/lib/rooms/stale";
+import {
+  MIN_ROOM_PLAYERS,
+  hasPassed,
+  readDeadlines,
+  withDeadlines,
+} from "@/lib/rooms/deadlines";
 import type { Database } from "@/lib/supabase/types";
 
 type Room = Database["public"]["Tables"]["rooms"]["Row"];
@@ -45,17 +51,12 @@ export async function POST(
     );
   }
 
-  if (room.host_id !== user.id) {
-    return NextResponse.json(
-      { error: "Only the host can start the game" },
-      { status: 403 }
-    );
-  }
-
   if (room.status !== "waiting" && room.phase !== "results") {
+    // Already running — an expired-countdown poke from a second client is
+    // normal here, so don't treat it as an error.
     return NextResponse.json(
-      { error: "Game cannot be started in current state" },
-      { status: 400 }
+      { ok: true, alreadyStarted: true },
+      { status: 200 }
     );
   }
 
@@ -66,10 +67,25 @@ export async function POST(
     .order("player_order", { ascending: true })
     .returns<RoomPlayer[]>();
 
-  if (!players || players.length < 3) {
+  if (!players || players.length < MIN_ROOM_PLAYERS) {
     return NextResponse.json(
-      { error: "Need at least 3 players" },
+      { error: `Need at least ${MIN_ROOM_PLAYERS} players` },
       { status: 400 }
+    );
+  }
+
+  // Anyone at the table may start it once the lobby countdown has run out or
+  // every human is ready. Outside those windows it stays the host's call.
+  const humans = players.filter((player) => !player.is_bot);
+  const everyoneReady =
+    humans.length > 0 && humans.every((player) => player.is_ready || player.is_host);
+  const countdownDone = hasPassed(readDeadlines(room.settings).startsAt);
+  const isMember = players.some((player) => player.user_id === user.id);
+
+  if (room.host_id !== user.id && !(isMember && (everyoneReady || countdownDone))) {
+    return NextResponse.json(
+      { error: "Only the host can start the game" },
+      { status: 403 }
     );
   }
 
@@ -161,6 +177,14 @@ export async function POST(
       phase: "role_reveal",
       current_turn_index: 0,
       current_round_id: round.id,
+      // Clear the lobby countdown; the clue turn gets its own clock once the
+      // table moves past role reveal.
+      settings: withDeadlines(room.settings, {
+        startsAt: null,
+        turnEndsAt: null,
+        phaseEndsAt: null,
+      }),
+      updated_at: new Date().toISOString(),
     })
     .eq("id", room.id);
 

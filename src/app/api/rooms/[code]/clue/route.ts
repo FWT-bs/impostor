@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isWithinActiveRoomWindow } from "@/lib/rooms/stale";
+import { CLUE_TURN_SECONDS, isoIn, withDeadlines } from "@/lib/rooms/deadlines";
+import { clampWholeNumber, type RoomSettings } from "@/lib/rooms/settings";
 import type { Database } from "@/lib/supabase/types";
 
 type Room = Database["public"]["Tables"]["rooms"]["Row"];
@@ -80,12 +82,21 @@ export async function POST(
 
   const nextIdx = room.current_turn_index + 1;
   const allDone = nextIdx >= players.length;
+  const settings = room.settings as Partial<RoomSettings> | null;
 
   await admin
     .from("rooms")
     .update({
       current_turn_index: nextIdx,
       phase: allDone ? "discussion" : "clue_phase",
+      // Hand the clock to the next player, or open the discussion window.
+      settings: withDeadlines(room.settings, {
+        turnEndsAt: allDone ? null : isoIn(CLUE_TURN_SECONDS),
+        phaseEndsAt: allDone
+          ? isoIn(clampWholeNumber(settings?.discussionTimer, 30, 300, 60))
+          : null,
+      }),
+      updated_at: new Date().toISOString(),
     })
     .eq("id", room.id);
 

@@ -15,6 +15,8 @@ import { getAuthAvatarColor, getAuthDisplayName } from "@/lib/auth-display-name"
 import { loginWithNext, signupWithNext } from "@/lib/auth-path";
 import { getPlayerIdentity } from "@/lib/game/player-identity";
 import { describeImpostorCount, type RoomSettings } from "@/lib/rooms/settings";
+import { MIN_ROOM_PLAYERS, readDeadlines } from "@/lib/rooms/deadlines";
+import { formatCountdown, useCountdown, useDeadlineTrigger } from "@/lib/hooks/use-countdown";
 import Link from "next/link";
 
 export default function LobbyPage({ params }: { params: Promise<{ code: string }> }) {
@@ -30,8 +32,22 @@ export default function LobbyPage({ params }: { params: Promise<{ code: string }
 
   const isHost = Boolean(user && room?.host_id === user.id);
   const myPlayer = players.find((p) => p.user_id === user?.id);
-  const canStartNow = isHost && players.length >= 3;
-  const playersNeeded = Math.max(0, 3 - players.length);
+  const canStartNow = isHost && players.length >= MIN_ROOM_PLAYERS;
+  const playersNeeded = Math.max(0, MIN_ROOM_PLAYERS - players.length);
+
+  // Lobby auto-start. Every client counts the same deadline down; whoever's
+  // timer fires first pokes /start, and the route ignores the rest.
+  const { startsAt } = readDeadlines(room?.settings);
+  const startsIn = useCountdown(startsAt);
+  useDeadlineTrigger(
+    startsAt,
+    Boolean(myPlayer) && players.length >= MIN_ROOM_PLAYERS && room?.status === "waiting",
+    () => {
+      void fetch(`/api/rooms/${code}/start`, { method: "POST", credentials: "include" }).catch(
+        () => {},
+      );
+    },
+  );
 
   useEffect(() => {
     if (!loading && room?.phase && room.phase !== "lobby" && room.status === "playing") {
@@ -258,6 +274,7 @@ export default function LobbyPage({ params }: { params: Promise<{ code: string }
                 <Button variant="primary" size="lg" className="w-full" onClick={handleStart} disabled={!canStartNow} isLoading={starting}>
                   <Icon name="play" size={18} fill /> {canStartNow ? "Start round" : `Need ${playersNeeded} more`}
                 </Button>
+                <LobbyCountdown seconds={startsIn} enoughPlayers={players.length >= MIN_ROOM_PLAYERS} />
               </>
             ) : (
               <div className="card card-pad flex items-center justify-between">
@@ -288,6 +305,10 @@ export default function LobbyPage({ params }: { params: Promise<{ code: string }
                   />
                 </button>
               </div>
+            )}
+
+            {myPlayer && !isHost && (
+              <LobbyCountdown seconds={startsIn} enoughPlayers={players.length >= MIN_ROOM_PLAYERS} />
             )}
 
             {myPlayer && (
@@ -411,5 +432,35 @@ function PlainStat({ label, value }: { label: string; value: string }) {
       <p className="text-[11px] font-bold uppercase text-muted">{label}</p>
       <p className="text-lg font-black text-brand-2">{value}</p>
     </div>
+  );
+}
+
+/** Shows how long until the lobby starts itself. */
+function LobbyCountdown({
+  seconds,
+  enoughPlayers,
+}: {
+  seconds: number | null;
+  enoughPlayers: boolean;
+}) {
+  if (!enoughPlayers) {
+    return (
+      <p className="text-center text-xs text-muted">
+        The round starts on its own once {MIN_ROOM_PLAYERS} players are seated.
+      </p>
+    );
+  }
+  if (seconds === null) return null;
+  return (
+    <p className="text-center text-xs text-muted">
+      {seconds > 0 ? (
+        <>
+          Starts automatically in{" "}
+          <span className="font-bold text-brand">{formatCountdown(seconds)}</span>
+        </>
+      ) : (
+        "Starting…"
+      )}
+    </p>
   );
 }
