@@ -23,13 +23,33 @@ export type FanCard = {
   impostor?: boolean;
 };
 
-const SPREAD_DEG = 34; // rotation (deg) of the outermost visible card
-const OVERLAP = 0.44; // 0..1 — how much neighbouring cards overlap
-const ARC_Y = 34; // px each step away from centre drops
-const ACTIVE_LIFT = 30; // px the centre card rises
+/**
+ * Fan geometry. Desktop runs a much flatter arc than a real hand of cards would:
+ * the cards read as a row of dealt hands laid across the table, so each face
+ * stays upright and legible instead of tipping onto its corner.
+ */
+const DESKTOP = {
+  spreadDeg: 19, // rotation (deg) of the outermost visible card
+  overlap: 0.28, // 0..1 — how much neighbouring cards overlap
+  arcY: 15, // px each step away from centre drops
+  cardW: 248,
+  cardH: 310,
+  maxVisible: 4, // cards either side of centre
+};
+
+const COMPACT = {
+  spreadDeg: 24,
+  overlap: 0.4,
+  arcY: 20,
+  cardW: 146,
+  cardH: 196,
+  maxVisible: 2,
+};
+
+const ACTIVE_LIFT = 28; // px the centre card rises
 const ACTIVE_SCALE = 1.08;
 const INACTIVE_SCALE = 0.96;
-const TILT_X = 8; // deg the fan leans back
+const TILT_X = 6; // deg the fan leans back
 
 export function CardFan({
   cards,
@@ -56,14 +76,11 @@ export function CardFan({
     return () => mq.removeEventListener("change", sync);
   }, []);
 
-  const cardW = compact ? 132 : 214;
-  const cardH = compact ? 178 : 268;
+  const g = compact ? COMPACT : DESKTOP;
+  const { cardW, cardH, maxVisible, arcY: ARC_Y, spreadDeg: SPREAD_DEG } = g;
   const center = Math.floor(cards.length / 2);
-  // More cards on wide screens so the hand reaches the viewport edges and the
-  // outermost ones get cropped, rather than sitting inset on the page.
-  const maxVisible = compact ? 2 : 4;
   const stepDeg = SPREAD_DEG / Math.max(1, maxVisible);
-  const spacing = Math.round(cardW * (1 - OVERLAP));
+  const spacing = Math.round(cardW * (1 - g.overlap));
 
   // Clearance the centre card needs above its resting top: it is both lifted
   // and scaled from its bottom edge, so it grows upward on both counts.
