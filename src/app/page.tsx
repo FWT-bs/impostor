@@ -194,10 +194,12 @@ function Hero() {
         </Button>
       </div>
 
-      {/* Close under the CTA — but not so close that the raised impostor card
-          crowds it — and bleeding past the container so the outer cards get
-          cropped by the viewport, the way a real dealt hand would. */}
-      <CardFan cards={HERO_FAN} className="mt-10" bleed />
+      {/* Sits just under the CTA and runs off the bottom of the first screen:
+          `fitBelowFold` grows the cards until their bottom edges clear the
+          fold, so the hand is cut by the edge of the screen rather than
+          floating on black. Pushing it down with a margin instead would have
+          opened a canyon under the buttons. */}
+      <CardFan cards={HERO_FAN} className="mt-12" bleed fitBelowFold />
     </section>
   );
 }

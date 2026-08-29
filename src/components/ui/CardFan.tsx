@@ -3,7 +3,7 @@
 import { PlayingCard } from "@/components/ui/PlayingCard";
 import { cn } from "@/lib/utils";
 import { motion, useReducedMotion } from "framer-motion";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 /**
  * A fanned "hand" of cards. Each card gets a signed offset from the centre, and
@@ -32,29 +32,36 @@ const DESKTOP = {
   spreadDeg: 19, // rotation (deg) of the outermost visible card
   overlap: 0.28, // 0..1 — how much neighbouring cards overlap
   arcY: 15, // px each step away from centre drops
-  cardW: 248,
   cardH: 310,
+  aspect: 0.8, // width / height
   maxVisible: 4, // cards either side of centre
+  minH: 300,
+  maxH: 520,
 };
 
 const COMPACT = {
   spreadDeg: 24,
   overlap: 0.4,
   arcY: 20,
-  cardW: 146,
   cardH: 196,
+  aspect: 0.745,
   maxVisible: 2,
+  minH: 190,
+  maxH: 320,
 };
 
 const ACTIVE_LIFT = 28; // px the centre card rises
 const ACTIVE_SCALE = 1.08;
 const INACTIVE_SCALE = 0.96;
 const TILT_X = 6; // deg the fan leans back
+const HEAD_PAD = ACTIVE_LIFT + 18; // clearance above the lifted centre card
+const BELOW_FOLD = 44; // px of the bottom edge the fold should swallow
 
 export function CardFan({
   cards,
   className,
   bleed = false,
+  fitBelowFold = false,
 }: {
   cards: FanCard[];
   className?: string;
@@ -64,9 +71,19 @@ export function CardFan({
    * tidy, fully-contained graphic.
    */
   bleed?: boolean;
+  /**
+   * Size the cards so their bottom edges land just past the bottom of the
+   * screen. The hand then reads as a table that carries on below the fold
+   * instead of a graphic parked on black — and because the height is derived
+   * from where the fan actually sits, it survives a wrapped headline or any
+   * viewport without a hand-tuned margin.
+   */
+  fitBelowFold?: boolean;
 }) {
   const reduce = useReducedMotion();
   const [compact, setCompact] = useState(false);
+  const [fit, setFit] = useState<{ h: number; push: number } | null>(null);
+  const boxRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const mq = window.matchMedia("(max-width: 640px)");
@@ -77,14 +94,45 @@ export function CardFan({
   }, []);
 
   const g = compact ? COMPACT : DESKTOP;
-  const { cardW, cardH, maxVisible, arcY: ARC_Y, spreadDeg: SPREAD_DEG } = g;
+
+  useEffect(() => {
+    if (!fitBelowFold) return;
+    const el = boxRef.current;
+    if (!el) return;
+
+    const measure = () => {
+      // The box's own top is fixed by the content above it — neither a taller
+      // card nor the drop below moves it — so a single pass solves this with no
+      // risk of each measurement chasing the last.
+      const top = el.getBoundingClientRect().top + window.scrollY;
+      // The centre card's bottom sits at `top + (HEAD_PAD - ACTIVE_LIFT) +
+      // cardH * ACTIVE_SCALE`, and we want that just past the fold.
+      const room = window.innerHeight + BELOW_FOLD - top - (HEAD_PAD - ACTIVE_LIFT);
+      const h = Math.round(Math.min(g.maxH, Math.max(g.minH, room / ACTIVE_SCALE)));
+      // On a tall screen the cards would have to be enormous to reach the fold
+      // on their own, so past the cap the rest of the distance is made up by
+      // dropping the whole hand instead.
+      const push = Math.max(0, Math.round(room - h * ACTIVE_SCALE));
+      setFit({ h, push });
+    };
+
+    measure();
+    window.addEventListener("resize", measure);
+    return () => window.removeEventListener("resize", measure);
+  }, [fitBelowFold, g]);
+
+  const { maxVisible, arcY: ARC_Y, spreadDeg: SPREAD_DEG } = g;
+  // Falls back to the fixed height until (or unless) the fit runs, so a
+  // throttled or failed measure still renders a complete, visible hand.
+  const cardH = fitBelowFold && fit ? fit.h : g.cardH;
+  const cardW = Math.round(cardH * g.aspect);
   const center = Math.floor(cards.length / 2);
   const stepDeg = SPREAD_DEG / Math.max(1, maxVisible);
   const spacing = Math.round(cardW * (1 - g.overlap));
 
   // Clearance the centre card needs above its resting top: it is both lifted
   // and scaled from its bottom edge, so it grows upward on both counts.
-  const headRoom = ACTIVE_LIFT + Math.round(cardH * (ACTIVE_SCALE - 1)) + 18;
+  const headRoom = HEAD_PAD + Math.round(cardH * (ACTIVE_SCALE - 1));
 
   // Room the outer cards need below their anchor: they are pushed down the arc,
   // and rotating about the bottom centre swings a corner lower still. The box
@@ -96,6 +144,7 @@ export function CardFan({
 
   return (
     <div
+      ref={boxRef}
       className={cn(
         "relative mx-auto flex justify-center",
         // Only the horizontal axis is clipped, and only to stop a card that
@@ -106,7 +155,10 @@ export function CardFan({
         className,
       )}
       style={{
-        height: bleed ? cardH + headRoom + footRoom : cardH + 40,
+        // The cards hang off the box's bottom edge, so growing the box drops
+        // the whole hand without touching where the box itself starts — which
+        // keeps the measurement above stable.
+        height: (bleed ? cardH + headRoom + footRoom : cardH + 40) + (fit?.push ?? 0),
         perspective: 1200,
       }}
     >
