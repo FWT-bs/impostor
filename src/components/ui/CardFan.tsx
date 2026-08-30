@@ -35,8 +35,8 @@ const DESKTOP = {
   cardH: 310,
   aspect: 0.8, // width / height
   maxVisible: 4, // cards either side of centre
-  minH: 300,
-  maxH: 520,
+  minH: 268,
+  maxH: 400,
 };
 
 const COMPACT = {
@@ -46,8 +46,8 @@ const COMPACT = {
   cardH: 196,
   aspect: 0.745,
   maxVisible: 2,
-  minH: 190,
-  maxH: 320,
+  minH: 180,
+  maxH: 280,
 };
 
 const ACTIVE_LIFT = 28; // px the centre card rises
@@ -55,7 +55,10 @@ const ACTIVE_SCALE = 1.08;
 const INACTIVE_SCALE = 0.96;
 const TILT_X = 6; // deg the fan leans back
 const HEAD_PAD = ACTIVE_LIFT + 18; // clearance above the lifted centre card
-const BELOW_FOLD = 44; // px of the bottom edge the fold should swallow
+// Where the centre card's bottom edge lands relative to the fold. Negative
+// leaves a sliver of the card showing above it — enough to read as "there's
+// more here" without the flat bottom edge sitting in full view.
+const FOLD_OFFSET = -26;
 
 export function CardFan({
   cards,
@@ -106,8 +109,8 @@ export function CardFan({
       // risk of each measurement chasing the last.
       const top = el.getBoundingClientRect().top + window.scrollY;
       // The centre card's bottom sits at `top + (HEAD_PAD - ACTIVE_LIFT) +
-      // cardH * ACTIVE_SCALE`, and we want that just past the fold.
-      const room = window.innerHeight + BELOW_FOLD - top - (HEAD_PAD - ACTIVE_LIFT);
+      // cardH * ACTIVE_SCALE`, and we want that landing at the fold + offset.
+      const room = window.innerHeight + FOLD_OFFSET - top - (HEAD_PAD - ACTIVE_LIFT);
       const h = Math.round(Math.min(g.maxH, Math.max(g.minH, room / ACTIVE_SCALE)));
       // On a tall screen the cards would have to be enormous to reach the fold
       // on their own, so past the cap the rest of the distance is made up by

@@ -405,9 +405,9 @@ function PackGrid() {
 /* ------------------------------------------------------------------ */
 
 const STEPS: { icon: IconName; title: string; text: string }[] = [
-  { icon: "eye", title: "Reveal", text: "Everyone gets the secret word — except the impostor, who only sees the pack." },
-  { icon: "chat", title: "Clue", text: "Go around the table. One word each about the secret word. Say too much and you're a target." },
-  { icon: "vote", title: "Vote", text: "Point at the faker. Catch them and the crew wins. Miss and the impostor walks." },
+  { icon: "eye", title: "Reveal", text: "Everyone sees the secret word — except the impostor." },
+  { icon: "chat", title: "Clue", text: "One word each, around the table. Don't say too much." },
+  { icon: "vote", title: "Vote", text: "Point at the faker. Guess right and the crew wins." },
 ];
 
 function HowItWorks() {
@@ -415,20 +415,24 @@ function HowItWorks() {
     <section className="border-t border-border py-14 sm:py-20">
       <h2 className="display text-[clamp(1.9rem,4.5vw,3rem)]">How a round works</h2>
 
-      <div className="mt-8 grid gap-4 md:grid-cols-3">
+      {/* One connected strip, not three standalone tiles — a legend you read
+          left to right, not a set of steps you click through. */}
+      <ol className="mt-8 flex flex-col divide-y divide-border overflow-hidden rounded-[22px] bg-card sm:flex-row sm:divide-x sm:divide-y-0">
         {STEPS.map((step, index) => (
-          <div key={step.title} className="rounded-[22px] bg-card p-6">
-            <div className="flex items-center gap-3">
-              <span className="grid size-9 place-items-center rounded-xl bg-surface-2 text-brand">
-                <Icon name={step.icon} size={18} />
-              </span>
-              <span className="display text-lg text-muted">0{index + 1}</span>
+          <li key={step.title} className="flex flex-1 items-start gap-3.5 p-5 sm:p-6">
+            <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-surface-2 text-brand">
+              <Icon name={step.icon} size={18} />
+            </span>
+            <div>
+              <h3 className="text-[15px] font-bold">
+                <span className="text-muted-2">{index + 1} · </span>
+                {step.title}
+              </h3>
+              <p className="mt-1 text-[13.5px] leading-snug text-muted">{step.text}</p>
             </div>
-            <h3 className="mt-4 text-xl font-bold">{step.title}</h3>
-            <p className="mt-2 text-[15px] leading-relaxed text-muted">{step.text}</p>
-          </div>
+          </li>
         ))}
-      </div>
+      </ol>
     </section>
   );
 }
