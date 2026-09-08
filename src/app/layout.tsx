@@ -6,6 +6,7 @@ import { MotionConfig } from "framer-motion";
 import { ImposterIntro } from "@/components/intro/ImposterIntro";
 import { AuthProvider } from "@/components/providers/auth-provider";
 import { ADSENSE_CLIENT } from "@/lib/ads";
+import { SITE_DESCRIPTION, SITE_NAME, SITE_URL } from "@/lib/site";
 import "./globals.css";
 
 const gabarito = Gabarito({
@@ -15,13 +16,38 @@ const gabarito = Gabarito({
 });
 
 export const metadata: Metadata = {
-  title: "Impostor - Social Deduction Party Game",
-  description:
-    "Find the impostor among your friends. A thrilling party game of bluffing, deduction, and deception.",
-  icons: {
-    icon: [{ url: "/impostor.png", type: "image/png" }],
-    apple: [{ url: "/impostor.png", type: "image/png" }],
+  metadataBase: new URL(SITE_URL),
+  title: {
+    default: `${SITE_NAME} — The Secret-Word Bluffing Party Game`,
+    template: `%s · ${SITE_NAME}`,
   },
+  description: SITE_DESCRIPTION,
+  applicationName: SITE_NAME,
+  keywords: [
+    "imposter",
+    "impostor game",
+    "party game",
+    "social deduction game",
+    "secret word game",
+    "games like spyfall",
+    "the chameleon game",
+    "online party game",
+  ],
+  alternates: { canonical: "/" },
+  openGraph: {
+    type: "website",
+    siteName: SITE_NAME,
+    title: `${SITE_NAME} — The Secret-Word Bluffing Party Game`,
+    description: SITE_DESCRIPTION,
+    url: SITE_URL,
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: `${SITE_NAME} — The Secret-Word Bluffing Party Game`,
+    description: SITE_DESCRIPTION,
+  },
+  // Icons are provided by the app/icon.png and app/apple-icon.png file
+  // conventions.
 };
 
 /** Auth uses cookies; avoid caching HTML/RSC shells that ignore Set-Cookie / session. */

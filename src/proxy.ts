@@ -49,9 +49,21 @@ export async function proxy(request: NextRequest) {
     console.error("[proxy] auth.getUser failed:", e);
   }
 
+  // The marketing / informational pages are identical for every visitor and
+  // carry no session-specific HTML (the header's auth state is hydrated on the
+  // client). Let a CDN cache them so they're fast and cheap to crawl. Every
+  // other route keeps the strict no-store policy that auth depends on.
+  const path = request.nextUrl.pathname;
+  const isPublicContent =
+    /^\/(about|contact|privacy|terms|faq|how-to-play|strategy|packs|games-like-spyfall)(\/|$)/.test(
+      path
+    );
+
   supabaseResponse.headers.set(
     "Cache-Control",
-    "private, no-store, no-cache, max-age=0, must-revalidate"
+    isPublicContent
+      ? "public, max-age=0, s-maxage=3600, stale-while-revalidate=86400"
+      : "private, no-store, no-cache, max-age=0, must-revalidate"
   );
 
   return supabaseResponse;

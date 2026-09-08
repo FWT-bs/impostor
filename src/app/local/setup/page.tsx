@@ -16,15 +16,47 @@ import { useAuth } from "@/lib/hooks/use-auth";
 import { useLocalGameStore } from "@/stores/local-game-store";
 import { AnimatePresence, motion } from "framer-motion";
 import Image from "next/image";
-import { usePathname, useRouter } from "next/navigation";
-import { useMemo, useState, type ReactNode } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useMemo, useState, type ReactNode } from "react";
 
 const MIN_PLAYERS = 3;
 const MAX_PLAYERS = 10;
 
+/**
+ * Map a `?pack=<slug>` value to a free topic-pack name. Premium packs are
+ * intentionally ignored — the /packs pages only deep-link free packs here, so
+ * there's no Imposter+ bypass to guard against.
+ */
+function resolvePackParam(
+  slug: string | null,
+  categories: string[],
+  premium: Set<string>,
+): string | null {
+  if (!slug) return null;
+  const toSlug = (value: string) =>
+    value
+      .toLowerCase()
+      .replace(/&/g, "and")
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-|-$/g, "");
+  const match = categories.find(
+    (cat) => toSlug(cat) === slug && !premium.has(cat),
+  );
+  return match ?? null;
+}
+
 export default function LocalSetupPage() {
+  return (
+    <Suspense fallback={null}>
+      <LocalSetup />
+    </Suspense>
+  );
+}
+
+function LocalSetup() {
   const router = useRouter();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const initGame = useLocalGameStore((s) => s.initGame);
   const { user, profile } = useAuth();
   const categories = useMemo(() => getCategories(), []);
@@ -38,7 +70,11 @@ export default function LocalSetupPage() {
   const [names, setNames] = useState<string[]>(
     Array.from({ length: MAX_PLAYERS }, (_, i) => `Player ${i + 1}`),
   );
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  // Deep link: /local/setup?pack=<slug> from the free /packs pages pre-selects
+  // that topic pack.
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(() =>
+    resolvePackParam(searchParams.get("pack"), categories, premiumCats),
+  );
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [blockedCategory, setBlockedCategory] = useState<string | null>(null);
   const [helpCard, setHelpCard] = useState<"players" | "names" | "topics" | "start" | "preview" | null>(null);

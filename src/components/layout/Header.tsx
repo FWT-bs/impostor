@@ -18,6 +18,7 @@ const nav = [
   { href: "/local/setup", label: "Play" },
   { href: "/rooms", label: "Online" },
   { href: "/leaderboard", label: "Leaderboard" },
+  { href: "/how-to-play", label: "How to play" },
   { href: "/pricing", label: "Premium" },
 ] as const;
 

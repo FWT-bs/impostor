@@ -11,40 +11,35 @@ import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
 import { loginWithNext } from "@/lib/auth-path";
 import { getAuthAvatarColor, getAuthDisplayName } from "@/lib/auth-display-name";
+import { getCategories, getPremiumCategories } from "@/lib/game/words";
 import { useAuth } from "@/lib/hooks/use-auth";
 import Image from "next/image";
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState, type CSSProperties } from "react";
 import { toast } from "sonner";
 
-const FREE_FEATURES = [
-  "Standard topic packs",
-  "Local pass-and-play",
-  "Online multiplayer rooms",
-  "Global leaderboard",
-];
-
 const PREMIUM_FEATURES = [
-  "40+ exclusive topic packs",
+  "Every topic pack unlocked",
   "Priority room creation",
   "Detailed match history",
   "Imposter+ badge",
   "Support development",
 ];
 
-const PREMIUM_PACKS = [
-  "Cult Movies",
-  "Street Food",
-  "90s Nostalgia",
-  "World Capitals",
-  "Sneakerhead",
-  "Boss Battles",
-  "Cocktails",
-  "Conspiracies",
-  "K-Pop",
-  "Pro Wrestling",
-  "Cryptids",
-  "Michelin",
+// The packs that need Imposter+ to select in a game — derived from the word
+// data so this never drifts from what /packs shows.
+const PREMIUM_PACKS = (() => {
+  const premium = getPremiumCategories();
+  return getCategories().filter((cat) => premium.has(cat));
+})();
+const FREE_PACK_COUNT = getCategories().length - PREMIUM_PACKS.length;
+
+const FREE_FEATURES = [
+  `${FREE_PACK_COUNT} standard topic packs`,
+  "Local pass-and-play",
+  "Online multiplayer rooms",
+  "Global leaderboard",
 ];
 
 export default function PricingPage() {
@@ -163,16 +158,25 @@ export default function PricingPage() {
               <div>
                 <h4 className="text-lg font-bold">The topic drawer</h4>
                 <p className="mt-1 text-sm leading-6 text-muted">
-                  Oddly specific packs, argument-friendly categories, built for bluffing
+                  Packs that stay locked on the free tier — unlocked with Imposter+
                 </p>
               </div>
-              <span className="text-sm font-black text-heat-2">40+ total</span>
+              <span className="text-sm font-black text-heat-2">
+                {PREMIUM_PACKS.length} packs
+              </span>
             </div>
             <div className="flex flex-wrap gap-2">
               {PREMIUM_PACKS.map((pack) => (
                 <TopicPackChip key={pack} name={pack} locked premium className="bg-background/70" />
               ))}
             </div>
+            <p className="mt-3 text-xs text-muted-2">
+              See every word list on the{" "}
+              <Link href="/packs" className="underline underline-offset-2 hover:text-foreground">
+                topic packs
+              </Link>{" "}
+              page.
+            </p>
           </div>
         </PricingCard>
       </section>
