@@ -1377,16 +1377,19 @@ textarea,
   margin-top: 0;
 }
 
-.article a {
+/* Links only get the prose treatment inside running text — never buttons or
+   card links, which live in flex/grid containers and carry their own colours.
+   Matches the rest of the app: coloured, underline on hover only. */
+.article :where(p, li, dd, blockquote, td, th) a {
   color: var(--brand-2);
-  text-decoration: underline;
+  text-decoration: none;
   text-underline-offset: 3px;
-  text-decoration-thickness: 1px;
   transition: color 0.15s ease;
 }
 
-.article a:hover {
+.article :where(p, li, dd, blockquote, td, th) a:hover {
   color: var(--brand);
+  text-decoration: underline;
 }
 
 .article strong {
@@ -1394,24 +1397,24 @@ textarea,
   font-weight: 700;
 }
 
-.article ul,
-.article ol {
+/* Only bare lists are prose lists. A list with a class is layout — leave it. */
+.article :where(ul, ol):not([class]) {
   padding-left: 1.4em;
 }
 
-.article li + li {
+.article :where(ul, ol):not([class]) > li + li {
   margin-top: 0.55em;
 }
 
-.article ul > li {
+.article :where(ul):not([class]) > li {
   list-style: disc;
 }
 
-.article ol > li {
+.article :where(ol):not([class]) > li {
   list-style: decimal;
 }
 
-.article li::marker {
+.article :where(ul, ol):not([class]) > li::marker {
   color: var(--muted-2);
 }
 
@@ -1439,17 +1442,16 @@ textarea,
   margin-top: 0.7em;
 }
 
-/* Reusable card blocks inside articles */
+/* Reusable callout card inside articles — matches the flat elevated-tile
+   system (surface colour, no border). */
 .article-card {
-  border: 1px solid var(--border);
-  border-radius: 18px;
-  background: var(--surface);
-  padding: 1.3rem 1.4rem;
+  border-radius: 22px;
+  background: var(--card);
+  padding: 1.4rem 1.5rem;
 }
 
 .article-card--accent {
-  border-color: color-mix(in oklab, var(--brand) 30%, transparent);
-  background: color-mix(in oklab, var(--brand) 8%, var(--surface));
+  background: color-mix(in oklab, var(--brand) 10%, var(--card));
 }
 
 /* ============================================================

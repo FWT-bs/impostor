@@ -1,5 +1,6 @@
 import wordData from "@/data/words.json";
 import type { WordEntry } from "@/types/game";
+import type { IconName } from "@/components/ui/Icon";
 import { normalizeCategory } from "@/lib/game/words";
 
 /**
@@ -26,6 +27,8 @@ export interface PackEditorial {
   };
 }
 
+export type PackTone = "brand" | "heat" | "cream" | "surface";
+
 export interface Pack extends PackEditorial {
   slug: string;
   name: string;
@@ -34,6 +37,9 @@ export interface Pack extends PackEditorial {
   words: { word: string; topic: string }[];
   /** Distinct sub-themes ("Ocean Animals", "Big Cats", …) inside the pack. */
   themes: string[];
+  /** Icon + colour for the pack's tile, matching the home page pack grid. */
+  icon: IconName;
+  tone: PackTone;
 }
 
 export function slugifyPack(name: string): string {
@@ -43,6 +49,63 @@ export function slugifyPack(name: string): string {
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-|-$/g, "");
 }
+
+/** Tile icon per pack. Falls back to `dice` for anything unmapped. */
+const PACK_ICON: Record<string, IconName> = {
+  animals: "eye",
+  food: "flame",
+  sports: "trophy",
+  movies: "play",
+  places: "globe",
+  "household-items": "chair",
+  nature: "flame",
+  technology: "bolt",
+  music: "bolt",
+  vehicles: "send",
+  clothing: "shield",
+  jobs: "users",
+  games: "dice",
+  "body-parts": "eye",
+  drinks: "flame",
+  "kitchen-tools": "chair",
+  "school-supplies": "chat",
+  toys: "star",
+  "at-the-beach": "globe",
+  camping: "flame",
+  tools: "bolt",
+  "in-the-garden": "flame",
+  "birthday-party": "star",
+  space: "star",
+  insects: "eye",
+  birds: "eye",
+  fruit: "flame",
+  "tv-shows": "play",
+  "video-game-worlds": "dice",
+  superheroes: "shield",
+  "cartoon-characters": "chat",
+  "world-landmarks": "globe",
+  countries: "globe",
+  "world-cities": "globe",
+  "mythical-creatures": "ghost",
+  "fairy-tales": "star",
+  dinosaurs: "target",
+  "pizza-toppings": "flame",
+  "ice-cream-flavors": "star",
+  "tabletop-games": "dice",
+  candy: "star",
+  halloween: "ghost",
+  pirates: "ghost",
+  circus: "crown",
+};
+
+const TONE_CYCLE: PackTone[] = ["brand", "heat", "cream", "surface"];
+
+export const PACK_TILE_TONE: Record<PackTone, string> = {
+  brand: "bg-brand text-brand-ink",
+  heat: "bg-heat text-heat-ink",
+  cream: "bg-cream text-ink",
+  surface: "bg-surface-2 text-foreground",
+};
 
 const EDITORIAL: Record<string, PackEditorial> = {
   animals: {
@@ -708,6 +771,8 @@ export function getPacks(): Pack[] {
       premium: list.every((w) => w.premium === true),
       words: list.map((w) => ({ word: w.word, topic: w.topic })),
       themes,
+      icon: PACK_ICON[slug] ?? "dice",
+      tone: "brand",
       ...editorial,
     });
   }
@@ -715,6 +780,11 @@ export function getPacks(): Pack[] {
   packs.sort((a, b) => {
     if (a.premium !== b.premium) return a.premium ? 1 : -1;
     return a.name.localeCompare(b.name);
+  });
+
+  // Assign the tile colour after sorting so it cycles evenly down the grid.
+  packs.forEach((pack, i) => {
+    pack.tone = TONE_CYCLE[i % TONE_CYCLE.length];
   });
 
   cache = packs;

@@ -2,10 +2,12 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ContentPage } from "@/components/site/ContentPage";
+import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
 import { JsonLd, breadcrumbLd, pageMetadata } from "@/lib/seo";
-import { getPack, getPacks } from "@/lib/content/packs";
+import { cn } from "@/lib/utils";
+import { PACK_TILE_TONE, getPack, getPacks } from "@/lib/content/packs";
 
 export const dynamic = "force-static";
 export const dynamicParams = false;
@@ -50,8 +52,6 @@ export default async function PackPage({
     .slice(0, 3);
 
   const sample = pack.sampleRound;
-  // Only free packs deep-link a pre-selected pack into setup; premium packs
-  // send players to the plain setup screen (selecting one needs Imposter+).
   const startHref = pack.premium
     ? "/local/setup"
     : `/local/setup?pack=${pack.slug}`;
@@ -76,130 +76,166 @@ export default async function PackPage({
         ])}
       />
 
-      <div className="not-prose mb-8 flex flex-wrap items-center gap-3">
-        {pack.premium ? (
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-heat/12 px-3 py-1 text-[12px] font-bold text-heat-2">
-            <Icon name="crown" size={12} />
-            Imposter+ pack
-          </span>
-        ) : (
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-brand/12 px-3 py-1 text-[12px] font-bold text-brand-2">
-            <Icon name="check" size={12} />
-            Free pack
-          </span>
-        )}
-        <span className="text-[13px] text-muted-2">
-          {pack.words.length} words · {pack.themes.length} sub-themes
+      <div className="flex flex-wrap items-center gap-2">
+        <span
+          className={cn(
+            "grid size-10 place-items-center rounded-xl",
+            PACK_TILE_TONE[pack.tone],
+          )}
+        >
+          <Icon name={pack.icon} size={18} />
         </span>
+        <Badge variant={pack.premium ? "pink" : "default"}>
+          <Icon name={pack.premium ? "crown" : "check"} size={12} />
+          {pack.premium ? "Imposter+ pack" : "Free pack"}
+        </Badge>
+        <Badge variant="secondary">{pack.words.length} words</Badge>
+        <Badge variant="secondary">{pack.themes.length} sub-themes</Badge>
       </div>
 
       <h2>The word list</h2>
       <p>
-        These are every word in the {pack.name} pack. In a game the crew sees one
-        of them exactly; the impostor sees only the sub-theme in the right-hand
-        column.
+        The crew sees one of these exactly. The impostor sees only the sub-theme
+        under it.
       </p>
-      <div className="not-prose mt-4 overflow-x-auto">
-        <table className="w-full border-collapse text-sm">
-          <thead>
-            <tr className="border-b border-border text-left text-muted-2">
-              <th className="py-2 pr-4 font-semibold">Word</th>
-              <th className="py-2 font-semibold">Impostor sees</th>
-            </tr>
-          </thead>
-          <tbody>
-            {pack.words.map((w) => (
-              <tr key={w.word} className="border-b border-border/60">
-                <td className="py-2 pr-4 font-semibold text-foreground">
-                  {w.word}
-                </td>
-                <td className="py-2 text-muted">{w.topic}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-4">
+        {pack.words.map((w) => (
+          <div key={w.word} className="rounded-2xl bg-card p-3.5">
+            <p className="font-bold leading-tight text-foreground">{w.word}</p>
+            <p className="mt-1 text-[12px] leading-snug text-muted-2">{w.topic}</p>
+          </div>
+        ))}
       </div>
 
-      <h2>Giving clues for this pack</h2>
-      <h3>If you&apos;re on the crew</h3>
-      <p>{pack.crewTip}</p>
-      <h3>If you&apos;re the impostor</h3>
-      <p>{pack.impostorTip}</p>
+      <h2>Clue tips</h2>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <div className="rounded-[22px] bg-card p-5">
+          <div className="flex items-center gap-2">
+            <span className="grid size-8 place-items-center rounded-lg bg-brand/14 text-brand-2">
+              <Icon name="shield" size={16} />
+            </span>
+            <h3 className="text-[15px] font-bold text-foreground">
+              Playing crew
+            </h3>
+          </div>
+          <p className="mt-3 text-sm leading-relaxed text-muted">
+            {pack.crewTip}
+          </p>
+        </div>
+        <div className="rounded-[22px] bg-card p-5">
+          <div className="flex items-center gap-2">
+            <span className="grid size-8 place-items-center rounded-lg bg-heat/14 text-heat-2">
+              <Icon name="mask" size={16} />
+            </span>
+            <h3 className="text-[15px] font-bold text-foreground">
+              Playing impostor
+            </h3>
+          </div>
+          <p className="mt-3 text-sm leading-relaxed text-muted">
+            {pack.impostorTip}
+          </p>
+        </div>
+      </div>
 
       {sample.word && (
         <>
           <h2>A sample round</h2>
-          <div className="article-card not-prose">
-            <p className="text-[13px] font-semibold uppercase tracking-[0.12em] text-muted-2">
+          <div className="article-card">
+            <p className="text-[12px] font-bold uppercase tracking-[0.14em] text-muted-2">
               Secret word
             </p>
-            <p className="mt-1 text-xl font-bold text-foreground">
-              {sample.word}
-            </p>
-            <div className="mt-4 grid gap-4 sm:grid-cols-2">
+            <p className="display mt-1 text-2xl text-foreground">{sample.word}</p>
+
+            <div className="mt-5 grid gap-4 sm:grid-cols-2">
               <div>
-                <p className="text-[13px] font-semibold text-brand-2">
-                  Crew clues
-                </p>
-                <ul className="mt-1.5 space-y-1 text-sm text-muted">
+                <p className="text-[13px] font-bold text-brand-2">Crew clues</p>
+                <div className="mt-2 flex flex-wrap gap-1.5">
                   {sample.crewClues.map((clue) => (
-                    <li key={clue}>&ldquo;{clue}&rdquo;</li>
+                    <span
+                      key={clue}
+                      className="rounded-full bg-brand/12 px-2.5 py-1 text-[13px] font-semibold text-brand-2"
+                    >
+                      {clue}
+                    </span>
                   ))}
-                </ul>
+                </div>
               </div>
               <div>
-                <p className="text-[13px] font-semibold text-heat-2">
+                <p className="text-[13px] font-bold text-heat-2">
                   Impostor&apos;s clue
                 </p>
-                <p className="mt-1.5 text-sm text-muted">
-                  &ldquo;{sample.impostorClue}&rdquo;
-                </p>
+                <div className="mt-2">
+                  <span className="rounded-full bg-heat/12 px-2.5 py-1 text-[13px] font-semibold text-heat-2">
+                    {sample.impostorClue}
+                  </span>
+                </div>
               </div>
             </div>
-            <p className="mt-4 border-t border-border pt-3 text-sm text-muted">
-              <strong className="text-foreground">The tell:</strong>{" "}
-              {sample.tell}
+
+            <p className="mt-5 border-t border-border pt-4 text-sm leading-relaxed text-muted">
+              <strong className="text-foreground">The tell —</strong> {sample.tell}
             </p>
           </div>
         </>
       )}
 
-      <h2>Play the {pack.name} pack</h2>
-      <p>
-        {pack.premium ? (
-          <>
-            Pick <strong>{pack.name}</strong> on the setup screen — it needs an{" "}
-            <Link href="/pricing">Imposter+</Link> subscription. Or leave the pack
-            on Random and the vault will still deal from it sometimes.
-          </>
-        ) : (
-          <>
-            Choose <strong>{pack.name}</strong> when you set up a{" "}
-            <Link href={startHref}>pass-and-play game</Link> or when you{" "}
-            <Link href="/rooms">create an online room</Link>.
-          </>
-        )}
-      </p>
-      <div className="not-prose mt-5 flex flex-wrap gap-3">
-        <Button asChild>
-          <Link href={startHref}>Start a game</Link>
-        </Button>
-        <Button variant="secondary" asChild>
-          <Link href="/packs">All packs</Link>
-        </Button>
+      <h2>Play this pack</h2>
+      <div className="article-card--accent article-card flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <p className="text-sm leading-relaxed text-muted">
+          {pack.premium ? (
+            <>
+              Pick <strong className="text-foreground">{pack.name}</strong> on the
+              setup screen — it needs <Link href="/pricing">Imposter+</Link>.
+            </>
+          ) : (
+            <>
+              Choose <strong className="text-foreground">{pack.name}</strong> in
+              pass-and-play or when you{" "}
+              <Link href="/rooms">create an online room</Link>.
+            </>
+          )}
+        </p>
+        <div className="flex shrink-0 flex-wrap gap-2.5">
+          <Button asChild>
+            <Link href={startHref}>Start a game</Link>
+          </Button>
+          <Button variant="secondary" asChild>
+            <Link href="/packs">All packs</Link>
+          </Button>
+        </div>
       </div>
 
       {related.length > 0 && (
         <>
           <h2>Related packs</h2>
-          <ul>
+          <div className="grid gap-3 sm:grid-cols-3">
             {related.map((r) => (
-              <li key={r.slug}>
-                <Link href={`/packs/${r.slug}`}>{r.name}</Link> —{" "}
-                {r.intro.split(".")[0]}.
-              </li>
+              <Link
+                key={r.slug}
+                href={`/packs/${r.slug}`}
+                className="group flex items-center justify-between rounded-2xl bg-card p-4 transition-colors hover:bg-card-hover"
+              >
+                <span className="flex items-center gap-2.5">
+                  <span
+                    className={cn(
+                      "grid size-8 place-items-center rounded-lg",
+                      PACK_TILE_TONE[r.tone],
+                    )}
+                  >
+                    <Icon name={r.icon} size={15} />
+                  </span>
+                  <span className="text-sm font-bold text-foreground">
+                    {r.name}
+                  </span>
+                </span>
+                <Icon
+                  name="arrow"
+                  size={15}
+                  className="text-muted-2 transition-transform group-hover:translate-x-0.5"
+                />
+              </Link>
             ))}
-          </ul>
+          </div>
         </>
       )}
     </ContentPage>

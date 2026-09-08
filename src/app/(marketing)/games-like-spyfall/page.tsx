@@ -39,7 +39,7 @@ export default function GamesLikeSpyfallPage() {
       ])} />
 
       <h2>The quick comparison</h2>
-      <div className="not-prose overflow-x-auto">
+      <div className="overflow-x-auto">
         <table className="w-full border-collapse text-sm">
           <thead>
             <tr className="border-b border-border text-left text-muted-2">
@@ -159,7 +159,7 @@ export default function GamesLikeSpyfallPage() {
         <Link href="/packs">browse the topic packs</Link>.
       </p>
 
-      <div className="not-prose mt-6 flex flex-wrap gap-3">
+      <div className="mt-6 flex flex-wrap gap-3">
         <Button asChild>
           <Link href="/local/setup">Try a round</Link>
         </Button>

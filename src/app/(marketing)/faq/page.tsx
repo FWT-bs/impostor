@@ -138,7 +138,7 @@ export default function FaqPage() {
         {FAQ.map((item) => (
           <div key={item.question} className="border-b border-border py-6">
             <dt className="text-lg font-bold text-foreground">{item.question}</dt>
-            <dd className="mt-2 text-muted [&_a]:text-brand-2 [&_a:hover]:text-brand [&_a]:underline [&_a]:underline-offset-2">
+            <dd className="mt-2 text-muted">
               {item.body ?? <p>{item.answer}</p>}
             </dd>
           </div>

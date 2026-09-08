@@ -63,7 +63,7 @@ export default function ContactPage() {
         { name: "Contact", path: "/contact" },
       ])} />
 
-      <div className="article-card article-card--accent not-prose">
+      <div className="article-card article-card--accent">
         <p className="text-sm font-semibold uppercase tracking-[0.12em] text-muted-2">
           Email
         </p>
