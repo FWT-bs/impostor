@@ -1,10 +1,10 @@
 "use client";
 
 import { AppShell, RoomCard } from "@/components/game";
+import { SiteFooter } from "@/components/site/SiteFooter";
 import { Button } from "@/components/ui/Button";
 import { CardFan, type FanCard } from "@/components/ui/CardFan";
 import { Icon, type IconName } from "@/components/ui/Icon";
-import { Logo } from "@/components/ui/Logo";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/lib/hooks/use-auth";
 import { getAuthAvatarColor, getAuthDisplayName } from "@/lib/auth-display-name";
@@ -151,7 +151,7 @@ export default function HomePage() {
       <PackGrid />
       <HowItWorks />
       <ClosingBand signedOut={!user} pathname={pathname} />
-      <Footer />
+      <SiteFooter />
     </AppShell>
   );
 }
@@ -240,7 +240,7 @@ function VaultFeature() {
         <div className="overflow-hidden rounded-[26px] bg-black">
           <Image
             src="/assets/topic-vault-cards.png"
-            alt="A spread of Impostor topic packs — Cult Movies, Street Food, 90s Nostalgia, World Capitals, K-Pop and more"
+            alt="A spread of Imposter topic packs — Animals, Food, Movies, Places, Sports and more"
             width={1448}
             height={1086}
             priority
@@ -251,24 +251,25 @@ function VaultFeature() {
 
         <div>
           <p className="max-w-[46ch] text-[17px] leading-relaxed text-muted">
-            Forty-plus hand-built packs — cult movies, street food, boss battles,
-            world capitals. The crew sees the secret word. The impostor only gets
-            the pack name and has to bluff every clue from there.
+            Forty-four hand-built packs — animals, street food, blockbuster
+            movies, world capitals, dinosaurs, pizza toppings. The crew sees the
+            secret word. The impostor only gets the pack name and has to bluff
+            every clue from there.
           </p>
 
           <div className="mt-8 flex items-center gap-4">
-            <span className="display text-[3.25rem] leading-none text-brand">40+</span>
+            <span className="display text-[3.25rem] leading-none text-brand">440</span>
             <span className="text-[15px] font-semibold leading-snug text-muted">
-              packs in the vault,
+              hand-picked words
               <br />
-              new words every season
+              across 44 topic packs
             </span>
           </div>
 
           <div className="mt-8">
             <Button variant="secondary" className="rounded-full px-7" asChild>
-              <Link href="/local/setup">
-                Browse the vault <Icon name="arrow" size={17} />
+              <Link href="/packs">
+                Browse the packs <Icon name="arrow" size={17} />
               </Link>
             </Button>
           </div>
@@ -360,27 +361,37 @@ function LiveTables({ rooms, playingNow }: { rooms: RoomView[]; playingNow: numb
 /* Topic packs — the category grid.                                    */
 /* ------------------------------------------------------------------ */
 
-const PACKS: { name: string; blurb: string; icon: IconName; tone: string }[] = [
-  { name: "Movies", blurb: "Blockbusters, cult classics, one-liners", icon: "play", tone: "bg-heat text-heat-ink" },
-  { name: "Food", blurb: "Street food, sweets, things on a stick", icon: "flame", tone: "bg-brand text-brand-ink" },
-  { name: "Music", blurb: "K-pop, one-hit wonders, festival sets", icon: "bolt", tone: "bg-cream text-ink" },
-  { name: "Places", blurb: "Capitals, landmarks, tiny hometowns", icon: "globe", tone: "bg-surface-2 text-foreground" },
+const PACKS: { name: string; slug: string; blurb: string; icon: IconName; tone: string }[] = [
+  { name: "Movies", slug: "movies", blurb: "Blockbusters, franchises, animated classics", icon: "play", tone: "bg-heat text-heat-ink" },
+  { name: "Food", slug: "food", blurb: "Street food, sweets, things on a stick", icon: "flame", tone: "bg-brand text-brand-ink" },
+  { name: "Music", slug: "music", blurb: "Instruments, gear, live-music culture", icon: "bolt", tone: "bg-cream text-ink" },
+  { name: "Places", slug: "places", blurb: "Cities, landmarks, everyday buildings", icon: "globe", tone: "bg-surface-2 text-foreground" },
 ];
 
 function PackGrid() {
   return (
     <section className="border-t border-border py-14 sm:py-20">
-      <h2 className="display text-[clamp(1.9rem,4.5vw,3rem)]">Topic packs</h2>
-      <p className="mt-2 max-w-[52ch] text-[15px] text-muted">
-        Pick a pack and the whole table bluffs over its words. Leave it on Random
-        to let the vault choose.
-      </p>
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <h2 className="display text-[clamp(1.9rem,4.5vw,3rem)]">Topic packs</h2>
+          <p className="mt-2 max-w-[52ch] text-[15px] text-muted">
+            Pick a pack and the whole table bluffs over its words. Leave it on
+            Random to let the vault choose.
+          </p>
+        </div>
+        <Link
+          href="/packs"
+          className="flex items-center gap-2 text-sm font-semibold text-muted transition-colors hover:text-foreground"
+        >
+          All 44 packs <Icon name="arrow" size={16} />
+        </Link>
+      </div>
 
       <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {PACKS.map((pack) => (
           <Link
             key={pack.name}
-            href="/local/setup"
+            href={`/packs/${pack.slug}`}
             className="group flex h-full flex-col justify-between rounded-[22px] bg-card p-6 transition-all duration-200 will-change-transform hover:-translate-y-0.5 hover:bg-card-hover active:translate-y-0 active:scale-[0.99]"
           >
             <div>
@@ -413,7 +424,15 @@ const STEPS: { icon: IconName; title: string; text: string }[] = [
 function HowItWorks() {
   return (
     <section className="border-t border-border py-14 sm:py-20">
-      <h2 className="display text-[clamp(1.9rem,4.5vw,3rem)]">How a round works</h2>
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <h2 className="display text-[clamp(1.9rem,4.5vw,3rem)]">How a round works</h2>
+        <Link
+          href="/how-to-play"
+          className="flex items-center gap-2 text-sm font-semibold text-muted transition-colors hover:text-foreground"
+        >
+          Full rules <Icon name="arrow" size={16} />
+        </Link>
+      </div>
 
       {/* One connected strip, not three standalone tiles — a legend you read
           left to right, not a set of steps you click through. */}
@@ -495,27 +514,3 @@ function ClosingBand({ signedOut, pathname }: { signedOut: boolean; pathname: st
   );
 }
 
-function Footer() {
-  return (
-    <footer className="border-t border-border py-8">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <Logo size={26} />
-        <div className="flex flex-wrap gap-4 text-sm font-semibold text-muted">
-          <Link href="/local/setup" className="transition-colors hover:text-foreground">
-            Play local
-          </Link>
-          <Link href="/rooms" className="transition-colors hover:text-foreground">
-            Online rooms
-          </Link>
-          <Link href="/leaderboard" className="transition-colors hover:text-foreground">
-            Leaderboard
-          </Link>
-          <Link href="/pricing" className="transition-colors hover:text-foreground">
-            Premium
-          </Link>
-        </div>
-        <span className="text-xs text-muted-2">© 2026 Impostor</span>
-      </div>
-    </footer>
-  );
-}

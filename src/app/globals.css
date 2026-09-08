@@ -1335,6 +1335,124 @@ textarea,
 }
 
 /* ============================================================
+   Long-form article typography (guides, packs, policy pages)
+   ============================================================ */
+.article {
+  color: color-mix(in oklab, var(--text) 84%, transparent);
+  font-size: 1.0625rem;
+  line-height: 1.72;
+}
+
+.article > * + * {
+  margin-top: 1.15em;
+}
+
+.article h2,
+.article h3,
+.article h4 {
+  color: var(--text);
+  font-family: var(--font-display);
+  letter-spacing: var(--display-track);
+  line-height: 1.2;
+  text-wrap: balance;
+}
+
+.article h2 {
+  margin-top: 2.4em;
+  font-size: clamp(1.5rem, 3.2vw, 1.9rem);
+}
+
+.article h3 {
+  margin-top: 1.9em;
+  font-size: 1.25rem;
+}
+
+.article h4 {
+  margin-top: 1.6em;
+  font-size: 1.05rem;
+}
+
+.article h2:first-child,
+.article h3:first-child {
+  margin-top: 0;
+}
+
+.article a {
+  color: var(--brand-2);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-thickness: 1px;
+  transition: color 0.15s ease;
+}
+
+.article a:hover {
+  color: var(--brand);
+}
+
+.article strong {
+  color: var(--text);
+  font-weight: 700;
+}
+
+.article ul,
+.article ol {
+  padding-left: 1.4em;
+}
+
+.article li + li {
+  margin-top: 0.55em;
+}
+
+.article ul > li {
+  list-style: disc;
+}
+
+.article ol > li {
+  list-style: decimal;
+}
+
+.article li::marker {
+  color: var(--muted-2);
+}
+
+.article blockquote {
+  border-left: 3px solid color-mix(in oklab, var(--brand) 55%, transparent);
+  padding-left: 1.1em;
+  color: var(--muted);
+  font-style: italic;
+}
+
+.article hr {
+  border: 0;
+  border-top: 1px solid var(--border);
+  margin-block: 2.6em;
+}
+
+.article code {
+  background: var(--surface-2);
+  border-radius: 6px;
+  padding: 0.12em 0.4em;
+  font-size: 0.9em;
+}
+
+.article :is(h2, h3) + p {
+  margin-top: 0.7em;
+}
+
+/* Reusable card blocks inside articles */
+.article-card {
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background: var(--surface);
+  padding: 1.3rem 1.4rem;
+}
+
+.article-card--accent {
+  border-color: color-mix(in oklab, var(--brand) 30%, transparent);
+  background: color-mix(in oklab, var(--brand) 8%, var(--surface));
+}
+
+/* ============================================================
    Keyframes
    ============================================================ */
 @keyframes glow-pulse {
